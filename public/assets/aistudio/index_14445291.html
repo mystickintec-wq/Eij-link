@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EjjiLink AI | The Ethio-Tech Initiative — Holy Trinity Cathedral General Secondary School</title>
+    <!-- Browser Tab Logo (Favicon) -->
+    <link rel="icon" type="image/jpeg" href="Club_Logo.jpg">
+    <meta name="description" content="EjjiLink AI: Simple, high-confidence gesture-to-speech translation in English and Amharic. Built by The Ethio-Tech Initiative at Holy Trinity Cathedral General Secondary School.">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        ethio: {
+                            green: '#059669',
+                            gold: '#ca8a04',
+                            red: '#dc2626',
+                            navy: '#0b192c'
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+
+    <!-- Feather Icons & MediaPipe Hands -->
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+    <style>
+        :root {
+            --primary-color: #059669; /* Ethiopian Emerald Green */
+            --primary-dark: #047857;
+            --secondary-color: #ca8a04; /* Axum Obelisk Gold */
+            --secondary-dark: #a16207;
+            --accent-color: #dc2626; /* Ethiopian Red Accent */
+            --club-navy: #0b192c;
+            --border-light: #d1fae5;
+            --border-dark: #1e293b;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Subtle circuit-inspired background pattern matching the Club Logo */
+        .bg-circuit-pattern {
+            background-image: radial-gradient(rgba(16, 185, 129, 0.12) 1px, transparent 1px),
+                              radial-gradient(rgba(202, 138, 4, 0.08) 1px, transparent 1px);
+            background-size: 32px 32px;
+            background-position: 0 0, 16px 16px;
+        }
+
+        /* Custom Buttons with Ethio-Tech Initiative Palette */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: #ffffff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(5, 150, 105, 0.35);
+            background: linear-gradient(135deg, var(--primary-dark), var(--secondary-dark));
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--primary-color);
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            border: 2px solid var(--primary-color);
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .dark .btn-secondary {
+            color: #34d399;
+            border-color: #34d399;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(5, 150, 105, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: currentColor;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            border: 2px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .dark .btn-outline {
+            border-color: #334155;
+        }
+
+        .btn-outline:hover:not(:disabled) {
+            border-color: var(--primary-color);
+            background: rgba(5, 150, 105, 0.08);
+        }
+
+        .btn-outline:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Gesture Cards */
+        .gesture-card {
+            padding: 1rem;
+            border-radius: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            border: 2px solid transparent;
+            user-select: none;
+        }
+
+        .gesture-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary-color);
+            box-shadow: 0 10px 20px rgba(5, 150, 105, 0.15);
+        }
+
+        .gesture-card.active-gesture {
+            border-color: var(--secondary-color);
+            background: linear-gradient(135deg, rgba(5, 150, 105, 0.12), rgba(202, 138, 4, 0.12));
+        }
+
+        /* Camera Active Pulse */
+        @keyframes pulse-camera {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+            70% { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .camera-active-ring {
+            animation: pulse-camera 2s infinite;
+            border: 2px solid #10b981;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.3s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100 bg-circuit-pattern transition-colors duration-300">
+
+    <!-- ================= NAVIGATION BAR ================= -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border-b border-gray-200/80 dark:border-slate-800">
+        <nav class="container mx-auto px-4 md:px-6 py-3 flex items-center justify-between">
+            <!-- Brand / Club Logo -->
+            <a href="#" class="flex items-center gap-3 group">
+                <div class="relative w-11 h-11 rounded-full overflow-hidden border-2 border-amber-500/70 shadow-md bg-slate-900 flex items-center justify-center shrink-0">
+                    <img src="Club_Logo.jpg" alt="The Ethio-Tech Initiative Logo" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <!-- Built-in SVG Fallback matching the Axum Obelisk + Circuit Logo -->
+                    <div style="display:none;" class="w-full h-full items-center justify-center bg-[#0b192c] text-amber-400 font-bold text-xs">
+                        <svg viewBox="0 0 64 64" class="w-8 h-8">
+                            <polygon points="32,8 26,16 24,52 40,52 38,16" fill="none" stroke="#eab308" stroke-width="3"/>
+                            <line x1="20" y1="56" x2="44" y2="56" stroke="#eab308" stroke-width="3"/>
+                            <circle cx="16" cy="26" r="4" fill="#34d399"/>
+                            <circle cx="48" cy="22" r="4" fill="#34d399"/>
+                            <circle cx="32" cy="30" r="4" fill="#34d399"/>
+                            <path d="M18,46 Q34,36 48,22" fill="none" stroke="#f8fafc" stroke-width="2.5"/>
+                        </svg>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-extrabold text-lg md:text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 via-amber-500 to-emerald-500 dark:from-emerald-400 dark:via-amber-300 dark:to-emerald-300">
+                            EjjiLink AI
+                        </span>
+                        <span class="hidden sm:inline-block text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 border border-emerald-300/50 dark:border-emerald-700">
+                            Project #01
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 font-medium truncate max-w-[210px] sm:max-w-none">
+                        The Ethio-Tech Initiative • HTCS
+                    </p>
+                </div>
+            </a>
+
+            <!-- Desktop Navigation Links -->
+            <div class="hidden lg:flex items-center gap-6 text-sm font-medium">
+                <a href="#live-demo" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-1.5">
+                    <i data-feather="video" class="w-4 h-4"></i> Live Translator
+                </a>
+                <a href="#portfolio" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-1.5">
+                    <i data-feather="layers" class="w-4 h-4"></i> Club Portfolio
+                </a>
+                <a href="#camera-guide" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-1.5">
+                    <i data-feather="compass" class="w-4 h-4"></i> Camera Guide
+                </a>
+                <a href="#how-it-works" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-1.5">
+                    <i data-feather="heart" class="w-4 h-4"></i> Our Story
+                </a>
+                <a href="#club-hub" class="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-1.5">
+                    <i data-feather="users" class="w-4 h-4"></i> HTCS Club Hub
+                </a>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="flex items-center gap-2.5">
+                <a href="https://github.com/The-Ethio-Tech-Initiative" target="_blank" rel="noopener noreferrer"
+                   class="hidden md:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-gray-100 text-gray-800 dark:bg-slate-800 dark:text-gray-200 border border-gray-300 dark:border-slate-700 hover:border-emerald-500 transition-all">
+                    <i data-feather="github" class="w-3.5 h-3.5"></i>
+                    GitHub Org
+                </a>
+
+                <a href="https://t.me/EthioTech_HTCS" target="_blank" rel="noopener noreferrer"
+                   class="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-sky-500/10 text-sky-600 dark:bg-sky-500/20 dark:text-sky-300 border border-sky-500/30 hover:bg-sky-500/20 transition-all">
+                    <i data-feather="send" class="w-3.5 h-3.5"></i>
+                    Join Telegram
+                </a>
+
+                <button id="theme-toggle" aria-label="Toggle Dark/Light Mode"
+                        class="w-10 h-10 rounded-xl flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-amber-300 border border-gray-200 dark:border-slate-700 hover:border-emerald-500 transition-all">
+                    <i data-feather="sun" id="theme-icon" class="w-4 h-4"></i>
+                </button>
+
+                <button id="mobile-menu-btn" aria-label="Open Menu"
+                        class="lg:hidden w-10 h-10 rounded-xl flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-slate-700">
+                    <i data-feather="menu" id="mobile-menu-icon" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Mobile Dropdown Menu -->
+        <div id="mobile-menu" class="hidden lg:hidden bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-4 pt-2 pb-4 space-y-2">
+            <a href="#live-demo" class="mobile-nav-link block px-3 py-2 rounded-lg font-medium hover:bg-emerald-50 dark:hover:bg-slate-800">Live Translator</a>
+            <a href="#portfolio" class="mobile-nav-link block px-3 py-2 rounded-lg font-medium hover:bg-emerald-50 dark:hover:bg-slate-800">Club Portfolio (EjjiLink & Guzo AI)</a>
+            <a href="#camera-guide" class="mobile-nav-link block px-3 py-2 rounded-lg font-medium hover:bg-emerald-50 dark:hover:bg-slate-800">Camera Guide</a>
+            <a href="#how-it-works" class="mobile-nav-link block px-3 py-2 rounded-lg font-medium hover:bg-emerald-50 dark:hover:bg-slate-800">Our Ethiopian Story</a>
+            <a href="#club-hub" class="mobile-nav-link block px-3 py-2 rounded-lg font-medium hover:bg-emerald-50 dark:hover:bg-slate-800">HTCS Club Hub & Events</a>
+            <div class="grid grid-cols-2 gap-2 pt-2">
+                <a href="https://github.com/The-Ethio-Tech-Initiative" target="_blank" rel="noopener noreferrer"
+                   class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl font-semibold bg-slate-800 text-white text-xs">
+                    <i data-feather="github" class="w-4 h-4"></i> GitHub Org
+                </a>
+                <a href="https://t.me/EthioTech_HTCS" target="_blank" rel="noopener noreferrer"
+                   class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl font-semibold bg-sky-500 text-white text-xs">
+                    <i data-feather="send" class="w-4 h-4"></i> Telegram
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- ================= MAIN CONTENT ================= -->
+    <main class="container mx-auto px-4 md:px-6 pt-28 pb-16">
+
+        <!-- School & Initiative Banner -->
+        <div class="mb-8 flex flex-wrap items-center justify-between gap-4 px-5 py-3 rounded-2xl bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-white border border-amber-500/30 shadow-lg">
+            <div class="flex items-center gap-3">
+                <span class="flex h-2.5 w-2.5 relative">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <p class="text-xs sm:text-sm font-medium text-gray-200">
+                    <strong class="text-amber-400">Holy Trinity Cathedral General Secondary School:</strong> First Official Under-League Portfolio Project by <em>The Ethio-Tech Initiative</em>
+                </p>
+            </div>
+            <a href="https://t.me/EthioTech_HTCS" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-emerald-300 hover:text-amber-300 flex items-center gap-1 underline underline-offset-4">
+                Follow Club Updates <i data-feather="external-link" class="w-3.5 h-3.5"></i>
+            </a>
+        </div>
+
+        <!-- Hero Section -->
+        <section class="flex flex-col lg:flex-row items-center justify-between gap-12 mb-20">
+            <div class="lg:w-1/2">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/80 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-semibold mb-5">
+                    <span>🇪🇹 Built by Students in Addis Ababa</span>
+                    <span>•</span>
+                    <span>English & አማርኛ Voice AI</span>
+                </div>
+
+                <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 leading-tight">
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-amber-500 to-emerald-500 dark:from-emerald-400 dark:via-amber-300 dark:to-emerald-400">
+                        Simple Gesture Translation
+                    </span>
+                    for Everyone
+                </h1>
+
+                <p class="text-lg md:text-xl mb-8 text-gray-600 dark:text-gray-300 leading-relaxed">
+                    <strong>EjjiLink AI</strong> turns everyday hand gestures into a clear, trusted voice in English and Amharic—making communication human, accessible, and instant right from your browser.
+                </p>
+
+                <div class="flex flex-wrap gap-4">
+                    <a href="#live-demo" class="btn-primary px-7 py-3.5 text-base">
+                        <i data-feather="camera" class="w-5 h-5"></i>
+                        Where Hands Become Voices
+                    </a>
+                    <a href="#club-hub" class="btn-secondary px-7 py-3.5 text-base">
+                        <i data-feather="award" class="w-5 h-5"></i>
+                        Explore HTCS Tech Club
+                    </a>
+                </div>
+
+                <div class="mt-10 p-5 bg-gradient-to-r from-emerald-50/90 to-amber-50/90 dark:from-emerald-950/40 dark:to-amber-950/30 backdrop-blur-sm rounded-2xl border border-emerald-200 dark:border-emerald-800/70">
+                    <div class="flex items-start sm:items-center gap-4">
+                        <div class="p-3 bg-emerald-100 dark:bg-emerald-900/60 rounded-xl shrink-0">
+                            <i data-feather="shield" class="text-emerald-700 dark:text-emerald-300 w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-base text-emerald-900 dark:text-emerald-300">Stable, Private & High-Confidence</h3>
+                            <p class="text-sm text-emerald-800/80 dark:text-emerald-400/90 mt-0.5">
+                                6 essential gestures • >85% confidence lock • 100% client-side privacy (no video ever leaves your device)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hero Visual / Club Showcase Card -->
+            <div class="lg:w-1/2 w-full relative">
+                <div class="relative rounded-3xl overflow-hidden shadow-2xl border border-emerald-500/30 bg-slate-900 p-6 md:p-8">
+                    <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
+                        <div class="flex items-center gap-3">
+                            <img src="Club_Logo.jpg" alt="HTCS Club Logo" class="w-12 h-12 rounded-full object-cover border border-amber-400/60" onerror="this.style.display='none'">
+                            <div>
+                                <h2 class="text-white font-bold text-lg">The Ethio-Tech Initiative</h2>
+                                <p class="text-amber-400 text-xs font-medium">Holy Trinity Cathedral General Secondary School</p>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            v1.0 Live
+                        </span>
+                    </div>
+
+                    <!-- Interactive Preview Grid -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+                        <div class="p-3.5 rounded-2xl bg-slate-800/90 border border-slate-700 text-center">
+                            <div class="text-2xl mb-1">👋</div>
+                            <div class="text-xs font-bold text-white">Hello</div>
+                            <div class="text-xs text-amber-400">ሰላም</div>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-slate-800/90 border border-slate-700 text-center">
+                            <div class="text-2xl mb-1">🙏</div>
+                            <div class="text-xs font-bold text-white">Thank You</div>
+                            <div class="text-xs text-amber-400">አመሰግናለሁ</div>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-slate-800/90 border border-slate-700 text-center">
+                            <div class="text-2xl mb-1">👍</div>
+                            <div class="text-xs font-bold text-white">Yes</div>
+                            <div class="text-xs text-amber-400">አዎን</div>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-slate-800/90 border border-slate-700 text-center">
+                            <div class="text-2xl mb-1">👎</div>
+                            <div class="text-xs font-bold text-white">No</div>
+                            <div class="text-xs text-amber-400">አይ</div>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-slate-800/90 border border-slate-700 text-center">
+                            <div class="text-2xl mb-1">🆘</div>
+                            <div class="text-xs font-bold text-white">Help</div>
+                            <div class="text-xs text-amber-400">እርዳኝ</div>
+                        </div>
+                        <div class="p-3.5 rounded-2xl bg-slate-800/90 border border-slate-700 text-center">
+                            <div class="text-2xl mb-1">💧</div>
+                            <div class="text-xs font-bold text-white">Water</div>
+                            <div class="text-xs text-amber-400">ውሃ</div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-gradient-to-r from-emerald-950/90 to-slate-900 border border-emerald-700/50">
+                        <div class="flex items-center gap-3">
+                            <i data-feather="cpu" class="w-8 h-8 text-emerald-400 shrink-0"></i>
+                            <div class="text-xs text-gray-300">
+                                <strong class="text-white block">No Webcam? No Problem!</strong>
+                                Click any gesture card in the demo below to test voice synthesis on any school computer or phone.
+                            </div>
+                        </div>
+                        <a href="#live-demo" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shrink-0 transition-colors">
+                            Try Demo ↓
+                        </a>
+                    </div>
+                </div>
+                <div class="absolute -bottom-6 -right-6 w-48 h-48 bg-gradient-to-r from-emerald-500 to-amber-500 rounded-full opacity-20 blur-3xl -z-10"></div>
+            </div>
+        </section>
+
+        <!-- Step-by-Step Guide -->
+        <section class="mb-16">
+            <div class="text-center mb-10">
+                <h2 class="text-2xl md:text-3xl font-bold mb-3">
+                    Use EjjiLink AI in <span class="text-emerald-600 dark:text-emerald-400">3 Simple Steps</span>
+                </h2>
+                <p class="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                    Designed by HTCS students so anyone—from classmates to elders—can start translating immediately.
+                </p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-lg border border-emerald-200/70 dark:border-emerald-900/60">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white font-bold flex items-center justify-center mb-4">1</div>
+                    <h3 class="text-xl font-bold mb-2">Start Camera or Simulate</h3>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                        Click <strong>"Start Camera"</strong> and permit browser access—or click any Gesture Card to simulate detections on devices without a webcam.
+                    </p>
+                </div>
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-lg border border-amber-200/70 dark:border-amber-900/60">
+                    <div class="w-10 h-10 rounded-xl bg-amber-600 text-white font-bold flex items-center justify-center mb-4">2</div>
+                    <h3 class="text-xl font-bold mb-2">Show a Steady Gesture</h3>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                        Hold your hand clearly in view for 5 consecutive frames. The AI locks onto your gesture only when confidence exceeds 80%.
+                    </p>
+                </div>
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-lg border border-red-200/70 dark:border-red-900/60">
+                    <div class="w-10 h-10 rounded-xl bg-red-600 text-white font-bold flex items-center justify-center mb-4">3</div>
+                    <h3 class="text-xl font-bold mb-2">Hear Instant Speech</h3>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                        Switch seamlessly between <strong>English</strong> and <strong>Amharic (አማርኛ)</strong> and click "Speak It Out" for instant voice synthesis.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= LIVE DEMO SECTION ================= -->
+        <section id="live-demo" class="mb-20 scroll-mt-24">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl md:text-4xl font-extrabold mb-3">Live Translation Studio</h2>
+                <p class="text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+                    Show your hand to the camera or tap any gesture in the library on the right to test real-time translation and voice output.
+                </p>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-8">
+                <!-- Left Column: Camera Input & Telemetry Stats -->
+                <div class="space-y-6">
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 border border-gray-200/70 dark:border-slate-800">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold flex items-center gap-2">
+                                <i data-feather="video" class="w-5 h-5 text-emerald-500"></i>
+                                Camera & Landmark Feed
+                            </h3>
+                            <div class="flex items-center gap-2">
+                                <span class="relative flex h-3 w-3">
+                                    <span id="status-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span id="status-dot" class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                                </span>
+                                <span id="ai-status-text" class="text-xs font-semibold text-emerald-600 dark:text-emerald-400">AI Engine Ready</span>
+                            </div>
+                        </div>
+
+                        <!-- Video & Canvas Container -->
+                        <div id="camera-container" class="relative aspect-video bg-slate-950 rounded-xl overflow-hidden mb-5 border border-slate-800">
+                            <video id="webcam" autoplay playsinline muted class="w-full h-full object-cover" style="transform: scaleX(-1);"></video>
+                            <canvas id="output-canvas" width="960" height="720" class="absolute top-0 left-0 w-full h-full pointer-events-none"></canvas>
+                            
+                            <!-- Placeholder Overlay when Camera is Off -->
+                            <div id="camera-placeholder" class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-slate-950/80 backdrop-blur-xs">
+                                <div class="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mb-3 text-emerald-400">
+                                    <i data-feather="camera" class="w-7 h-7"></i>
+                                </div>
+                                <p class="text-white font-semibold text-base mb-1">Camera Standby</p>
+                                <p class="text-gray-400 text-xs max-w-xs">
+                                    Click <strong>"Start Camera"</strong> below for live hand tracking, or click any <strong>Supported Gesture Card</strong> to run a simulated demo.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Camera Buttons -->
+                        <div class="flex flex-wrap gap-3">
+                            <button id="start-camera" class="btn-primary flex-1 min-w-[140px]">
+                                <i data-feather="video" class="w-4 h-4"></i>
+                                Start Camera
+                            </button>
+                            <button id="stop-camera" disabled class="btn-outline flex-1 min-w-[140px]">
+                                <i data-feather="x-circle" class="w-4 h-4"></i>
+                                Stop Camera
+                            </button>
+                            <button id="toggle-mirror" class="btn-outline flex-1 min-w-[130px]">
+                                <i data-feather="refresh-cw" class="w-4 h-4"></i>
+                                Mirror: On
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Detection Telemetry Stats (Replaces missing detection-stats.js) -->
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-5 border border-gray-200/70 dark:border-slate-800">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                                <i data-feather="activity" class="w-4 h-4 text-amber-500"></i>
+                                Real-Time Detection Telemetry
+                            </h4>
+                            <span id="telemetry-mode" class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300">
+                                Standby / Interactive Mode
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-4 gap-3 text-center">
+                            <div class="p-3 rounded-xl bg-gray-50 dark:bg-slate-800/70">
+                                <div id="stat-fps" class="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">0</div>
+                                <div class="text-[11px] text-gray-500 dark:text-gray-400">FPS</div>
+                            </div>
+                            <div class="p-3 rounded-xl bg-gray-50 dark:bg-slate-800/70">
+                                <div id="stat-hands" class="text-lg font-extrabold text-amber-600 dark:text-amber-400">0</div>
+                                <div class="text-[11px] text-gray-500 dark:text-gray-400">Hands</div>
+                            </div>
+                            <div class="p-3 rounded-xl bg-gray-50 dark:bg-slate-800/70">
+                                <div id="stat-confidence" class="text-lg font-extrabold text-sky-600 dark:text-sky-400">0%</div>
+                                <div class="text-[11px] text-gray-500 dark:text-gray-400">Confidence</div>
+                            </div>
+                            <div class="p-3 rounded-xl bg-gray-50 dark:bg-slate-800/70">
+                                <div id="stat-locked" class="text-lg font-extrabold text-purple-600 dark:text-purple-400">0</div>
+                                <div class="text-[11px] text-gray-500 dark:text-gray-400">Locked</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Camera Guidance Component (Completed & Integrated) -->
+                    <div id="camera-guide" class="bg-gradient-to-br from-emerald-500/10 to-amber-500/10 rounded-2xl p-6 border border-emerald-500/30 scroll-mt-24">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-600 to-amber-600 text-white flex items-center justify-center text-lg shrink-0">
+                                🤲
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-base text-emerald-900 dark:text-emerald-200">Camera Guidance for Best Accuracy</h3>
+                                <p class="text-xs text-gray-600 dark:text-gray-400">Follow these tips when testing on laptops or phones</p>
+                            </div>
+                        </div>
+                        <div class="space-y-2.5 text-sm">
+                            <div class="flex items-start gap-3 p-2.5 rounded-xl bg-white/70 dark:bg-slate-900/70">
+                                <span class="w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">1</span>
+                                <div>
+                                    <strong class="font-semibold">Position Your Hand (30–50 cm):</strong> Keep your palm and all 5 fingers clearly inside the frame without overlapping.
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3 p-2.5 rounded-xl bg-white/70 dark:bg-slate-900/70">
+                                <span class="w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">2</span>
+                                <div>
+                                    <strong class="font-semibold">Hold Steady for 1 Second:</strong> EjjiLink AI requires 5 stable high-confidence frames (>80%) before locking and speaking.
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3 p-2.5 rounded-xl bg-white/70 dark:bg-slate-900/70">
+                                <span class="w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">3</span>
+                                <div>
+                                    <strong class="font-semibold">Good Front Lighting:</strong> Avoid strong backlighting from windows behind you so MediaPipe can track all 21 hand landmarks.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Translation Output & Gesture Library -->
+                <div class="space-y-6">
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 border border-gray-200/70 dark:border-slate-800">
+                        <h3 class="text-lg font-bold flex items-center gap-2 mb-5">
+                            <i data-feather="message-square" class="w-5 h-5 text-amber-500"></i>
+                            Translation Output
+                        </h3>
+
+                        <!-- Current Detection Box -->
+                        <div class="bg-gray-50 dark:bg-slate-950 p-5 rounded-xl border border-gray-200/60 dark:border-slate-800 mb-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Current Detection</span>
+                                <span id="confidence-badge" class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                                    0% confidence
+                                </span>
+                            </div>
+                            <div id="current-translation" class="text-2xl font-bold min-h-[64px] flex items-center justify-center text-center">
+                                <span class="text-gray-400 dark:text-gray-500 text-base font-medium">Show your hand or click a gesture card below</span>
+                            </div>
+                        </div>
+
+                        <!-- Recent Translations History -->
+                        <div class="bg-gradient-to-r from-emerald-50/70 to-amber-50/70 dark:from-emerald-950/30 dark:to-amber-950/20 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800/60 mb-5">
+                            <div class="flex justify-between items-center mb-2.5">
+                                <span class="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">Recent Locked Translations</span>
+                                <button id="clear-history" title="Clear History" class="text-xs font-semibold text-emerald-700 dark:text-emerald-400 hover:text-red-600 dark:hover:text-red-400 flex items-center gap-1">
+                                    <i data-feather="trash-2" class="w-3.5 h-3.5"></i> Clear
+                                </button>
+                            </div>
+                            <div id="translation-history" class="space-y-2 max-h-44 overflow-y-auto pr-1">
+                                <p class="text-xs text-gray-500 dark:text-gray-400 italic py-2 text-center">No translations locked yet.</p>
+                            </div>
+                        </div>
+
+                        <!-- Language & Speech Controls -->
+                        <div class="space-y-4">
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                                <label for="language-select" class="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 sm:w-44">
+                                    <i data-feather="globe" class="w-4 h-4 text-emerald-500"></i>
+                                    Output Language:
+                                </label>
+                                <select id="language-select" class="bg-gray-50 dark:bg-slate-950 border border-emerald-300 dark:border-emerald-700 rounded-xl px-4 py-2.5 flex-1 text-sm font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                                    <option value="en-US">English (US)</option>
+                                    <option value="am-ET">Amharic (አማርኛ)</option>
+                                    <option value="es-ES">Spanish (Español)</option>
+                                    <option value="fr-FR">French (Français)</option>
+                                    <option value="ar-SA">Arabic (العربية)</option>
+                                </select>
+                            </div>
+
+                            <div class="flex gap-3">
+                                <button id="speak-translation" class="btn-primary flex-1">
+                                    <i data-feather="volume-2" class="w-4 h-4"></i>
+                                    Speak It Out
+                                </button>
+                                <button id="copy-translation" class="btn-outline flex-1">
+                                    <i data-feather="copy" class="w-4 h-4"></i>
+                                    Copy Text
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Supported Gesture Library (Interactive) -->
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 border border-gray-200/70 dark:border-slate-800">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-lg font-bold flex items-center gap-2">
+                                <i data-feather="target" class="w-5 h-5 text-emerald-500"></i>
+                                Supported Gestures (Click to Test)
+                            </h3>
+                            <span class="text-xs font-semibold text-amber-600 dark:text-amber-400">6 Core Signs</span>
+                        </div>
+                        <p class="text-gray-600 dark:text-gray-400 mb-4 text-xs">
+                            Click any card below to simulate a high-confidence hand detection and test voice synthesis immediately.
+                        </p>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <div class="gesture-card bg-gray-50 dark:bg-slate-800/90" data-gesture="hello">
+                                <div class="text-3xl mb-1.5">👋</div>
+                                <span class="font-bold text-sm block">Hello</span>
+                                <span class="text-xs text-amber-600 dark:text-amber-400 font-medium">ሰላም</span>
+                            </div>
+                            <div class="gesture-card bg-gray-50 dark:bg-slate-800/90" data-gesture="thank you">
+                                <div class="text-3xl mb-1.5">🙏</div>
+                                <span class="font-bold text-sm block">Thank You</span>
+                                <span class="text-xs text-amber-600 dark:text-amber-400 font-medium">አመሰግናለሁ</span>
+                            </div>
+                            <div class="gesture-card bg-gray-50 dark:bg-slate-800/90" data-gesture="yes">
+                                <div class="text-3xl mb-1.5">👍</div>
+                                <span class="font-bold text-sm block">Yes</span>
+                                <span class="text-xs text-amber-600 dark:text-amber-400 font-medium">አዎን</span>
+                            </div>
+                            <div class="gesture-card bg-gray-50 dark:bg-slate-800/90" data-gesture="no">
+                                <div class="text-3xl mb-1.5">👎</div>
+                                <span class="font-bold text-sm block">No</span>
+                                <span class="text-xs text-amber-600 dark:text-amber-400 font-medium">አይ</span>
+                            </div>
+                            <div class="gesture-card bg-gray-50 dark:bg-slate-800/90" data-gesture="help">
+                                <div class="text-3xl mb-1.5">🆘</div>
+                                <span class="font-bold text-sm block">Help</span>
+                                <span class="text-xs text-amber-600 dark:text-amber-400 font-medium">እርዳኝ</span>
+                            </div>
+                            <div class="gesture-card bg-gray-50 dark:bg-slate-800/90" data-gesture="water">
+                                <div class="text-3xl mb-1.5">💧</div>
+                                <span class="font-bold text-sm block">Water</span>
+                                <span class="text-xs text-amber-600 dark:text-amber-400 font-medium">ውሃ</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= WHY WE BUILT THIS (ETHIOPIAN STORY) ================= -->
+        <section id="how-it-works" class="mb-20 scroll-mt-24">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl md:text-4xl font-extrabold mb-3">Why We Built EjjiLink AI</h2>
+                <p class="text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+                    “A story about bringing people closer—using accessible AI to turn silent gestures into shared understanding.”
+                </p>
+            </div>
+
+            <div class="bg-gradient-to-r from-emerald-50/80 to-amber-50/80 dark:from-emerald-950/30 dark:to-amber-950/20 rounded-3xl p-8 md:p-12 border border-emerald-200 dark:border-emerald-800/70">
+                <div class="grid lg:grid-cols-2 gap-10 items-center">
+                    <div>
+                        <span class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-600 text-white mb-4">
+                            Inclusion Through Technology
+                        </span>
+                        <h3 class="text-2xl md:text-3xl font-bold mb-5 text-emerald-900 dark:text-emerald-300">
+                            Bridging Communication Barriers in Ethiopia
+                        </h3>
+                        <p class="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
+                            In Ethiopia, rich languages and signing systems exist side by side, yet communication barriers can still isolate members of the Deaf and hard-of-hearing community. Our goal at <strong>The Ethio-Tech Initiative</strong> was to build a tool that feels familiar, respectful, and works instantly—without expensive hardware.
+                        </p>
+                        <p class="text-gray-700 dark:text-gray-300 mb-6 leading-relaxed">
+                            Built by student innovators at <strong>Holy Trinity Cathedral General Secondary School</strong> in Addis Ababa, EjjiLink AI focuses on stability and trust. Instead of overloading the system with dozens of unreliable signs, we engineered 6 essential everyday gestures with high-confidence locking.
+                        </p>
+                        <div class="flex items-start gap-4 p-4 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-emerald-200/60 dark:border-slate-800">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-r from-emerald-600 to-amber-500 flex items-center justify-center text-white font-extrabold text-xl shrink-0">
+                                ነ
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-gray-900 dark:text-white">Empowering Accessible Communication with AI</h4>
+                                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">
+                                    Inspired by Ethiopia’s heritage and future—symbolized by our club's Axum obelisk and circuit emblem—we believe student-led technology should serve real human needs first.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Performance & Trust Metrics -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-lg border border-emerald-200 dark:border-slate-800 text-center">
+                            <div class="text-3xl md:text-4xl font-extrabold text-emerald-600 dark:text-emerald-400 mb-2">&gt;85%</div>
+                            <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">Confidence Lock</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Filters out accidental hand movements</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-lg border border-amber-200 dark:border-slate-800 text-center">
+                            <div class="text-3xl md:text-4xl font-extrabold text-amber-600 dark:text-amber-400 mb-2">6</div>
+                            <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">Core Gestures</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Tuned for everyday essential conversation</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-lg border border-red-200 dark:border-slate-800 text-center">
+                            <div class="text-3xl md:text-4xl font-extrabold text-red-600 dark:text-red-400 mb-2">2</div>
+                            <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">Primary Languages</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Instant English & Amharic (አማርኛ) display</p>
+                        </div>
+                        <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-lg border border-sky-200 dark:border-slate-800 text-center">
+                            <div class="text-3xl md:text-4xl font-extrabold text-sky-600 dark:text-sky-400 mb-2">100%</div>
+                            <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">On-Device Privacy</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Zero video uploads or external servers</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= OFFICIAL CLUB PORTFOLIO (EJJILINK AI & GUZO AI) ================= -->
+        <section id="portfolio" class="mb-20 scroll-mt-24">
+            <div class="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
+                <div>
+                    <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 mb-3">
+                        <i data-feather="folder" class="w-3.5 h-3.5"></i> Official HTCS Student Builds
+                    </span>
+                    <h2 class="text-3xl md:text-4xl font-extrabold">The Ethio-Tech Initiative Portfolio</h2>
+                    <p class="text-gray-600 dark:text-gray-400 mt-2 max-w-2xl">
+                        Explore our live and upcoming open-source student projects hosted on our official GitHub organization.
+                    </p>
+                </div>
+                <a href="https://github.com/The-Ethio-Tech-Initiative" target="_blank" rel="noopener noreferrer"
+                   class="btn-outline text-sm self-start md:self-auto">
+                    <i data-feather="github" class="w-4 h-4"></i>
+                    github.com/The-Ethio-Tech-Initiative
+                </a>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Project #01: EjjiLink AI -->
+                <div class="bg-white dark:bg-slate-900 rounded-3xl p-7 shadow-xl border-2 border-emerald-500/60 flex flex-col justify-between relative overflow-hidden">
+                    <div>
+                        <div class="flex items-center justify-between gap-2 mb-4">
+                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                ● Project #01 • LIVE NOW
+                            </span>
+                            <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">Accessibility & Computer Vision</span>
+                        </div>
+                        <h3 class="text-2xl font-extrabold mb-2 flex items-center gap-2">
+                            🤲 EjjiLink AI
+                        </h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-5">
+                            Our flagship under-league static web application that translates 6 core hand gestures into spoken <strong>English</strong> and <strong>Amharic (አማርኛ)</strong> with an &gt;85% confidence lock.
+                        </p>
+                        <div class="flex flex-wrap gap-2 mb-6">
+                            <span class="text-xs px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-slate-800 font-medium">MediaPipe Hands</span>
+                            <span class="text-xs px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-slate-800 font-medium">Web Speech API</span>
+                            <span class="text-xs px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-slate-800 font-medium">Tailwind CSS</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
+                        <a href="#live-demo" class="btn-primary text-xs py-2.5 px-4 flex-1">
+                            <i data-feather="play" class="w-4 h-4"></i> Use Live App Above
+                        </a>
+                        <a href="https://github.com/The-Ethio-Tech-Initiative" target="_blank" rel="noopener noreferrer" class="btn-outline text-xs py-2.5 px-4">
+                            <i data-feather="github" class="w-4 h-4"></i> View Repo
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Project #02: Guzo AI (Pending) -->
+                <div class="bg-white dark:bg-slate-900 rounded-3xl p-7 shadow-xl border-2 border-amber-500/50 flex flex-col justify-between relative overflow-hidden">
+                    <div>
+                        <div class="flex items-center justify-between gap-2 mb-4">
+                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                                ⏳ Project #02 • PENDING / IN DEV
+                            </span>
+                            <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">Smart Mobility & Transit AI</span>
+                        </div>
+                        <h3 class="text-2xl font-extrabold mb-2 flex items-center gap-2">
+                            🧭 Guzo AI (ጉዞ AI)
+                        </h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-5">
+                            Our upcoming second student-led innovation: an intelligent Ethiopian route, commuter guidance, and local travel assistant designed to simplify everyday journeys across Addis Ababa and beyond.
+                        </p>
+                        <div class="flex flex-wrap gap-2 mb-6">
+                            <span class="text-xs px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-slate-800 font-medium">AI Route Assistant</span>
+                            <span class="text-xs px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-slate-800 font-medium">Local Transit Data</span>
+                            <span class="text-xs px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-slate-800 font-medium">Bilingual UI</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
+                        <a href="https://github.com/The-Ethio-Tech-Initiative" target="_blank" rel="noopener noreferrer" class="btn-secondary text-xs py-2.5 px-4 flex-1">
+                            <i data-feather="git-branch" class="w-4 h-4"></i> Track Progress on GitHub
+                        </a>
+                        <a href="https://t.me/EthioTech_HTCS" target="_blank" rel="noopener noreferrer" class="btn-outline text-xs py-2.5 px-4">
+                            <i data-feather="bell" class="w-4 h-4"></i> Get Launch Alert
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= HTCS CLUB HUB & EXTRACURRICULAR ROADMAP ================= -->
+        <section id="club-hub" class="mb-12 scroll-mt-24">
+            <div class="bg-slate-900 text-white rounded-3xl p-8 md:p-12 border border-amber-500/30 shadow-2xl relative overflow-hidden">
+                <div class="grid lg:grid-cols-3 gap-8 items-center relative z-10">
+                    <!-- Club Identity -->
+                    <div class="lg:col-span-2 space-y-4">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-bold">
+                            <i data-feather="zap" class="w-3.5 h-3.5"></i>
+                            Student-Led Extracurricular Initiative
+                        </div>
+                        <h2 class="text-3xl md:text-4xl font-extrabold">
+                            The Ethio-Tech Initiative <span class="text-amber-400">@ HTCS</span>
+                        </h2>
+                        <p class="text-gray-300 text-base leading-relaxed max-w-2xl">
+                            Based at <strong>Holy Trinity Cathedral General Secondary School</strong>, our club brings together passionate student coders, designers, and problem-solvers. <em>EjjiLink AI</em> is our very first under-league portfolio launch—and we are just getting started!
+                        </p>
+
+                        <!-- Club Milestones / Upcoming Activities -->
+                        <div class="grid sm:grid-cols-3 gap-4 pt-3">
+                            <div class="p-4 rounded-2xl bg-slate-800/90 border border-slate-700">
+                                <span class="text-xs font-bold text-emerald-400 uppercase">Milestone 01 • Live</span>
+                                <h4 class="font-bold text-sm mt-1">EjjiLink AI Launch</h4>
+                                <p class="text-xs text-gray-400 mt-1">Static web deployment & computer vision demo.</p>
+                            </div>
+                            <div class="p-4 rounded-2xl bg-slate-800/90 border border-slate-700">
+                                <span class="text-xs font-bold text-amber-400 uppercase">Milestone 02 • Pending</span>
+                                <h4 class="font-bold text-sm mt-1">Guzo AI (ጉዞ AI)</h4>
+                                <p class="text-xs text-gray-400 mt-1">Next-gen smart mobility & route project in development.</p>
+                            </div>
+                            <div class="p-4 rounded-2xl bg-slate-800/90 border border-slate-700">
+                                <span class="text-xs font-bold text-sky-400 uppercase">Community Goal</span>
+                                <h4 class="font-bold text-sm mt-1">Open-Source @ HTCS</h4>
+                                <p class="text-xs text-gray-400 mt-1">Building student repositories on GitHub & Vercel.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Telegram CTA Card -->
+                    <div class="bg-slate-800/95 p-6 rounded-2xl border border-emerald-500/40 text-center space-y-4">
+                        <img src="Club_Logo.jpg" alt="The Ethio-Tech Initiative Logo" class="w-20 h-20 rounded-full mx-auto object-cover border-2 border-amber-400 shadow-lg" onerror="this.style.display='none'">
+                        <div>
+                            <h3 class="font-bold text-xl">Join Our Tech Channel</h3>
+                            <p class="text-xs text-gray-400 mt-1">
+                                Get workshop announcements, Guzo AI beta updates, and code challenges on Telegram.
+                            </p>
+                        </div>
+                        <a href="https://t.me/EthioTech_HTCS" target="_blank" rel="noopener noreferrer"
+                           class="btn-primary w-full py-3 text-sm">
+                            <i data-feather="send" class="w-4 h-4"></i>
+                            Join @EthioTech_HTCS
+                        </a>
+                        <a href="https://github.com/The-Ethio-Tech-Initiative" target="_blank" rel="noopener noreferrer"
+                           class="btn-outline w-full py-2.5 text-xs text-gray-200 border-slate-600">
+                            <i data-feather="github" class="w-4 h-4"></i>
+                            Follow GitHub Organization
+                        </a>
+                        <p class="text-[11px] text-gray-400">
+                            Open to Holy Trinity Cathedral General Secondary School students & tech enthusiasts.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ================= FOOTER ================= -->
+    <footer class="bg-white/90 dark:bg-slate-900/90 border-t border-gray-200 dark:border-slate-800 py-10">
+        <div class="container mx-auto px-4 md:px-6">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center gap-3">
+                    <img src="Club_Logo.jpg" alt="Club Logo" class="w-9 h-9 rounded-full object-cover border border-amber-500/50" onerror="this.style.display='none'">
+                    <div>
+                        <span class="font-bold text-base">EjjiLink AI • The Ethio-Tech Initiative</span>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            Holy Trinity Cathedral General Secondary School (HTCS) • Addis Ababa, Ethiopia
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <span class="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium">MediaPipe Hands</span>
+                    <span class="px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium">Web Speech API</span>
+                    <span class="px-3 py-1 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 font-medium">Tailwind CSS</span>
+                </div>
+
+                <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-4">
+                    <a href="https://github.com/The-Ethio-Tech-Initiative" target="_blank" rel="noopener noreferrer" class="hover:text-emerald-500 font-semibold flex items-center gap-1">
+                        <i data-feather="github" class="w-3.5 h-3.5"></i> GitHub Org
+                    </a>
+                    <span>•</span>
+                    <a href="https://t.me/EthioTech_HTCS" target="_blank" rel="noopener noreferrer" class="hover:text-emerald-500 font-semibold flex items-center gap-1">
+                        <i data-feather="send" class="w-3.5 h-3.5"></i> Telegram Channel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ================= APPLICATION LOGIC ================= -->
+    <script>
+        class EjjiLinkAI {
+            constructor() {
+                this.initializeElements();
+                this.initializeState();
+                this.initializeThemeAndNav();
+                this.bindEvents();
+                this.initializeMediaPipe();
+            }
+
+            initializeElements() {
+                // Video & Canvas with automatic fallback creation so getContext('2d') never fails
+                this.videoElement = document.getElementById('webcam');
+                this.cameraContainer = document.getElementById('camera-container');
+                this.cameraPlaceholder = document.getElementById('camera-placeholder');
+
+                this.canvasElement = document.getElementById('output-canvas') || document.querySelector('canvas');
+                if (!this.canvasElement) {
+                    this.canvasElement = document.createElement('canvas');
+                    this.canvasElement.id = 'output-canvas';
+                    this.canvasElement.width = 960;
+                    this.canvasElement.height = 720;
+                    this.canvasElement.className = 'absolute top-0 left-0 w-full h-full pointer-events-none';
+                    if (this.cameraContainer) {
+                        this.cameraContainer.appendChild(this.canvasElement);
+                    }
+                }
+                this.canvasCtx = this.canvasElement ? this.canvasElement.getContext('2d') : null;
+
+                // Controls
+                this.startCameraBtn = document.getElementById('start-camera');
+                this.stopCameraBtn = document.getElementById('stop-camera');
+                this.toggleMirrorBtn = document.getElementById('toggle-mirror');
+                this.speakBtn = document.getElementById('speak-translation');
+                this.copyBtn = document.getElementById('copy-translation');
+                this.clearHistoryBtn = document.getElementById('clear-history');
+
+                // Output & Telemetry
+                this.currentTranslation = document.getElementById('current-translation');
+                this.confidenceBadge = document.getElementById('confidence-badge');
+                this.translationHistory = document.getElementById('translation-history');
+                this.languageSelect = document.getElementById('language-select');
+                this.gestureCards = document.querySelectorAll('.gesture-card');
+
+                this.statFps = document.getElementById('stat-fps');
+                this.statHands = document.getElementById('stat-hands');
+                this.statConfidence = document.getElementById('stat-confidence');
+                this.statLocked = document.getElementById('stat-locked');
+                this.telemetryMode = document.getElementById('telemetry-mode');
+            }
+
+            initializeState() {
+                this.isCameraActive = false;
+                this.isMirrored = true;
+                this.lastGesture = null;
+                this.lastConfidence = 0;
+                this.lockedGesture = null;
+                this.lockThreshold = 0.82;
+                this.stableFrames = 0;
+                this.requiredStableFrames = 5;
+                this.lockedCount = 0;
+                this.history = [];
+                this.frameCount = 0;
+                this.startTime = null;
+                this.fps = 0;
+
+                this.gestureDatabase = {
+                    'hello': {
+                        text: 'Hello',
+                        emoji: '👋',
+                        threshold: 0.82,
+                        amharic: 'ሰላም'
+                    },
+                    'thank you': {
+                        text: 'Thank You',
+                        emoji: '🙏',
+                        threshold: 0.80,
+                        amharic: 'አመሰግናለሁ'
+                    },
+                    'yes': {
+                        text: 'Yes',
+                        emoji: '👍',
+                        threshold: 0.85,
+                        amharic: 'አዎን'
+                    },
+                    'no': {
+                        text: 'No',
+                        emoji: '👎',
+                        threshold: 0.82,
+                        amharic: 'አይ'
+                    },
+                    'help': {
+                        text: 'Help',
+                        emoji: '🆘',
+                        threshold: 0.78,
+                        amharic: 'እርዳኝ'
+                    },
+                    'water': {
+                        text: 'Water',
+                        emoji: '💧',
+                        threshold: 0.80,
+                        amharic: 'ውሃ'
+                    }
+                };
+            }
+
+            initializeThemeAndNav() {
+                const themeToggle = document.getElementById('theme-toggle');
+                const themeIcon = document.getElementById('theme-icon');
+                const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+                const mobileMenu = document.getElementById('mobile-menu');
+
+                const savedTheme = localStorage.getItem('ejjilink_theme');
+                if (savedTheme === 'light') {
+                    document.documentElement.classList.remove('dark');
+                    if (themeIcon) themeIcon.setAttribute('data-feather', 'moon');
+                } else {
+                    document.documentElement.classList.add('dark');
+                    if (themeIcon) themeIcon.setAttribute('data-feather', 'sun');
+                }
+
+                if (themeToggle) {
+                    themeToggle.addEventListener('click', () => {
+                        const isDark = document.documentElement.classList.toggle('dark');
+                        localStorage.setItem('ejjilink_theme', isDark ? 'dark' : 'light');
+                        if (themeIcon) themeIcon.setAttribute('data-feather', isDark ? 'sun' : 'moon');
+                        if (typeof feather !== 'undefined') feather.replace();
+                    });
+                }
+
+                if (mobileMenuBtn && mobileMenu) {
+                    mobileMenuBtn.addEventListener('click', () => {
+                        mobileMenu.classList.toggle('hidden');
+                    });
+                }
+
+                document.querySelectorAll('.mobile-nav-link').forEach(link => {
+                    link.addEventListener('click', () => {
+                        if (mobileMenu) mobileMenu.classList.add('hidden');
+                    });
+                });
+            }
+
+            initializeMediaPipe() {
+                if (typeof Hands === 'undefined') {
+                    console.warn('MediaPipe Hands library not loaded yet; interactive gesture simulation remains active.');
+                    return;
+                }
+
+                this.hands = new Hands({
+                    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+                });
+
+                this.hands.setOptions({
+                    maxNumHands: 2,
+                    modelComplexity: 1,
+                    minDetectionConfidence: 0.55,
+                    minTrackingConfidence: 0.55
+                });
+
+                this.hands.onResults(this.onResults.bind(this));
+            }
+
+            bindEvents() {
+                this.startCameraBtn?.addEventListener('click', () => this.startCamera());
+                this.stopCameraBtn?.addEventListener('click', () => this.stopCamera());
+                this.toggleMirrorBtn?.addEventListener('click', () => this.toggleMirror());
+
+                this.speakBtn?.addEventListener('click', () => this.speakTranslation());
+                this.copyBtn?.addEventListener('click', () => this.copyTranslation());
+                this.clearHistoryBtn?.addEventListener('click', () => this.clearHistory());
+
+                this.gestureCards.forEach(card => {
+                    card.addEventListener('click', (e) => {
+                        const gesture = e.currentTarget.dataset.gesture;
+                        this.simulateGesture(gesture);
+                    });
+                });
+
+                this.languageSelect?.addEventListener('change', () => {
+                    if (this.lastGesture) {
+                        this.renderTranslationDisplay(this.lastGesture, this.lastConfidence, true);
+                        this.speakTranslation();
+                    }
+                });
+            }
+
+            async startCamera() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            width: { ideal: 960 },
+                            height: { ideal: 720 },
+                            facingMode: 'user',
+                            frameRate: { ideal: 30 }
+                        }
+                    });
+
+                    if (this.videoElement) {
+                        this.videoElement.srcObject = stream;
+                    }
+                    this.isCameraActive = true;
+                    this.startTime = performance.now();
+                    this.frameCount = 0;
+
+                    this.cameraPlaceholder?.classList.add('hidden');
+                    this.cameraContainer?.classList.add('camera-active-ring');
+                    if (this.startCameraBtn) {
+                        this.startCameraBtn.disabled = true;
+                        this.startCameraBtn.innerHTML = '<i data-feather="video" class="w-4 h-4"></i> Camera Active';
+                    }
+                    if (this.stopCameraBtn) this.stopCameraBtn.disabled = false;
+                    if (this.telemetryMode) this.telemetryMode.textContent = 'Live Webcam Tracking';
+                    if (typeof feather !== 'undefined') feather.replace();
+
+                    if (typeof Camera !== 'undefined' && this.hands && this.videoElement) {
+                        this.camera = new Camera(this.videoElement, {
+                            onFrame: async () => {
+                                if (!this.isCameraActive) return;
+                                await this.hands.send({ image: this.videoElement });
+                                this.frameCount++;
+
+                                if (this.frameCount % 15 === 0) {
+                                    const now = performance.now();
+                                    this.fps = Math.min(60, Math.round(1000 / ((now - this.startTime) / this.frameCount)));
+                                    this.startTime = now;
+                                    this.frameCount = 0;
+                                    if (this.statFps) this.statFps.textContent = this.fps.toString();
+                                }
+                            },
+                            width: 960,
+                            height: 720
+                        });
+                        this.camera.start();
+                    }
+
+                    this.lockedGesture = null;
+                    this.stableFrames = 0;
+                    if (this.currentTranslation) {
+                        this.currentTranslation.innerHTML = '<span class="text-gray-400 text-base">Show your hand clearly in view...</span>';
+                    }
+                } catch (error) {
+                    console.warn('Camera access unavailable; switching to Interactive Simulation Mode:', error);
+                    if (this.telemetryMode) this.telemetryMode.textContent = 'Simulation Mode (No Webcam)';
+                    if (this.currentTranslation) {
+                        this.currentTranslation.innerHTML = `
+                            <div class="text-amber-600 dark:text-amber-400 text-sm font-semibold px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                                Camera permission unavailable — tap any <strong>Supported Gesture Card</strong> below to simulate &amp; test voice output!
+                            </div>
+                        `;
+                    }
+                }
+            }
+
+            stopCamera() {
+                if (this.videoElement && this.videoElement.srcObject) {
+                    this.videoElement.srcObject.getTracks().forEach(track => track.stop());
+                    this.videoElement.srcObject = null;
+                }
+                if (this.camera) {
+                    this.camera.stop();
+                }
+
+                this.isCameraActive = false;
+                this.cameraPlaceholder?.classList.remove('hidden');
+                this.cameraContainer?.classList.remove('camera-active-ring');
+
+                if (this.startCameraBtn) {
+                    this.startCameraBtn.disabled = false;
+                    this.startCameraBtn.innerHTML = '<i data-feather="video" class="w-4 h-4"></i> Start Camera';
+                }
+                if (this.stopCameraBtn) this.stopCameraBtn.disabled = true;
+                if (this.telemetryMode) this.telemetryMode.textContent = 'Standby / Interactive Mode';
+                if (typeof feather !== 'undefined') feather.replace();
+
+                if (this.canvasCtx && this.canvasElement) {
+                    this.canvasCtx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
+                }
+                if (this.statFps) this.statFps.textContent = '0';
+                if (this.statHands) this.statHands.textContent = '0';
+            }
+
+            toggleMirror() {
+                this.isMirrored = !this.isMirrored;
+                if (this.videoElement) {
+                    this.videoElement.style.transform = this.isMirrored ? 'scaleX(-1)' : 'scaleX(1)';
+                }
+                if (this.toggleMirrorBtn) {
+                    this.toggleMirrorBtn.innerHTML = `<i data-feather="refresh-cw" class="w-4 h-4"></i> Mirror: ${this.isMirrored ? 'On' : 'Off'}`;
+                }
+                if (typeof feather !== 'undefined') feather.replace();
+            }
+
+            onResults(results) {
+                if (!this.isCameraActive || !this.canvasCtx || !this.canvasElement) return;
+
+                this.canvasCtx.save();
+                this.canvasCtx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
+
+                if (this.isMirrored) {
+                    this.canvasCtx.scale(-1, 1);
+                    this.canvasCtx.translate(-this.canvasElement.width, 0);
+                }
+
+                this.canvasCtx.drawImage(results.image, 0, 0, this.canvasElement.width, this.canvasElement.height);
+
+                const handCount = results.multiHandLandmarks ? results.multiHandLandmarks.length : 0;
+                if (this.statHands) this.statHands.textContent = handCount.toString();
+
+                if (results.multiHandLandmarks && handCount > 0) {
+                    for (const landmarks of results.multiHandLandmarks) {
+                        this.drawLandmarks(landmarks);
+                        const classifications = this.detectBasicGestures(landmarks);
+                        if (classifications.length > 0) {
+                            const bestGesture = classifications.reduce((prev, curr) =>
+                                prev.confidence > curr.confidence ? prev : curr
+                            );
+                            this.processGesture(bestGesture.gesture, bestGesture.confidence);
+                        }
+                    }
+                }
+                this.canvasCtx.restore();
+            }
+
+            detectBasicGestures(landmarks) {
+                if (!landmarks || landmarks.length < 21) return [];
+                const results = [];
+
+                const wrist = landmarks[0];
+                const thumbTip = landmarks[4];
+                const indexTip = landmarks[8];
+                const middleTip = landmarks[12];
+                const ringTip = landmarks[16];
+                const pinkyTip = landmarks[20];
+
+                const tips = [thumbTip, indexTip, middleTip, ringTip, pinkyTip];
+                const avgY = tips.reduce((sum, tip) => sum + tip.y, 0) / tips.length;
+                const spread = Math.max(...tips.map(tip => Math.abs(tip.y - avgY)));
+
+                // 1. Hello (open raised hand)
+                if (spread > 0.14 && avgY < wrist.y - 0.18) {
+                    results.push({ gesture: 'hello', confidence: Math.min(0.96, spread * 3 + 0.5) });
+                }
+
+                // 2. Yes (Thumbs up)
+                const thumbAbove = thumbTip.y < indexTip.y - 0.12 && thumbTip.y < middleTip.y - 0.12;
+                if (thumbAbove) {
+                    results.push({ gesture: 'yes', confidence: 0.92 });
+                }
+
+                // 3. No (Thumbs down)
+                const thumbBelow = thumbTip.y > indexTip.y + 0.16;
+                if (thumbBelow && spread < 0.12) {
+                    results.push({ gesture: 'no', confidence: 0.89 });
+                }
+
+                // 4. Thank You (Flat aligned fingers)
+                const maxYDiff = Math.max(...tips.map(t => t.y)) - Math.min(...tips.map(t => t.y));
+                if (maxYDiff < 0.08 && wrist.y < avgY) {
+                    results.push({ gesture: 'thank you', confidence: 0.88 });
+                }
+
+                // 5. Help (Closed fist)
+                const avgDist = tips.reduce((sum, tip) => sum + Math.hypot(tip.x - wrist.x, tip.y - wrist.y), 0) / tips.length;
+                if (avgDist < 0.16) {
+                    results.push({ gesture: 'help', confidence: 0.86 });
+                }
+
+                // 6. Water (Thumb + Index pinch)
+                const pinchDist = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
+                if (pinchDist < 0.07) {
+                    results.push({ gesture: 'water', confidence: Math.max(0.84, 1 - pinchDist * 8) });
+                }
+
+                return results;
+            }
+
+            drawLandmarks(landmarks) {
+                this.canvasCtx.fillStyle = '#10b981';
+                this.canvasCtx.strokeStyle = '#eab308';
+                this.canvasCtx.lineWidth = 3;
+
+                const connections = [
+                    [0, 1], [1, 2], [2, 3], [3, 4],
+                    [0, 5], [5, 6], [6, 7], [7, 8],
+                    [0, 9], [9, 10], [10, 11], [11, 12],
+                    [0, 13], [13, 14], [14, 15], [15, 16],
+                    [0, 17], [17, 18], [18, 19], [19, 20]
+                ];
+
+                for (const [start, end] of connections) {
+                    this.canvasCtx.beginPath();
+                    this.canvasCtx.moveTo(landmarks[start].x * this.canvasElement.width, landmarks[start].y * this.canvasElement.height);
+                    this.canvasCtx.lineTo(landmarks[end].x * this.canvasElement.width, landmarks[end].y * this.canvasElement.height);
+                    this.canvasCtx.stroke();
+                }
+
+                for (const lm of landmarks) {
+                    this.canvasCtx.beginPath();
+                    this.canvasCtx.arc(lm.x * this.canvasElement.width, lm.y * this.canvasElement.height, 5, 0, 2 * Math.PI);
+                    this.canvasCtx.fill();
+                }
+            }
+
+            processGesture(gesture, confidence, forceLock = false) {
+                const gestureData = this.gestureDatabase[gesture];
+                if (!gestureData || confidence < gestureData.threshold) {
+                    this.stableFrames = 0;
+                    return;
+                }
+
+                if (forceLock) {
+                    this.stableFrames = this.requiredStableFrames;
+                } else if (this.lastGesture === gesture && confidence >= this.lockThreshold) {
+                    this.stableFrames++;
+                } else {
+                    this.stableFrames = 1;
+                }
+
+                this.lastGesture = gesture;
+                this.lastConfidence = confidence;
+
+                const confidencePercent = Math.round(confidence * 100);
+                const isLocked = this.stableFrames >= this.requiredStableFrames;
+
+                this.statConfidence.textContent = `${confidencePercent}%`;
+                this.renderTranslationDisplay(gesture, confidence, isLocked);
+
+                if (isLocked && (forceLock || this.lockedGesture !== gesture)) {
+                    this.lockedGesture = gesture;
+                    this.lockedCount++;
+                    this.statLocked.textContent = this.lockedCount.toString();
+                    this.addToHistory(gestureData.text, gestureData.emoji, confidencePercent, gestureData.amharic);
+                    setTimeout(() => this.speakTranslation(), 150);
+                }
+            }
+
+            renderTranslationDisplay(gesture, confidence, isLocked) {
+                const gestureData = this.gestureDatabase[gesture];
+                if (!gestureData) return;
+
+                const confidencePercent = Math.round(confidence * 100);
+                const lang = this.languageSelect.value;
+                const primaryText = lang === 'am-ET' ? gestureData.amharic : gestureData.text;
+                const secondaryText = lang === 'am-ET' ? gestureData.text : gestureData.amharic;
+
+                this.currentTranslation.innerHTML = `
+                    <div class="flex flex-col items-center fade-in-up">
+                        <div class="flex items-center gap-3">
+                            <span class="text-4xl">${gestureData.emoji}</span>
+                            <span class="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">${primaryText}</span>
+                            ${isLocked ? '<span class="text-lg" title="Confidence Locked">🔒</span>' : ''}
+                        </div>
+                        <div class="mt-1 text-sm font-semibold text-amber-600 dark:text-amber-400">
+                            ${secondaryText}
+                        </div>
+                    </div>
+                `;
+
+                this.confidenceBadge.textContent = isLocked
+                    ? `🔒 ${confidencePercent}% (Locked)`
+                    : `${confidencePercent}% confidence`;
+
+                this.confidenceBadge.className = isLocked
+                    ? 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 border border-emerald-400/50'
+                    : 'px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300';
+            }
+
+            addToHistory(text, emoji, confidence, amharic) {
+                const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                this.history.unshift({ text, emoji, confidence, timestamp, amharic });
+                if (this.history.length > 8) this.history.pop();
+                this.updateHistoryDisplay();
+            }
+
+            updateHistoryDisplay() {
+                if (this.history.length === 0) {
+                    this.translationHistory.innerHTML = '<p class="text-xs text-gray-500 dark:text-gray-400 italic py-2 text-center">No translations locked yet.</p>';
+                    return;
+                }
+
+                this.translationHistory.innerHTML = this.history.map(item => `
+                    <div class="flex items-center justify-between p-2.5 bg-white/80 dark:bg-slate-900/80 rounded-xl border border-emerald-500/20 fade-in-up">
+                        <div class="flex items-center gap-3">
+                            <span class="text-xl">${item.emoji}</span>
+                            <div>
+                                <div class="font-bold text-sm">${item.text} <span class="text-amber-600 dark:text-amber-400 font-medium">• ${item.amharic}</span></div>
+                                <div class="text-[11px] text-gray-500 dark:text-gray-400">${item.timestamp}</div>
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">${item.confidence}%</span>
+                    </div>
+                `).join('');
+            }
+
+            speakTranslation() {
+                if (!this.lastGesture || !('speechSynthesis' in window)) return;
+                const gestureData = this.gestureDatabase[this.lastGesture];
+                if (!gestureData) return;
+
+                window.speechSynthesis.cancel();
+
+                const lang = this.languageSelect.value;
+                const textToSpeak = lang === 'am-ET' ? gestureData.amharic : gestureData.text;
+
+                const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                utterance.lang = lang;
+                utterance.rate = 0.95;
+
+                this.speakBtn.innerHTML = '<i data-feather="volume-x" class="w-4 h-4"></i> Speaking...';
+                feather.replace();
+
+                utterance.onend = () => {
+                    this.speakBtn.innerHTML = '<i data-feather="volume-2" class="w-4 h-4"></i> Speak It Out';
+                    feather.replace();
+                };
+
+                utterance.onerror = () => {
+                    this.speakBtn.innerHTML = '<i data-feather="volume-2" class="w-4 h-4"></i> Speak It Out';
+                    feather.replace();
+                    if (lang === 'am-ET') {
+                        const fallback = new SpeechSynthesisUtterance(gestureData.text);
+                        fallback.lang = 'en-US';
+                        window.speechSynthesis.speak(fallback);
+                    }
+                };
+
+                window.speechSynthesis.speak(utterance);
+            }
+
+            copyTranslation() {
+                if (!this.lastGesture) return;
+                const gestureData = this.gestureDatabase[this.lastGesture];
+                if (!gestureData) return;
+                const textToCopy = `${gestureData.text} (${gestureData.amharic})`;
+
+                const showCopiedFeedback = () => {
+                    if (!this.copyBtn) return;
+                    this.copyBtn.innerHTML = '<i data-feather="check" class="w-4 h-4"></i> Copied!';
+                    if (typeof feather !== 'undefined') feather.replace();
+                    setTimeout(() => {
+                        if (this.copyBtn) {
+                            this.copyBtn.innerHTML = '<i data-feather="copy" class="w-4 h-4"></i> Copy Text';
+                            if (typeof feather !== 'undefined') feather.replace();
+                        }
+                    }, 1800);
+                };
+
+                const textArea = document.createElement('textarea');
+                textArea.value = textToCopy;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showCopiedFeedback();
+                } catch (err) {
+                    console.warn('Copy fallback failed:', err);
+                }
+                document.body.removeChild(textArea);
+            }
+
+            clearHistory() {
+                this.history = [];
+                this.updateHistoryDisplay();
+            }
+
+            simulateGesture(gesture) {
+                const gestureData = this.gestureDatabase[gesture];
+                if (!gestureData) return;
+
+                const simulatedConfidence = 0.89 + Math.random() * 0.08;
+                if (this.telemetryMode) this.telemetryMode.textContent = 'Interactive Simulation Active';
+                if (this.statHands) this.statHands.textContent = '1';
+                if (this.statFps) this.statFps.textContent = '30';
+
+                this.gestureCards.forEach(c => c.classList.remove('active-gesture'));
+                const activeCard = document.querySelector(`.gesture-card[data-gesture="${gesture}"]`);
+                if (activeCard) activeCard.classList.add('active-gesture');
+
+                this.processGesture(gesture, simulatedConfidence, true);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof feather !== 'undefined') feather.replace();
+            window.ejjiLinkAI = new EjjiLinkAI();
+        });
+    </script>
+</body>
+</html>
