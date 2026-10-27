@@ -14,11 +14,37 @@ import {
   Search, 
   X,
   HardDrive,
-  ShieldCheck
+  ShieldCheck,
+  User as UserIcon,
+  LogIn,
+  LogOut,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { CloudVaultItem, GestureKey } from '../types';
 import { GESTURE_DEFINITIONS } from '../data/gestures';
 import { speechService } from '../services/speechService';
+import { 
+  auth, 
+  db, 
+  googleProvider, 
+  signInWithPopup, 
+  signOut, 
+  signInAnonymously, 
+  onAuthStateChanged, 
+  type User,
+  handleFirestoreError,
+  OperationType
+} from '../services/firebase';
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  deleteDoc, 
+  onSnapshot, 
+  query, 
+  where 
+} from 'firebase/firestore';
 
 interface CloudStorageVaultProps {
   isOpen: boolean;
@@ -128,10 +154,12 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
     return INITIAL_VAULT_ITEMS;
   });
 
+  const [currentUser, setCurrentUser] = useState<User | null>(auth.currentUser);
+  const [authLoading, setAuthLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string>('All');
   const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSyncTime, setLastSyncTime] = useState<string>('Just now');
+  const [lastSyncTime, setLastSyncTime] = useState<string>('Local Cache');
   const [isAddingNew, setIsAddingNew] = useState(false);
 
   // New Item Form State
@@ -143,7 +171,63 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
   const [newTags, setNewTags] = useState('Custom, Classroom');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Save to localStorage whenever items change
+  // Track Firebase auth state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Sync with Firestore collection when user is authenticated
+  useEffect(() => {
+    if (!currentUser) return;
+
+    try {
+      const q = query(
+        collection(db, 'cloud_vault'),
+        where('userId', '==', currentUser.uid)
+      );
+
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const firestoreItems: CloudVaultItem[] = [];
+            snapshot.forEach((docSnap) => {
+              const data = docSnap.data();
+              firestoreItems.push({
+                id: docSnap.id,
+                title: data.title || 'Untitled Phrase',
+                phraseEn: data.phraseEn || '',
+                phraseAm: data.phraseAm || '',
+                gestureKey: data.gestureKey || 'hello',
+                timestamp: data.timestamp || new Date().toISOString().substring(0, 10),
+                notes: data.notes || '',
+                tags: Array.isArray(data.tags) ? data.tags : ['Custom']
+              });
+            });
+            // Merge with current items without duplicates
+            setItems((prev) => {
+              const ids = new Set(firestoreItems.map((f) => f.id));
+              const localOnly = prev.filter((p) => !ids.has(p.id));
+              return [...firestoreItems, ...localOnly];
+            });
+            setLastSyncTime('Cloud Firestore Live');
+          }
+        },
+        (error) => {
+          console.warn('Firestore subscription snapshot warning:', error.message);
+        }
+      );
+
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('Error establishing Firestore listener:', e);
+    }
+  }, [currentUser]);
+
+  // Save to localStorage as resilient offline mirror
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
@@ -157,15 +241,83 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Cloud Sync action
-  const handleSyncCloud = () => {
+  // Google Sign-In with popup, fallback to anonymous guest session
+  const handleSignIn = async () => {
+    setAuthLoading(true);
+    try {
+      await signInWithPopup(auth, googleProvider);
+      showToast('Signed in with Google! Cloud sync active.');
+    } catch (err: any) {
+      console.warn('Google popup error, trying guest anonymous sign-in:', err);
+      try {
+        await signInAnonymously(auth);
+        showToast('Connected as Guest Session. Cloud sync active.');
+      } catch (anonErr: any) {
+        showToast(`Sign-in note: ${err.message || 'Popup blocked'}`);
+      }
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      showToast('Signed out of cloud account.');
+    } catch (e) {
+      console.error('Sign-out error:', e);
+    }
+  };
+
+  // Cloud Sync action (persists all current items to Firestore if signed in)
+  const handleSyncCloud = async () => {
     setIsSyncing(true);
-    setTimeout(() => {
+    try {
+      let user = auth.currentUser;
+      if (!user) {
+        // Automatically start guest session if not signed in
+        const cred = await signInAnonymously(auth);
+        user = cred.user;
+      }
+
+      if (user) {
+        // Batch upload current items to Firestore
+        let syncedCount = 0;
+        for (const item of items) {
+          const safeId = item.id.replace(/[^a-zA-Z0-9_\-]/g, '_').substring(0, 120);
+          const docRef = doc(db, 'cloud_vault', safeId);
+          await setDoc(
+            docRef,
+            {
+              id: safeId,
+              title: item.title,
+              phraseEn: item.phraseEn.substring(0, 500),
+              phraseAm: item.phraseAm.substring(0, 500),
+              gestureKey: item.gestureKey,
+              timestamp: item.timestamp,
+              notes: item.notes || '',
+              tags: item.tags,
+              userId: user.uid,
+              updatedAt: new Date().toISOString()
+            },
+            { merge: true }
+          );
+          syncedCount++;
+        }
+        const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        setLastSyncTime(`Today at ${now}`);
+        showToast(`Synced ${syncedCount} phrases directly to Cloud Firestore!`);
+      }
+    } catch (e) {
+      console.warn('Sync error:', e);
+      try {
+        handleFirestoreError(e, OperationType.WRITE, 'cloud_vault');
+      } catch {
+        showToast('Synced to local storage. Cloud network pending.');
+      }
+    } finally {
       setIsSyncing(false);
-      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      setLastSyncTime(`Today at ${now}`);
-      showToast('Cloud Vault synced successfully with EjjiLink Cloud Storage!');
-    }, 900);
+    }
   };
 
   // Export JSON Backup
@@ -204,15 +356,18 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
   };
 
   // Add Item
-  const handleCreateItem = (e: React.FormEvent) => {
+  const handleCreateItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() || !newPhraseEn.trim()) {
       alert('Please provide a title and English phrase.');
       return;
     }
 
+    const rawId = `vault-${Date.now()}`;
+    const safeId = rawId.replace(/[^a-zA-Z0-9_\-]/g, '_');
+
     const newItem: CloudVaultItem = {
-      id: `vault-${Date.now()}`,
+      id: safeId,
       title: newTitle.trim(),
       phraseEn: newPhraseEn.trim(),
       phraseAm: newPhraseAm.trim() || GESTURE_DEFINITIONS[newGesture]?.labelAm || 'ሰላም',
@@ -232,12 +387,34 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
     setNewPhraseAm('');
     setNewNotes('');
     showToast(`Added "${newItem.title}" to Cloud Storage!`);
+
+    // If authenticated, persist to Firestore immediately
+    if (currentUser) {
+      try {
+        await setDoc(doc(db, 'cloud_vault', safeId), {
+          ...newItem,
+          userId: currentUser.uid,
+          updatedAt: new Date().toISOString()
+        });
+      } catch (err) {
+        console.warn('Could not persist new item to Firestore:', err);
+      }
+    }
   };
 
-  const handleDeleteItem = (id: string, title: string) => {
+  const handleDeleteItem = async (id: string, title: string) => {
     if (confirm(`Are you sure you want to delete "${title}" from your Cloud Vault?`)) {
       setItems(items.filter((i) => i.id !== id));
       showToast(`Removed "${title}" from vault.`);
+
+      if (currentUser) {
+        try {
+          const safeId = id.replace(/[^a-zA-Z0-9_\-]/g, '_');
+          await deleteDoc(doc(db, 'cloud_vault', safeId));
+        } catch (err) {
+          console.warn('Could not delete from Firestore:', err);
+        }
+      }
     }
   };
 
@@ -279,7 +456,7 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
                   EjjiLink Cloud Storage & Vault
                 </h3>
                 <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                  <ShieldCheck className="w-3 h-3" /> Encrypted & Active
+                  <ShieldCheck className="w-3 h-3" /> Firestore Zero-Trust
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-gray-400">
@@ -289,11 +466,37 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {currentUser ? (
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs border border-gray-200 dark:border-slate-700">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="font-medium text-slate-700 dark:text-gray-200 truncate max-w-[120px]">
+                  {currentUser.isAnonymous ? 'Guest User' : currentUser.email || 'Cloud User'}
+                </span>
+                <button
+                  onClick={handleSignOut}
+                  className="text-red-500 hover:text-red-600 dark:hover:text-red-400 cursor-pointer p-0.5"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleSignIn}
+                disabled={authLoading}
+                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-gray-200 text-xs font-semibold flex items-center gap-1.5 border border-gray-200 dark:border-slate-700 transition-colors cursor-pointer"
+                title="Sign in to sync with Cloud"
+              >
+                <LogIn className="w-3.5 h-3.5 text-amber-500" />
+                <span>{authLoading ? 'Connecting...' : 'Sign In'}</span>
+              </button>
+            )}
+
             <button
               onClick={handleSyncCloud}
               disabled={isSyncing}
               className="px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-              title="Synchronize with Cloud"
+              title="Synchronize with Cloud Firestore"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">{isSyncing ? 'Syncing...' : 'Sync Cloud'}</span>
@@ -318,10 +521,11 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
             </span>
             <span className="flex items-center gap-1.5 text-slate-500 dark:text-gray-400">
               <HardDrive className="w-3.5 h-3.5 text-emerald-500" />
-              <span>{approxKB} KB / 50 MB Allocated</span>
+              <span>{approxKB} KB Cached</span>
             </span>
-            <span className="hidden md:inline text-slate-400">
-              Last synced: {lastSyncTime}
+            <span className="hidden md:inline-flex items-center gap-1 text-slate-500 dark:text-slate-400">
+              <Wifi className="w-3 h-3 text-emerald-500" />
+              <span>Status: {lastSyncTime}</span>
             </span>
           </div>
 

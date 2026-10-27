@@ -192,8 +192,12 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
     setHistory((prev) => [newItem, ...prev.slice(0, 9)]);
   }, []);
 
-  // Transcript Controls with Held-Sign Debouncing
-  const appendToTranscript = useCallback((gestureKey: GestureKey, confidence: number) => {
+  // Transcript Controls with Held-Sign Debouncing & Source Tracking
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editTextEn, setEditTextEn] = useState('');
+  const [editTextAm, setEditTextAm] = useState('');
+
+  const appendToTranscript = useCallback((gestureKey: GestureKey, confidence: number, source: 'camera' | 'simulation' = 'camera') => {
     const def = GESTURE_DEFINITIONS[gestureKey];
     if (!def) return;
 
@@ -206,10 +210,51 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
       gestureKey,
       confidence: Math.round(confidence * 100),
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      source,
     };
 
     setTranscript((prev) => [...prev, newItem]);
   }, []);
+
+  const handleStartEdit = (item: TranscriptItem) => {
+    setEditingItemId(item.id);
+    setEditTextEn(item.textEn);
+    setEditTextAm(item.textAm);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingItemId) return;
+    setTranscript((prev) =>
+      prev.map((t) =>
+        t.id === editingItemId
+          ? {
+              ...t,
+              textEn: editTextEn.trim() || t.textEn,
+              textAm: editTextAm.trim() || t.textAm,
+              isEdited: true,
+            }
+          : t
+      )
+    );
+    setEditingItemId(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingItemId(null);
+  };
+
+  const handleSpeakFullTranscript = () => {
+    if (transcript.length === 0) return;
+    const fullText = transcript.map((t) => t.textEn).join('. ');
+    speechService.speakCustomText(
+      fullText,
+      selectedLanguage,
+      0.95,
+      () => setIsSpeaking(true),
+      () => setIsSpeaking(false),
+      () => setIsSpeaking(false)
+    );
+  };
 
   const handleUndoTranscript = () => {
     setTranscript((prev) => prev.slice(0, -1));
@@ -270,6 +315,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
           setHandsDetected(detection.handCount);
           setCurrentHandedness(detection.handedness);
           setLiveLandmarks(detection.landmarks);
+          onLiveLandmarksUpdate?.(detection.landmarks, detection.handedness);
 
           const now = performance.now();
           setLastDetectionTimestamp(now);
@@ -304,7 +350,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
             if (isNewGesture || timeSinceLast > 3500) {
               lastTranscribedGestureRef.current = currentLock;
               lastTranscribedTimeRef.current = now;
-              appendToTranscript(currentLock, stabilized.smoothedConfidence);
+              appendToTranscript(currentLock, stabilized.smoothedConfidence, 'camera');
               addToHistory(currentLock, stabilized.smoothedConfidence, 'camera');
               onGestureRecognized?.(currentLock);
 
@@ -318,6 +364,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
           setDetectionStatus('no_hand_detected');
           setHandsDetected(0);
           setLiveLandmarks([]);
+          onLiveLandmarksUpdate?.([], 'Right');
           setClassificationResult(null);
 
           const stabilized = stabilizerRef.current.update(null, 0);
@@ -460,7 +507,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
     setCurrentRecognitionSource('simulation');
     onGestureRecognized?.(gestureKey);
     addToHistory(gestureKey, 0.94, 'simulation');
-    appendToTranscript(gestureKey, 0.94);
+    appendToTranscript(gestureKey, 0.94, 'simulation');
     if (autoSpeak) {
       triggerSpeech(gestureKey);
     }
@@ -895,7 +942,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
             )}
           </div>
 
-          {/* Transcript Panel with Add, Undo, Clear, Copy */}
+          {/* Transcript Panel with Add, Edit, Undo, Clear, Copy, Speak */}
           <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-xl space-y-4">
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-800 pb-3">
               <h4 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-white font-heading flex items-center gap-2">
@@ -906,6 +953,16 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
               </h4>
 
               <div className="flex items-center gap-1.5">
+                <button
+                  onClick={handleSpeakFullTranscript}
+                  disabled={transcript.length === 0}
+                  className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-emerald-600 dark:text-emerald-400 border border-gray-200 dark:border-slate-700 text-xs font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-40 transition-colors shadow-xs"
+                  title="Speak Full Transcript aloud"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Speak All</span>
+                </button>
+
                 <button
                   onClick={handleUndoTranscript}
                   disabled={transcript.length === 0}
@@ -936,30 +993,104 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
               </div>
             </div>
 
+            {/* Inline Editing Form if an item is being edited */}
+            {editingItemId && (
+              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2 text-xs">
+                <div className="flex items-center justify-between font-bold text-amber-700 dark:text-amber-300 font-heading">
+                  <span>Edit Transcript Item</span>
+                  <button onClick={handleCancelEdit} className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] text-gray-500 uppercase font-semibold block mb-0.5">English Text</label>
+                    <input
+                      type="text"
+                      value={editTextEn}
+                      onChange={(e) => setEditTextEn(e.target.value)}
+                      className="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-gray-500 uppercase font-semibold block mb-0.5">Amharic Fidel</label>
+                    <input
+                      type="text"
+                      value={editTextAm}
+                      onChange={(e) => setEditTextAm(e.target.value)}
+                      className="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-ethiopic"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    onClick={handleCancelEdit}
+                    className="px-3 py-1 rounded-xl text-xs bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-slate-700 dark:text-gray-300 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    className="px-3 py-1 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer flex items-center gap-1 shadow-xs"
+                  >
+                    <Save className="w-3 h-3" /> Save Changes
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Transcript Chips Box */}
             <div className="min-h-24 p-4 rounded-2xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 flex flex-wrap gap-2 items-center">
               {transcript.map((item) => (
-                <span
+                <div
                   key={item.id}
-                  className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-xs text-xs font-medium text-slate-800 dark:text-gray-200 flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-150"
+                  className="group px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-xs text-xs font-medium text-slate-800 dark:text-gray-200 flex items-center gap-2 animate-in fade-in zoom-in-95 duration-150"
                 >
                   <span>{item.emoji}</span>
                   <span className="font-bold">{item.textEn}</span>
                   <span className="text-amber-600 dark:text-amber-400 font-ethiopic text-[11px]">({item.textAm})</span>
-                </span>
+                  
+                  {/* Source Badge */}
+                  <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold ${
+                    item.source === 'camera'
+                      ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                  }`}>
+                    {item.source === 'camera' ? '● Cam' : '○ Sim'}
+                  </span>
+
+                  {item.isEdited && (
+                    <span className="text-[9px] text-purple-500 font-bold">edited</span>
+                  )}
+
+                  {/* Edit Trigger */}
+                  <button
+                    onClick={() => handleStartEdit(item)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                    title="Edit Item Text"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </button>
+                </div>
               ))}
 
               {transcript.length === 0 && (
                 <div className="text-xs text-slate-400 italic">
-                  Transcript is empty. Verified signs will appear here automatically, or use the "Add Current Sign" button.
+                  Transcript stream is empty. Hold verified gestures in camera view or click vocabulary cards to transcribe.
                 </div>
               )}
+            </div>
+
+            {/* Linguistic Status Notice */}
+            <div className="p-3 rounded-2xl bg-gray-100 dark:bg-slate-800/60 text-[11px] text-slate-500 dark:text-gray-400 flex items-center justify-between">
+              <span>Linguistic Calibration: Verified EthSL vocabulary is calibrated for student assistive communication.</span>
+              <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold shrink-0">EthSL v1.4</span>
             </div>
 
             {/* Manual Add Sign Button */}
             {lockedDef && (
               <button
-                onClick={() => appendToTranscript(lockedDef.id, currentConfidence / 100 || 0.9)}
+                onClick={() => appendToTranscript(lockedDef.id, currentConfidence / 100 || 0.9, currentRecognitionSource || 'camera')}
                 className="w-full py-2.5 rounded-2xl bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-gray-200 font-bold text-xs flex items-center justify-center gap-2 border border-gray-200 dark:border-slate-700 transition-colors cursor-pointer"
               >
                 <PlusCircle className="w-4 h-4 text-emerald-500" />

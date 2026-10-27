@@ -218,3 +218,80 @@ export interface AppSettings {
   continuousListening: boolean;
   cloudSyncEnabled: boolean;
 }
+
+// -----------------------------------------------------------------------------
+// Part 2: System Architecture & Modular App Types
+// -----------------------------------------------------------------------------
+
+export type ActiveModule = 
+  | 'studio'       // Sign Language Studio & 3D Hands
+  | 'assistant'    // AI Communication Assistant (Simplify, Suggest Replies)
+  | 'translate'    // Universal Multi-language Translator
+  | 'captions'     // Live Speech Captions & Transcribe
+  | 'documents'    // Document OCR Text Extractor
+  | 'settings';    // Accessibility & App Settings
+
+export type AssistantMode = 'simplify' | 'suggest_replies' | 'clarify' | 'tone_adjust';
+export type AssistantTone = 'simple' | 'polite' | 'formal' | 'brief';
+
+export interface AssistantRequest {
+  text: string;
+  mode?: AssistantMode;
+  tone?: AssistantTone;
+  targetAudience?: string;
+  language?: string;
+}
+
+export interface AssistantResponse {
+  simplifiedText: string;
+  originalText: string;
+  readingLevel: string;
+  keyPoints: string[];
+  suggestedReplies: string[];
+  explanations?: string;
+  detectedTone?: string;
+}
+
+export interface TranslateRequest {
+  text: string;
+  sourceLang?: string;
+  targetLang: string;
+}
+
+export interface TranslateResponse {
+  translatedText: string;
+  phoneticPronunciation?: string;
+  detectedSourceLang?: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  notes?: string;
+}
+
+export interface DocumentExtractRequest {
+  fileBase64: string;
+  mimeType: string;
+  filename?: string;
+  simplifyLanguage?: boolean;
+}
+
+export interface DocumentExtractResponse {
+  extractedText: string;
+  summary: string;
+  keyPoints: string[];
+  detectedLanguage: string;
+  documentType: string;
+  wordCount: number;
+  simplification?: string;
+}
+
+export interface AccessibilitySettings {
+  textSize: 'normal' | 'large' | 'xlarge';
+  highContrast: boolean;
+  dyslexicFont: boolean;
+  screenReaderOptimized: boolean;
+  autoSpeak: boolean;
+  speechRate: number;
+  speechPitch: number;
+  preferredLanguage: string;
+}
+

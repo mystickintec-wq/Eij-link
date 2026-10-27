@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User account information and preferences",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Unique auth UID" },
+        "email": { "type": "string", "format": "email", "description": "User email address" },
+        "displayName": { "type": "string", "description": "Full name or display pseudonym" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of registration" }
+      },
+      "required": ["userId", "email", "createdAt"]
+    },
+    "CloudVaultItem": {
+      "title": "CloudVaultItem",
+      "description": "Saved assistive sign phrases and translations synced to cloud",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique record identifier" },
+        "userId": { "type": "string", "description": "Auth UID of the record owner" },
+        "title": { "type": "string", "description": "Title or gloss label of the item" },
+        "phraseEn": { "type": "string", "description": "English translated phrase" },
+        "phraseAm": { "type": "string", "description": "Amharic Fidel translated phrase" },
+        "gestureKey": { "type": "string", "description": "Matched gesture identifier" },
+        "timestamp": { "type": "string", "description": "Creation timestamp" },
+        "tags": { "type": "array", "description": "Tag labels for categorization" }
+      },
+      "required": ["id", "userId", "phraseEn", "phraseAm", "gestureKey"]
+    },
+    "DatasetContribution": {
+      "title": "DatasetContribution",
+      "description": "Consented landmark recordings contributed for model calibration",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Contribution UUID" },
+        "userId": { "type": "string", "description": "Contributor UID or anonymous token" },
+        "label": { "type": "string", "description": "Target gesture label" },
+        "signLanguage": { "type": "string", "description": "Sign language taxonomy" },
+        "handedness": { "type": "string", "description": "Dominant hand observed" },
+        "hasConsent": { "type": "boolean", "description": "Explicit user consent indicator" },
+        "timestamp": { "type": "string", "description": "Timestamp recorded" }
+      },
+      "required": ["id", "label", "hasConsent"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "UserProfile" },
+      "description": "User profile document owned by the authenticated user"
+    },
+    "/cloud_vault/{vaultId}": {
+      "schema": { "$ref": "CloudVaultItem" },
+      "description": "Personal saved sign translations owned by each user"
+    },
+    "/dataset_contributions/{contributionId}": {
+      "schema": { "$ref": "DatasetContribution" },
+      "description": "Consented landmark datasets contributed to the research pool"
+    }
+  }
+}

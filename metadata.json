@@ -1,6 +1,6 @@
 {
   "name": "EjjiLink AI — Where Hands Become Voices",
   "description": "Accessible gesture-to-speech AI in English and Amharic, developed by The Ethio-Tech Initiative at Holy Trinity Cathedral General Secondary School, Addis Ababa.",
-  "requestFramePermissions": ["camera"],
+  "requestFramePermissions": ["camera", "microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

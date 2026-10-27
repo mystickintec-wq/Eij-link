@@ -15,7 +15,8 @@ import {
   ShieldCheck,
   Cloud,
   Code2,
-  FlaskConical
+  FlaskConical,
+  SlidersHorizontal
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -24,6 +25,7 @@ interface HeaderProps {
   onOpenArchitecture: () => void;
   onOpenCloudVault: () => void;
   onOpenEvaluationLab: () => void;
+  onOpenAccessibility: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,7 +33,8 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleTheme,
   onOpenArchitecture,
   onOpenCloudVault,
-  onOpenEvaluationLab
+  onOpenEvaluationLab,
+  onOpenAccessibility
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [logoError, setLogoError] = useState(false);
@@ -107,6 +110,13 @@ export const Header: React.FC<HeaderProps> = ({
             className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 font-heading cursor-pointer"
           >
             <ShieldCheck className="w-3.5 h-3.5" /> Privacy & Cloud
+          </button>
+          <button
+            onClick={onOpenAccessibility}
+            className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-700 dark:text-indigo-300 font-heading cursor-pointer"
+            title="Accessibility, Font & Sound Preferences"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-500" /> Accessibility
           </button>
         </div>
 
@@ -216,6 +226,16 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <ShieldCheck className="w-4 h-4" />
             <span>Cloud Architecture & Privacy</span>
+          </button>
+          <button
+            onClick={() => {
+              setMobileMenuOpen(false);
+              onOpenAccessibility();
+            }}
+            className="w-full text-left px-3.5 py-2.5 rounded-xl font-medium text-indigo-700 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-500/30 flex items-center gap-2"
+          >
+            <SlidersHorizontal className="w-4 h-4 text-indigo-500" />
+            <span>Accessibility & Audio Preferences</span>
           </button>
 
           <div className="grid grid-cols-2 gap-2 pt-2">

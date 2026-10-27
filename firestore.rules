@@ -1,0 +1,74 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default Deny All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened Helper Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // 1. User Profiles Collection
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) 
+        && incoming().userId == userId 
+        && incoming().email is string 
+        && incoming().email.size() <= 200;
+      allow update: if isOwner(userId) 
+        && incoming().userId == existing().userId
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'preferences']);
+      allow delete: if isOwner(userId);
+    }
+
+    // 2. Cloud Vault (Saved Translations & Gestures)
+    match /cloud_vault/{vaultId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() 
+        && isValidId(vaultId)
+        && incoming().userId == request.auth.uid
+        && incoming().phraseEn is string && incoming().phraseEn.size() <= 500
+        && incoming().phraseAm is string && incoming().phraseAm.size() <= 500
+        && incoming().gestureKey is string && incoming().gestureKey.size() <= 50;
+      allow update: if isSignedIn() 
+        && existing().userId == request.auth.uid
+        && incoming().userId == existing().userId
+        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'phraseEn', 'phraseAm', 'tags']);
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+
+    // 3. Consented Dataset Contributions
+    match /dataset_contributions/{contributionId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isValidId(contributionId)
+        && incoming().hasConsent == true
+        && incoming().label is string && incoming().label.size() <= 100;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}
