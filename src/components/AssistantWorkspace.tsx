@@ -261,6 +261,26 @@ export const AssistantWorkspace: React.FC = () => {
         <div className="lg:col-span-6 space-y-4">
           {result ? (
             <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-amber-500/30 shadow-xl space-y-5 animate-in fade-in duration-200">
+              {/* Standby High-Availability Banner */}
+              {result.isOfflineFallback && (
+                <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-xs text-amber-800 dark:text-amber-300">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                    <span className="text-[11px] font-medium leading-tight">
+                      {result.offlineNotice || 'Instant plain-language analysis active while cloud AI is experiencing high demand.'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleProcess()}
+                    disabled={isLoading}
+                    className="px-2.5 py-1 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[11px] shrink-0 transition-colors cursor-pointer"
+                  >
+                    Retry Cloud
+                  </button>
+                </div>
+              )}
+
               {/* Result Header */}
               <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-800 pb-3">
                 <div className="flex items-center gap-2">

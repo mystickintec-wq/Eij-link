@@ -78,9 +78,17 @@ class HandLandmarkerService {
 
     this.initPromise = (async () => {
       try {
-        const vision = await FilesetResolver.forVisionTasks(
-          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
-        );
+        // First attempt local /wasm bundle matching @mediapipe/tasks-vision@1.1.1, fallback to 1.1.1 CDN
+        let vision: any;
+        try {
+          const localWasm = typeof window !== 'undefined' ? `${window.location.origin}/wasm` : '/wasm';
+          vision = await FilesetResolver.forVisionTasks(localWasm);
+        } catch (localErr) {
+          console.warn('Local wasm resolver fallback to CDN:', localErr);
+          vision = await FilesetResolver.forVisionTasks(
+            'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/wasm'
+          );
+        }
 
         // Attempt GPU delegate first, fallback cleanly to CPU
         try {

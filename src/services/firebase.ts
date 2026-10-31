@@ -35,14 +35,15 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Validation connection test required on boot
+// Validation connection test on boot
 export async function testFirestoreConnection() {
   try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn('Firestore is running in offline/standby mode.');
+    if (auth.currentUser) {
+      await getDocFromServer(doc(db, 'users', auth.currentUser.uid));
     }
+  } catch (error: any) {
+    // Standby mode is standard prior to user sign-in
+    console.debug('Firestore standby connection status:', error?.message || 'standby');
   }
 }
 testFirestoreConnection();

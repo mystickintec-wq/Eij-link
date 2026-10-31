@@ -250,6 +250,8 @@ export interface AssistantResponse {
   suggestedReplies: string[];
   explanations?: string;
   detectedTone?: string;
+  isOfflineFallback?: boolean;
+  offlineNotice?: string;
 }
 
 export interface TranslateRequest {
@@ -265,6 +267,8 @@ export interface TranslateResponse {
   sourceLanguage: string;
   targetLanguage: string;
   notes?: string;
+  isOfflineFallback?: boolean;
+  offlineNotice?: string;
 }
 
 export interface DocumentExtractRequest {
@@ -282,6 +286,8 @@ export interface DocumentExtractResponse {
   documentType: string;
   wordCount: number;
   simplification?: string;
+  isOfflineFallback?: boolean;
+  offlineNotice?: string;
 }
 
 export interface AccessibilitySettings {
