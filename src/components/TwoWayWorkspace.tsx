@@ -238,26 +238,26 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
   const matchedDef = matchStatus.matchedKey ? GESTURE_DEFINITIONS[matchStatus.matchedKey] : null;
 
   return (
-    <section id="communication-workspace" className="py-10 scroll-mt-20">
+    <section id="communication-workspace" className="py-8 scroll-mt-20">
       {/* Workspace Navigation Tabs (Mode A vs Mode B) */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 pb-4 border-b border-gray-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-heading">
+          <span className="text-xs font-semibold text-[#22D3EE] uppercase tracking-wider block mb-1">
             Dual-Direction Accessibility Suite
           </span>
-          <h2 className="font-display text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
             Two-Way Communication Workspace
           </h2>
         </div>
 
-        {/* Mode Selector Buttons */}
-        <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-emerald-500/30 shadow-xs">
+        {/* Mode Selector Buttons — Segmented Control Standard */}
+        <div className="flex items-center gap-1 p-1 rounded-[10px] bg-slate-100 dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-xs">
           <button
             onClick={() => setActiveTab('hands-to-voice')}
-            className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer ${
+            className={`px-3.5 py-2 rounded-[8px] font-semibold text-xs flex items-center gap-2 transition-colors cursor-pointer ${
               activeTab === 'hands-to-voice'
-                ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-md'
-                : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-[#22D3EE] text-[#080D18] shadow-xs'
+                : 'text-slate-600 dark:text-[#B6C2D2] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
             }`}
           >
             <Hand className="w-4 h-4" />
@@ -266,10 +266,10 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
 
           <button
             onClick={() => setActiveTab('voice-to-hands')}
-            className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer ${
+            className={`px-3.5 py-2 rounded-[8px] font-semibold text-xs flex items-center gap-2 transition-colors cursor-pointer ${
               activeTab === 'voice-to-hands'
-                ? 'bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-md'
-                : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-[#22D3EE] text-[#080D18] shadow-xs'
+                : 'text-slate-600 dark:text-[#B6C2D2] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
             }`}
           >
             <Mic className="w-4 h-4" />
@@ -292,38 +292,35 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
         </div>
       )}
 
-      {/* Tab B Content: Voice/Text to 3D Hands (Speech-to-Sign with Gemini 3.5 Transcribe) */}
+      {/* Tab B Content: Voice/Text to 3D Hands */}
       {activeTab === 'voice-to-hands' && (
-        <div className="space-y-8">
+        <div className="space-y-6">
           {/* Input & Phrase Matching Search Box */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-gray-200 dark:border-amber-500/40 shadow-xl space-y-5">
+          <div className="bg-white dark:bg-[#121C2D] rounded-[18px] p-6 sm:p-7 border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-sm space-y-5">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="max-w-2xl space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30">
-                    <Sparkles className="w-3.5 h-3.5" /> Speech & Text to Sign Language
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 font-mono text-[10px] font-bold border border-emerald-500/30">
-                    gemini-3.5-transcribe
-                  </span>
+              <div className="max-w-2xl space-y-1.5">
+                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-[#8493A8]">
+                  <span className="font-semibold text-[#22D3EE]">Speech & Text to Sign</span>
+                  <span aria-hidden="true">·</span>
+                  <span>Gemini 3.5 Transcribe</span>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white font-heading">
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC]">
                   Translate English or Amharic Speech into 3D Hand Gestures
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-gray-400">
-                  Speak into your microphone using <strong>Gemini 3.5 Transcribe</strong> or type a phrase below. EjjiLink AI matches your input and animates the 3D hand into the corresponding anatomical gesture sequence.
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-[#B6C2D2]">
+                  Speak into your microphone or type a phrase below. EjjiLink AI matches your input and animates the 3D hand into the corresponding anatomical gesture sequence.
                 </p>
               </div>
 
               {/* Live Audio Level Meter */}
               {isListening && (
-                <div className="flex items-center gap-2 p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs">
-                  <Radio className="w-4 h-4 text-emerald-500 animate-pulse" />
+                <div className="flex items-center gap-2 p-2.5 rounded-[10px] bg-red-500/10 border border-red-500/20 text-[#F87171] text-xs">
+                  <Radio className="w-4 h-4 text-[#F87171]" />
                   <div>
-                    <div className="font-bold font-mono text-[11px]">Audio Level: {audioVolume}%</div>
-                    <div className="w-24 bg-gray-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1">
+                    <div className="font-semibold font-mono text-xs">Audio Level: {audioVolume}%</div>
+                    <div className="w-24 bg-slate-200 dark:bg-[#080D18] h-1.5 rounded-full overflow-hidden mt-1">
                       <div
-                        className="bg-emerald-500 h-full rounded-full transition-all duration-75"
+                        className="bg-[#22D3EE] h-full rounded-full transition-all duration-75"
                         style={{ width: `${audioVolume}%` }}
                       />
                     </div>
@@ -335,50 +332,50 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
             {/* Input Form */}
             <form onSubmit={handleFormSubmit} className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
-                <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   placeholder="Type a phrase (e.g., 'Water please', 'Hello teacher', 'Peace and love', 'Help')..."
-                  className="w-full bg-gray-50 dark:bg-slate-950 border border-gray-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-2xl pl-11 pr-4 py-3.5 text-sm font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all placeholder:text-gray-500"
+                  className="w-full min-h-[44px] bg-slate-50 dark:bg-[#080D18] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] text-slate-900 dark:text-[#F8FAFC] rounded-[10px] pl-11 pr-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#22D3EE]/30 focus:border-[#22D3EE] focus:outline-none transition-colors placeholder:text-[#8493A8]"
                 />
               </div>
 
               <div className="flex flex-wrap sm:flex-nowrap gap-2">
-                {/* Background Voice Button (Continuous Gemini 3.5 Transcribe) */}
+                {/* Background Voice Button */}
                 <button
                   type="button"
                   onClick={toggleContinuousBackgroundVoice}
-                  className={`px-4 py-3.5 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all border cursor-pointer ${
+                  className={`h-11 px-4 rounded-[10px] font-medium text-xs flex items-center justify-center gap-2 transition-colors border cursor-pointer ${
                     continuousListening
-                      ? 'bg-emerald-600 text-white border-emerald-400 shadow-md shadow-emerald-500/20 ring-2 ring-emerald-400/50'
-                      : 'bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-slate-700 dark:text-gray-300 border-gray-300 dark:border-slate-700'
+                      ? 'bg-[#22D3EE] text-[#080D18] border-[#22D3EE] font-semibold'
+                      : 'bg-slate-100 dark:bg-[#19263A] hover:bg-slate-200 dark:hover:bg-[#1E2E44] text-slate-700 dark:text-[#B6C2D2] border-slate-200 dark:border-[rgba(148,163,184,0.15)]'
                   }`}
-                  title="Enable continuous background speech monitoring using gemini-3.5-transcribe"
+                  title="Enable continuous background speech monitoring"
                 >
-                  <Activity className={`w-4 h-4 ${continuousListening ? 'animate-pulse text-white' : 'text-emerald-500'}`} />
-                  <span>{continuousListening ? 'Background Voice: ON' : 'Background Voice'}</span>
+                  <Activity className={`w-4 h-4 ${continuousListening ? 'text-[#080D18]' : 'text-[#22D3EE]'}`} />
+                  <span>{continuousListening ? 'Voice Monitor: ON' : 'Voice Monitor'}</span>
                 </button>
 
                 {/* Push to Speak Button */}
                 <button
                   type="button"
                   onClick={togglePushToSpeak}
-                  className={`px-4 py-3.5 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all border cursor-pointer ${
+                  className={`h-11 px-4 rounded-[10px] font-medium text-xs flex items-center justify-center gap-2 transition-colors border cursor-pointer ${
                     isListening && !continuousListening
-                      ? 'bg-red-600 text-white border-red-500 animate-pulse'
-                      : 'bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-amber-600 dark:text-amber-300 border-gray-300 dark:border-slate-700'
+                      ? 'bg-red-500/10 text-[#F87171] border-red-500/30 font-semibold'
+                      : 'bg-slate-100 dark:bg-[#19263A] hover:bg-slate-200 dark:hover:bg-[#1E2E44] text-slate-700 dark:text-[#B6C2D2] border-slate-200 dark:border-[rgba(148,163,184,0.15)]'
                   }`}
-                  title="Push to speak with Gemini 3.5 Transcribe"
+                  title="Push to speak"
                 >
                   {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                  <span>{isListening ? 'Recording Speech...' : 'Push to Speak'}</span>
+                  <span>{isListening ? 'Recording...' : 'Push to Speak'}</span>
                 </button>
 
                 <button
                   type="submit"
-                  className="px-5 py-3.5 rounded-2xl font-bold text-xs bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="h-11 px-5 rounded-[10px] font-semibold text-xs sm:text-sm bg-[#22D3EE] hover:bg-[#2DD4BF] text-[#080D18] shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Animate Hand</span>
                   <ArrowRight className="w-4 h-4" />
@@ -397,22 +394,20 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
               </div>
             )}
 
-            {/* ========================================================= */}
-            {/* THREE DEMONSTRATION SCENARIOS (Phase D Requirement) */}
-            {/* ========================================================= */}
+            {/* Three Demonstration Scenarios */}
             <div className="pt-2 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-gray-300 font-heading flex items-center gap-1.5">
-                  <ListChecks className="w-3.5 h-3.5 text-amber-500" />
-                  3 Preset Demonstration Scenarios (Multi-Sign Sequences):
+                <span className="text-xs font-semibold text-slate-700 dark:text-[#B6C2D2] flex items-center gap-1.5">
+                  <ListChecks className="w-3.5 h-3.5 text-[#22D3EE]" />
+                  Preset Demonstration Scenarios (Multi-Sign Sequences):
                 </span>
-                <span className="text-[11px] text-slate-400">Click any scenario to animate full sequence</span>
+                <span className="text-[11px] text-slate-400 dark:text-[#8493A8]">Click any scenario to animate</span>
               </div>
 
               <div className="grid md:grid-cols-3 gap-3">
                 {/* Scenario 1: Classroom */}
-                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 space-y-2.5">
-                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 font-heading">
+                <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2.5">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-[#22D3EE]">
                     <GraduationCap className="w-4 h-4" />
                     <span>1. Classroom Communication</span>
                   </div>
@@ -421,25 +416,25 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
                       <button
                         key={s.id}
                         onClick={() => handleSelectScenarioSequence(s)}
-                        className={`w-full text-left p-2 rounded-xl text-xs transition-colors flex items-center justify-between border cursor-pointer ${
+                        className={`w-full text-left p-2.5 rounded-[8px] text-xs transition-colors flex items-center justify-between border cursor-pointer ${
                           selectedSequence?.id === s.id
-                            ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-400'
-                            : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-gray-300 border-gray-200 dark:border-slate-800 hover:border-emerald-400'
+                            ? 'bg-[#22D3EE]/15 text-[#22D3EE] border-[#22D3EE]/50 font-semibold'
+                            : 'bg-white dark:bg-[#121C2D] text-slate-700 dark:text-[#B6C2D2] border-slate-200 dark:border-[rgba(148,163,184,0.12)] hover:border-[#22D3EE]/40'
                         }`}
                       >
                         <div>
-                          <div className="font-semibold">{s.titleEn}</div>
-                          <div className="text-[10px] text-amber-600 dark:text-amber-400 font-ethiopic">{s.titleAm}</div>
+                          <div className="font-medium text-slate-900 dark:text-[#F8FAFC]">{s.titleEn}</div>
+                          <div className="text-[11px] text-[#22D3EE] font-ethiopic">{s.titleAm}</div>
                         </div>
-                        <Play className="w-3 h-3 text-emerald-500 shrink-0" />
+                        <Play className="w-3 h-3 text-[#22D3EE] shrink-0" />
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {/* Scenario 2: Service Interactions */}
-                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 space-y-2.5">
-                  <div className="flex items-center gap-2 text-xs font-bold text-sky-600 dark:text-sky-400 font-heading">
+                <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2.5">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-[#2DD4BF]">
                     <Coffee className="w-4 h-4" />
                     <span>2. Everyday Services</span>
                   </div>
@@ -448,25 +443,25 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
                       <button
                         key={s.id}
                         onClick={() => handleSelectScenarioSequence(s)}
-                        className={`w-full text-left p-2 rounded-xl text-xs transition-colors flex items-center justify-between border cursor-pointer ${
+                        className={`w-full text-left p-2.5 rounded-[8px] text-xs transition-colors flex items-center justify-between border cursor-pointer ${
                           selectedSequence?.id === s.id
-                            ? 'bg-sky-500/20 text-sky-700 dark:text-sky-300 border-sky-400'
-                            : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-gray-300 border-gray-200 dark:border-slate-800 hover:border-sky-400'
+                            ? 'bg-[#2DD4BF]/15 text-[#2DD4BF] border-[#2DD4BF]/50 font-semibold'
+                            : 'bg-white dark:bg-[#121C2D] text-slate-700 dark:text-[#B6C2D2] border-slate-200 dark:border-[rgba(148,163,184,0.12)] hover:border-[#2DD4BF]/40'
                         }`}
                       >
                         <div>
-                          <div className="font-semibold">{s.titleEn}</div>
-                          <div className="text-[10px] text-amber-600 dark:text-amber-400 font-ethiopic">{s.titleAm}</div>
+                          <div className="font-medium text-slate-900 dark:text-[#F8FAFC]">{s.titleEn}</div>
+                          <div className="text-[11px] text-[#2DD4BF] font-ethiopic">{s.titleAm}</div>
                         </div>
-                        <Play className="w-3 h-3 text-sky-500 shrink-0" />
+                        <Play className="w-3 h-3 text-[#2DD4BF] shrink-0" />
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {/* Scenario 3: Daily Communication */}
-                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 space-y-2.5">
-                  <div className="flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400 font-heading">
+                <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2.5">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-[#8B5CF6]">
                     <HeartHandshake className="w-4 h-4" />
                     <span>3. Daily Communication</span>
                   </div>
@@ -475,17 +470,17 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
                       <button
                         key={s.id}
                         onClick={() => handleSelectScenarioSequence(s)}
-                        className={`w-full text-left p-2 rounded-xl text-xs transition-colors flex items-center justify-between border cursor-pointer ${
+                        className={`w-full text-left p-2.5 rounded-[8px] text-xs transition-colors flex items-center justify-between border cursor-pointer ${
                           selectedSequence?.id === s.id
-                            ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-400'
-                            : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-gray-300 border-gray-200 dark:border-slate-800 hover:border-amber-400'
+                            ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border-[#8B5CF6]/50 font-semibold'
+                            : 'bg-white dark:bg-[#121C2D] text-slate-700 dark:text-[#B6C2D2] border-slate-200 dark:border-[rgba(148,163,184,0.12)] hover:border-[#8B5CF6]/40'
                         }`}
                       >
                         <div>
-                          <div className="font-semibold">{s.titleEn}</div>
-                          <div className="text-[10px] text-amber-600 dark:text-amber-400 font-ethiopic">{s.titleAm}</div>
+                          <div className="font-medium text-slate-900 dark:text-[#F8FAFC]">{s.titleEn}</div>
+                          <div className="text-[11px] text-[#8B5CF6] font-ethiopic">{s.titleAm}</div>
                         </div>
-                        <Play className="w-3 h-3 text-amber-500 shrink-0" />
+                        <Play className="w-3 h-3 text-[#8B5CF6] shrink-0" />
                       </button>
                     ))}
                   </div>
@@ -495,22 +490,22 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
 
             {/* Match Status Feedback */}
             <div
-              className={`p-4 rounded-2xl border flex items-start gap-3 text-xs leading-relaxed transition-all ${
+              className={`p-4 rounded-[10px] border flex items-start gap-3 text-xs leading-relaxed transition-colors ${
                 matchStatus.isError
-                  ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/30 text-amber-800 dark:text-amber-200'
-                  : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300'
+                  ? 'bg-amber-500/10 border-amber-500/20 text-[#FBBF24]'
+                  : 'bg-emerald-500/10 border-emerald-500/20 text-[#34D399]'
               }`}
             >
               {matchStatus.isError ? (
-                <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               ) : (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
               )}
               <div>
-                <strong className="block text-slate-900 dark:text-white mb-0.5 font-heading">
+                <strong className="block text-slate-900 dark:text-[#F8FAFC] mb-0.5">
                   {matchStatus.isError ? 'Unsupported Phrase' : 'Gesture Validated & Displayed'}
                 </strong>
-                <span>{matchStatus.message}</span>
+                <span className="text-slate-700 dark:text-[#B6C2D2]">{matchStatus.message}</span>
               </div>
             </div>
           </div>
@@ -518,21 +513,21 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
           {/* 3D Hand Model Execution in Mode B */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-gray-300 font-heading flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-[#B6C2D2] flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#22D3EE]" />
                 Interactive 3D Hand Execution
               </h4>
               {matchedDef && (
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => speechService.speak(matchedDef, 'en-US')}
-                    className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-xs font-semibold text-emerald-600 dark:text-emerald-400 border border-gray-200 dark:border-slate-700 flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+                    className="h-8 px-3 rounded-[8px] bg-white dark:bg-[#121C2D] hover:bg-slate-100 dark:hover:bg-[#19263A] text-xs font-medium text-[#22D3EE] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <Volume2 className="w-3.5 h-3.5" /> Speak Phrase
                   </button>
                   <button
                     onClick={() => onGestureChange(matchedDef.id)}
-                    className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+                    className="h-8 px-3 rounded-[8px] bg-white dark:bg-[#121C2D] hover:bg-slate-100 dark:hover:bg-[#19263A] text-xs font-medium text-slate-700 dark:text-[#B6C2D2] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <RotateCcw className="w-3.5 h-3.5" /> Replay Pose
                   </button>
@@ -549,21 +544,21 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
               isSimulated={true}
             />
 
-            {/* Gesture Details Pill */}
+            {/* Gesture Details */}
             {matchedDef && (
-              <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs shadow-md">
+              <div className="p-4 rounded-[14px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs shadow-xs">
                 <div className="flex items-center gap-3">
-                  <span className="text-3xl">{matchedDef.emoji}</span>
+                  <span className="text-2xl">{matchedDef.emoji}</span>
                   <div>
-                    <div className="font-bold text-slate-900 dark:text-white text-sm font-heading">
-                      {matchedDef.labelEn} <span className="text-amber-600 dark:text-amber-400 font-ethiopic">• {matchedDef.labelAm}</span>
-                      <span className="text-gray-500 text-xs ml-2">("{matchedDef.phoneticAm}")</span>
+                    <div className="font-semibold text-slate-900 dark:text-[#F8FAFC] text-sm">
+                      {matchedDef.labelEn} <span className="text-[#22D3EE] font-ethiopic">· {matchedDef.labelAm}</span>
+                      <span className="text-slate-400 dark:text-[#8493A8] text-xs ml-2">("{matchedDef.phoneticAm}")</span>
                     </div>
-                    <p className="text-slate-500 dark:text-gray-400 mt-0.5">{matchedDef.poseInstructions}</p>
+                    <p className="text-slate-500 dark:text-[#8493A8] mt-0.5">{matchedDef.poseInstructions}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 font-mono font-bold">
+                  <span className="text-xs font-mono text-[#22D3EE]">
                     Pose: {matchedDef.id.toUpperCase()}
                   </span>
                 </div>

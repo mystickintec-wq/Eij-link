@@ -7,14 +7,13 @@ import {
   Trash2, 
   Check, 
   Contrast, 
-  AlertCircle,
-  Sparkles,
+  AlertCircle, 
   Upload,
   Globe,
-  Radio,
-  FileAudio
+  Radio
 } from 'lucide-react';
 import { geminiVoiceRecorder, transcribeAudioBlob, TranscriptionResult } from '../services/transcribeService';
+import { useCommunication } from '../context/CommunicationContext';
 
 export const CaptionsWorkspace: React.FC = () => {
   const [isListening, setIsListening] = useState(false);
@@ -63,14 +62,18 @@ export const CaptionsWorkspace: React.FC = () => {
     }
   };
 
+  const { setCommunicationState, setAudioLevel: setGlobalAudioLevel } = useCommunication();
+
   const handleToggleListening = async () => {
     setErrorMessage(null);
     if (isListening) {
       await geminiVoiceRecorder.stop();
       setIsListening(false);
       setAudioLevel(0);
+      setGlobalAudioLevel(0);
       setLiveInterim('');
       setStatusNotice('Captions stopped.');
+      setCommunicationState('idle');
     } else {
       geminiVoiceRecorder.setEnginePreference(enginePreference);
       geminiVoiceRecorder.setLanguage(selectedLanguage);
@@ -98,6 +101,7 @@ export const CaptionsWorkspace: React.FC = () => {
           },
           (volume) => {
             setAudioLevel(volume);
+            setGlobalAudioLevel(volume);
           },
           (status) => {
             setStatusNotice(status);
@@ -105,10 +109,12 @@ export const CaptionsWorkspace: React.FC = () => {
         );
         setIsListening(true);
         setStatusNotice('Listening active... Speak clearly.');
+        setCommunicationState('listening');
       } catch (err: any) {
         console.error('Failed to start microphone:', err);
         setErrorMessage(err.message || 'Microphone access denied or unavailable.');
         setIsListening(false);
+        setCommunicationState('error');
       }
     }
   };
@@ -127,7 +133,7 @@ export const CaptionsWorkspace: React.FC = () => {
         const text = result.text.trim();
         setCaptionHistory((prev) => [
           ...prev,
-          `[Audio File: ${file.name} via ${result.modelUsed}]: ${text}`
+          `[Audio File: ${file.name}]: ${text}`
         ]);
         setStatusNotice(`Audio file transcribed successfully using ${result.modelUsed}.`);
       } else {
@@ -161,34 +167,31 @@ export const CaptionsWorkspace: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-6">
       {/* Workspace Header */}
-      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-6 rounded-[18px] bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-500 flex items-center justify-center shrink-0">
-            <Captions className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-[10px] bg-[#60A5FA]/10 text-[#60A5FA] flex items-center justify-center shrink-0">
+            <Captions className="w-5 h-5" />
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-xl sm:text-2xl font-bold font-heading text-slate-900 dark:text-white">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC]">
                 Live Speech Captions & Transcribe
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">
-                Hybrid Zero-Quota Engine
-              </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Continuous live captions powered by browser Web Speech API with seamless Gemini 3.5 / 3.8 Flash audio file transcription.
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-[#8493A8] mt-0.5">
+              Continuous live speech-to-text captions via browser Web Speech API, with Gemini cloud audio file transcription.
             </p>
           </div>
         </div>
 
         {/* Live Controls */}
-        <div className="flex flex-wrap items-center gap-3 self-start md:self-auto">
+        <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
           {isListening && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-600 dark:text-purple-300 text-xs font-semibold">
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-              <span>Mic Active • Level: {audioLevel}%</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-red-500/10 border border-red-500/20 text-[#F87171] text-xs font-medium">
+              <span className="w-2 h-2 rounded-full bg-[#F87171]" />
+              <span className="font-mono tabular-nums">Mic Level: {audioLevel}%</span>
             </div>
           )}
 
@@ -203,19 +206,19 @@ export const CaptionsWorkspace: React.FC = () => {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="px-3.5 py-2.5 rounded-2xl border border-gray-300 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
-            title="Upload audio file for Gemini cloud transcription"
+            className="h-10 px-4 rounded-[10px] bg-slate-100 dark:bg-[#19263A] hover:bg-slate-200 dark:hover:bg-[#1E2E44] text-slate-800 dark:text-[#F8FAFC] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+            title="Upload audio file for transcription"
           >
-            <Upload className="w-3.5 h-3.5 text-purple-500" />
+            <Upload className="w-3.5 h-3.5 text-[#22D3EE]" />
             <span>{isUploading ? 'Transcribing...' : 'Upload Audio'}</span>
           </button>
 
           <button
             onClick={handleToggleListening}
-            className={`px-5 py-2.5 rounded-2xl font-bold text-xs flex items-center gap-2 shadow-md transition-all cursor-pointer ${
+            className={`h-10 px-5 rounded-[10px] text-xs sm:text-sm font-semibold flex items-center gap-2 transition-colors cursor-pointer shadow-xs ${
               isListening
-                ? 'bg-red-600 hover:bg-red-500 text-white animate-pulse'
-                : 'bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white'
+                ? 'bg-red-500/10 hover:bg-red-500/20 text-[#F87171] border border-red-500/30'
+                : 'bg-[#22D3EE] hover:bg-[#2DD4BF] text-[#080D18]'
             }`}
           >
             {isListening ? (
@@ -232,28 +235,28 @@ export const CaptionsWorkspace: React.FC = () => {
       </div>
 
       {/* Control Bar: Language, Engine, and Status */}
-      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4 text-xs">
+      <div className="p-4 rounded-[14px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex flex-wrap items-center justify-between gap-4 text-xs">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-300">
-            <Globe className="w-3.5 h-3.5 text-purple-500" />
+          <div className="flex items-center gap-1.5 font-semibold text-slate-700 dark:text-[#B6C2D2]">
+            <Globe className="w-3.5 h-3.5 text-[#22D3EE]" />
             <span>Language:</span>
-            <div className="flex bg-gray-100 dark:bg-slate-800 rounded-xl p-0.5">
+            <div className="flex bg-slate-100 dark:bg-[#0D1422] rounded-[8px] p-0.5 border border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
               <button
                 onClick={() => handleLanguageChange('en-US')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
+                className={`px-2.5 py-1 rounded-[6px] text-xs font-medium cursor-pointer transition-colors ${
                   selectedLanguage === 'en-US'
-                    ? 'bg-purple-600 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-[#22D3EE] text-[#080D18] font-semibold shadow-xs'
+                    : 'text-slate-600 dark:text-[#B6C2D2] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
                 }`}
               >
                 English (US)
               </button>
               <button
                 onClick={() => handleLanguageChange('am-ET')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
+                className={`px-2.5 py-1 rounded-[6px] text-xs font-medium cursor-pointer transition-colors ${
                   selectedLanguage === 'am-ET'
-                    ? 'bg-purple-600 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-[#22D3EE] text-[#080D18] font-semibold shadow-xs'
+                    : 'text-slate-600 dark:text-[#B6C2D2] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
                 }`}
               >
                 አማርኛ (Amharic)
@@ -261,18 +264,18 @@ export const CaptionsWorkspace: React.FC = () => {
             </div>
           </div>
 
-          <div className="h-4 w-px bg-gray-200 dark:bg-slate-700 hidden sm:block" />
+          <div className="h-4 w-px bg-slate-200 dark:bg-[#19263A] hidden sm:block" />
 
-          <div className="flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-300">
-            <Radio className="w-3.5 h-3.5 text-purple-500" />
+          <div className="flex items-center gap-1.5 font-semibold text-slate-700 dark:text-[#B6C2D2]">
+            <Radio className="w-3.5 h-3.5 text-[#60A5FA]" />
             <span>Engine:</span>
-            <div className="flex bg-gray-100 dark:bg-slate-800 rounded-xl p-0.5">
+            <div className="flex bg-slate-100 dark:bg-[#0D1422] rounded-[8px] p-0.5 border border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
               <button
                 onClick={() => handleEngineChange('auto')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
+                className={`px-2.5 py-1 rounded-[6px] text-xs font-medium cursor-pointer transition-colors ${
                   enginePreference === 'auto'
-                    ? 'bg-purple-600 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-slate-200 dark:bg-[#19263A] text-slate-900 dark:text-[#F8FAFC] shadow-xs'
+                    : 'text-slate-600 dark:text-[#B6C2D2] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
                 }`}
                 title="Continuous Web Speech with Gemini audio upload support"
               >
@@ -280,23 +283,23 @@ export const CaptionsWorkspace: React.FC = () => {
               </button>
               <button
                 onClick={() => handleEngineChange('web-speech')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
+                className={`px-2.5 py-1 rounded-[6px] text-xs font-medium cursor-pointer transition-colors ${
                   enginePreference === 'web-speech'
-                    ? 'bg-purple-600 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-slate-200 dark:bg-[#19263A] text-slate-900 dark:text-[#F8FAFC] shadow-xs'
+                    : 'text-slate-600 dark:text-[#B6C2D2] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
                 }`}
-                title="Browser Web Speech API (zero quota, real-time)"
+                title="Browser Web Speech API"
               >
                 Web Speech
               </button>
               <button
                 onClick={() => handleEngineChange('gemini-cloud')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
+                className={`px-2.5 py-1 rounded-[6px] text-xs font-medium cursor-pointer transition-colors ${
                   enginePreference === 'gemini-cloud'
-                    ? 'bg-purple-600 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-slate-200 dark:bg-[#19263A] text-slate-900 dark:text-[#F8FAFC] shadow-xs'
+                    : 'text-slate-600 dark:text-[#B6C2D2] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
                 }`}
-                title="Gemini 3.5 Transcribe / 3.8 Flash Cloud Backend"
+                title="Gemini 3.5 Transcribe Cloud Backend"
               >
                 Gemini Cloud
               </button>
@@ -304,21 +307,21 @@ export const CaptionsWorkspace: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span className="font-medium">Active: <span className="text-purple-600 dark:text-purple-400 font-bold">{activeEngineName}</span></span>
+        <div className="flex items-center gap-2 text-slate-500 dark:text-[#8493A8]">
+          <span className="w-2 h-2 rounded-full bg-[#34D399]" />
+          <span>Active: <strong className="text-slate-700 dark:text-[#B6C2D2]">{activeEngineName}</strong></span>
         </div>
       </div>
 
       {statusNotice && (
-        <div className="px-4 py-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-300 text-xs flex items-center justify-between">
+        <div className="px-4 py-2 rounded-[10px] bg-slate-100 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-slate-700 dark:text-[#B6C2D2] text-xs flex items-center justify-between">
           <span>{statusNotice}</span>
-          <span className="text-[10px] opacity-75 font-mono">Status</span>
+          <span className="text-[11px] text-slate-400 dark:text-[#8493A8] font-mono">Status</span>
         </div>
       )}
 
       {errorMessage && (
-        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-2">
+        <div className="p-3.5 rounded-[10px] bg-red-500/10 border border-red-500/20 text-[#F87171] text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{errorMessage}</span>
         </div>
@@ -326,26 +329,26 @@ export const CaptionsWorkspace: React.FC = () => {
 
       {/* Main Caption Board */}
       <div
-        className={`p-6 sm:p-8 rounded-3xl border shadow-2xl space-y-6 min-h-[420px] flex flex-col justify-between transition-all ${
+        className={`p-6 sm:p-8 rounded-[18px] border shadow-sm space-y-6 min-h-[420px] flex flex-col justify-between transition-all ${
           highContrast
             ? 'bg-black text-white border-yellow-400 font-bold'
-            : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-purple-500/30 text-slate-900 dark:text-slate-100'
+            : 'bg-white dark:bg-[#121C2D] border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-slate-900 dark:text-[#F8FAFC]'
         } ${dyslexicFont ? 'tracking-wide font-mono' : ''}`}
       >
         {/* Top Accessibility Quick Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 dark:border-slate-800 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)] pb-4">
           <div className="flex items-center gap-2 text-xs">
-            <span className="font-bold text-slate-500 dark:text-slate-400 uppercase text-[10px]">
+            <span className="font-semibold text-slate-500 dark:text-[#8493A8]">
               Display Size:
             </span>
             {(['normal', 'large', 'xlarge'] as const).map((size) => (
               <button
                 key={size}
                 onClick={() => setTextSize(size)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold capitalize cursor-pointer transition-colors ${
+                className={`px-2.5 py-1 rounded-[6px] text-xs font-semibold capitalize cursor-pointer transition-colors ${
                   textSize === size
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                    ? 'bg-[#22D3EE] text-[#080D18]'
+                    : 'bg-slate-100 dark:bg-[#0D1422] text-slate-700 dark:text-[#B6C2D2]'
                 }`}
               >
                 {size}
@@ -356,10 +359,10 @@ export const CaptionsWorkspace: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setHighContrast(!highContrast)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition-colors cursor-pointer ${
+              className={`h-8 px-3 rounded-[8px] text-xs font-semibold border flex items-center gap-1.5 transition-colors cursor-pointer ${
                 highContrast
                   ? 'bg-yellow-400 text-black border-yellow-300 font-bold'
-                  : 'bg-gray-100 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                  : 'bg-slate-100 dark:bg-[#0D1422] border-slate-200 dark:border-[rgba(148,163,184,0.15)] text-slate-700 dark:text-[#B6C2D2]'
               }`}
             >
               <Contrast className="w-3.5 h-3.5" />
@@ -369,22 +372,22 @@ export const CaptionsWorkspace: React.FC = () => {
         </div>
 
         {/* Captions Stream Area */}
-        <div className="flex-1 space-y-4 overflow-y-auto max-h-[380px] p-2">
+        <div className="flex-1 space-y-3 overflow-y-auto max-h-[380px] p-2">
           {captionHistory.length > 0 ? (
             captionHistory.map((line, idx) => (
               <div
                 key={idx}
-                className={`p-3 rounded-2xl transition-all ${getTextClass()} ${
+                className={`p-3 rounded-[10px] transition-all ${getTextClass()} ${
                   idx === captionHistory.length - 1 && !liveInterim
-                    ? 'bg-purple-500/10 border border-purple-500/20 font-bold text-purple-700 dark:text-purple-300'
-                    : 'text-slate-700 dark:text-slate-300 opacity-80'
+                    ? 'bg-[#22D3EE]/10 border border-[#22D3EE]/20 font-medium text-slate-900 dark:text-[#F8FAFC]'
+                    : 'text-slate-700 dark:text-[#B6C2D2]'
                 }`}
               >
                 {line}
               </div>
             ))
           ) : (
-            <div className="p-12 text-center text-slate-400">
+            <div className="py-16 text-center text-slate-400 dark:text-[#8493A8]">
               <Captions className="w-12 h-12 mx-auto mb-2 opacity-30" />
               <p className="text-sm">Click "Start Captions" above to begin real-time speech transcription.</p>
             </div>
@@ -392,18 +395,17 @@ export const CaptionsWorkspace: React.FC = () => {
 
           {/* Real-time Interim Streaming Transcript */}
           {liveInterim && (
-            <div className={`p-3 rounded-2xl bg-purple-500/15 border border-purple-500/40 text-purple-800 dark:text-purple-200 italic animate-pulse ${getTextClass()}`}>
+            <div className={`p-3 rounded-[10px] bg-[#22D3EE]/15 border border-[#22D3EE]/40 text-slate-900 dark:text-[#22D3EE] italic ${getTextClass()}`}>
               {liveInterim}
-              <span className="inline-block w-2 h-4 ml-1 bg-purple-500 animate-ping" />
             </div>
           )}
         </div>
 
         {/* Bottom Actions Bar */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-slate-800 text-xs">
+        <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-xs">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="text-slate-500 dark:text-slate-400 font-medium">
+            <span className="w-2 h-2 rounded-full bg-[#34D399]" />
+            <span className="text-slate-500 dark:text-[#8493A8]">
               {captionHistory.length} segments transcribed
             </span>
           </div>
@@ -412,7 +414,7 @@ export const CaptionsWorkspace: React.FC = () => {
             <button
               onClick={handleClear}
               disabled={captionHistory.length === 0}
-              className="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold flex items-center gap-1 cursor-pointer transition-colors disabled:opacity-40"
+              className="h-8 px-3 rounded-[8px] bg-slate-100 hover:bg-slate-200 dark:bg-[#19263A] dark:hover:bg-[#1E2E44] text-slate-700 dark:text-[#B6C2D2] font-medium flex items-center gap-1 cursor-pointer transition-colors disabled:opacity-40"
             >
               <Trash2 className="w-3.5 h-3.5" /> Clear
             </button>
@@ -420,10 +422,10 @@ export const CaptionsWorkspace: React.FC = () => {
             <button
               onClick={handleCopyTranscript}
               disabled={captionHistory.length === 0}
-              className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer disabled:opacity-40"
+              className="h-8 px-4 rounded-[8px] bg-[#22D3EE] hover:bg-[#2DD4BF] text-[#080D18] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
             >
-              {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{isCopied ? 'Copied Transcript' : 'Copy All'}</span>
+              {isCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{isCopied ? 'Copied' : 'Copy All'}</span>
             </button>
           </div>
         </div>

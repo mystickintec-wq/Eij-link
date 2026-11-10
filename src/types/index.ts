@@ -290,6 +290,17 @@ export interface DocumentExtractResponse {
   offlineNotice?: string;
 }
 
+export type CommunicationState = 
+  | 'idle' 
+  | 'listening' 
+  | 'processing' 
+  | 'speaking' 
+  | 'translating' 
+  | 'success' 
+  | 'error';
+
+export type ThemeAccent = 'cyan' | 'blue' | 'violet' | 'amber' | 'emerald' | 'rose';
+
 export interface AccessibilitySettings {
   textSize: 'normal' | 'large' | 'xlarge';
   highContrast: boolean;
@@ -299,5 +310,8 @@ export interface AccessibilitySettings {
   speechRate: number;
   speechPitch: number;
   preferredLanguage: string;
+  disable3D?: boolean;
+  voiceNavEnabled?: boolean;
+  voiceFeedback?: boolean;
 }
 

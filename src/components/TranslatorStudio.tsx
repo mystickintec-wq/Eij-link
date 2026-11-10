@@ -243,6 +243,10 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
     setEditingItemId(null);
   };
 
+  const handleDeleteTranscriptItem = (id: string) => {
+    setTranscript((prev) => prev.filter((t) => t.id !== id));
+  };
+
   const handleSpeakFullTranscript = () => {
     if (transcript.length === 0) return;
     const fullText = transcript.map((t) => t.textEn).join('. ');
@@ -533,23 +537,23 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Controls Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-md">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5 rounded-[18px] bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-xs">
         
         {/* Status Pill */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <span
-              className={`w-3 h-3 rounded-full ${
+              className={`w-2.5 h-2.5 rounded-full ${
                 detectionStatus === 'hand_detected'
-                  ? 'bg-emerald-500 animate-pulse'
+                  ? 'bg-emerald-400 animate-pulse'
                   : detectionStatus === 'initializing'
-                  ? 'bg-amber-500 animate-ping'
+                  ? 'bg-amber-400 animate-ping'
                   : detectionStatus === 'error'
-                  ? 'bg-red-500'
+                  ? 'bg-red-400'
                   : 'bg-slate-400'
               }`}
             />
-            <span className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-gray-200">
+            <span className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-[#F8FAFC]">
               {detectionStatus === 'hand_detected' && 'Hand Detected (Active)'}
               {detectionStatus === 'no_hand_detected' && 'Searching for Hand...'}
               {detectionStatus === 'initializing' && 'Initializing MediaPipe...'}
@@ -558,10 +562,10 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
             </span>
           </div>
 
-          <span className="hidden sm:inline-block text-gray-400">•</span>
+          <span className="hidden sm:inline-block text-slate-400 dark:text-[#8493A8]">·</span>
 
-          <span className="text-xs text-slate-500 dark:text-gray-400 font-mono">
-            {fps} FPS {handsDetected > 0 ? `• ${handsDetected} Hand (${currentHandedness})` : ''}
+          <span className="text-xs text-slate-500 dark:text-[#8493A8] font-mono tabular-nums">
+            {fps} FPS {handsDetected > 0 ? `· ${handsDetected} Hand (${currentHandedness})` : ''}
           </span>
         </div>
 
@@ -570,14 +574,14 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
           {!isCameraActive ? (
             <button
               onClick={startCamera}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+              className="px-4 py-2 rounded-[10px] bg-[#22D3EE] hover:bg-[#06b6d4] text-[#080D18] font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
               <Video className="w-4 h-4" /> Start Camera
             </button>
           ) : (
             <button
               onClick={stopCamera}
-              className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+              className="px-4 py-2 rounded-[10px] bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
             >
               <VideoOff className="w-4 h-4" /> Stop Camera
             </button>
@@ -586,7 +590,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
           {isCameraActive && (
             <button
               onClick={() => setIsMirrored(!isMirrored)}
-              className="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-gray-300 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3 py-2 rounded-[10px] bg-slate-100 hover:bg-slate-200 dark:bg-[#19263A] dark:hover:bg-[#1f2f47] text-slate-700 dark:text-[#B6C2D2] font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer border border-slate-200 dark:border-[rgba(148,163,184,0.15)]"
               title="Toggle Mirror View"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -597,7 +601,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
           {detectionStatus === 'error' && (
             <button
               onClick={retryCamera}
-              className="px-3.5 py-2 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md"
+              className="px-3.5 py-2 rounded-[10px] bg-amber-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
               <RefreshCw className="w-3.5 h-3.5" /> Retry Camera
             </button>
@@ -605,7 +609,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
 
           <button
             onClick={() => setIsDatasetModalOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-3.5 py-2 rounded-[10px] bg-[#19263A] hover:bg-[#1f2f47] text-[#22D3EE] border border-[rgba(34,211,238,0.25)] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Collect consented dataset samples for ML model training"
           >
             <Database className="w-3.5 h-3.5" /> Dataset Collector
@@ -613,28 +617,28 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
 
           <button
             onClick={() => setIsEvalLabOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-3.5 py-2 rounded-[10px] bg-[#19263A] hover:bg-[#1f2f47] text-[#8B5CF6] border border-purple-500/25 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Open Scientific Evaluation Lab, Confusion Matrix, and Unit Tests"
           >
-            <FlaskConical className="w-3.5 h-3.5 text-purple-500" /> Evaluation Lab
+            <FlaskConical className="w-3.5 h-3.5 text-[#8B5CF6]" /> Evaluation Lab
           </button>
         </div>
       </div>
 
       {/* Phase B: Real-Time Pipeline Diagnostics Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-xs shadow-md">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-[14px] bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-xs shadow-xs">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+          <div className="p-2 rounded-[10px] bg-cyan-500/10 text-[#22D3EE]">
             <Activity className="w-4 h-4" />
           </div>
           <div>
-            <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">State Machine</div>
-            <div className="font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+            <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-[#8493A8] tracking-wider">State Machine</div>
+            <div className="font-semibold text-slate-800 dark:text-[#F8FAFC] flex items-center gap-1.5">
               <span className={`w-2 h-2 rounded-full ${
-                detectionStatus === 'hand_detected' ? 'bg-emerald-500 animate-pulse' :
-                detectionStatus === 'initializing' ? 'bg-amber-500 animate-ping' :
-                detectionStatus === 'error' ? 'bg-red-500' :
-                isCameraActive ? 'bg-sky-500' : 'bg-slate-400'
+                detectionStatus === 'hand_detected' ? 'bg-emerald-400 animate-pulse' :
+                detectionStatus === 'initializing' ? 'bg-amber-400 animate-ping' :
+                detectionStatus === 'error' ? 'bg-red-400' :
+                isCameraActive ? 'bg-cyan-400' : 'bg-slate-400'
               }`} />
               <span className="capitalize">{detectionStatus.replace('_', ' ')}</span>
             </div>
@@ -642,19 +646,19 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
         </div>
 
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+          <div className="p-2 rounded-[10px] bg-teal-500/10 text-[#2DD4BF]">
             <Cpu className="w-4 h-4" />
           </div>
           <div>
-            <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Vision Engine</div>
-            <div className="font-semibold text-slate-800 dark:text-slate-100 font-mono text-[11px]">
+            <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-[#8493A8] tracking-wider">Vision Engine</div>
+            <div className="font-semibold text-slate-800 dark:text-[#F8FAFC] font-mono text-[11px]">
               {modelEngineState === 'loaded' ? `Tasks Vision (${modelDelegate})` : `Vision (${modelEngineState})`}
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400">
+          <div className="p-2 rounded-[10px] bg-blue-500/10 text-[#60A5FA]">
             <ShieldCheck className="w-4 h-4" />
           </div>
           <div>
@@ -683,7 +687,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
         
         {/* Left Column: Live Camera Video & Overlay (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="relative aspect-[4/3] rounded-3xl overflow-hidden bg-slate-950 border-2 border-gray-200 dark:border-slate-800 shadow-xl flex items-center justify-center">
+          <div className="relative aspect-[4/3] rounded-[18px] overflow-hidden bg-[#080D18] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] shadow-md flex items-center justify-center">
             
             {/* Hidden Video Source */}
             <video
@@ -703,19 +707,19 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
 
             {/* Standby Placeholder when camera is inactive */}
             {!isCameraActive && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-slate-400 bg-slate-950/90 space-y-3">
-                <div className="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-emerald-400">
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-slate-400 bg-[#080D18]/90 space-y-3">
+                <div className="w-16 h-16 rounded-full bg-[#121C2D] border border-slate-800 flex items-center justify-center text-[#22D3EE]">
                   <Video className="w-8 h-8 opacity-80" />
                 </div>
                 <div>
-                  <h4 className="text-white font-bold text-base font-heading">Camera Vision is Inactive</h4>
-                  <p className="text-xs text-gray-400 max-w-sm mt-1">
+                  <h4 className="text-[#F8FAFC] font-bold text-base">Camera Vision is Inactive</h4>
+                  <p className="text-xs text-slate-400 dark:text-[#8493A8] max-w-sm mt-1">
                     Click <strong>"Start Camera"</strong> above to begin real-time hand tracking, or click any sign card below to test the pipeline.
                   </p>
                 </div>
                 <button
                   onClick={startCamera}
-                  className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg cursor-pointer transition-all flex items-center gap-2"
+                  className="px-5 py-2.5 rounded-[10px] bg-[#22D3EE] hover:bg-[#06b6d4] text-[#080D18] font-bold text-xs shadow-sm cursor-pointer transition-all flex items-center gap-2"
                 >
                   <Video className="w-4 h-4" /> Start Camera
                 </button>
@@ -724,7 +728,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
 
             {/* Error Overlay */}
             {cameraError && (
-              <div className="absolute inset-x-4 bottom-4 p-4 rounded-2xl bg-red-950/90 border border-red-500 text-red-200 text-xs flex items-start gap-3 backdrop-blur-md">
+              <div className="absolute inset-x-4 bottom-4 p-4 rounded-[14px] bg-red-950/90 border border-red-500/50 text-red-200 text-xs flex items-start gap-3 backdrop-blur-md">
                 <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <strong className="block text-white font-bold">Webcam Error</strong>
@@ -732,7 +736,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
                 </div>
                 <button
                   onClick={retryCamera}
-                  className="px-3 py-1 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg shrink-0 cursor-pointer text-[11px]"
+                  className="px-3 py-1 bg-red-800 hover:bg-red-700 text-white font-bold rounded-[8px] shrink-0 cursor-pointer text-[11px]"
                 >
                   Retry
                 </button>
@@ -742,13 +746,13 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
             {/* Live Guidance Bar Over Video */}
             {isCameraActive && (
               <div className="absolute top-4 inset-x-4 flex items-center justify-between pointer-events-none">
-                <div className="px-3 py-1.5 rounded-xl bg-slate-950/80 backdrop-blur-md border border-slate-800 text-[11px] text-gray-300 font-mono">
+                <div className="px-3 py-1.5 rounded-[10px] bg-[#080D18]/80 backdrop-blur-md border border-slate-800 text-[11px] text-[#B6C2D2] font-mono">
                   {statusMessage}
                 </div>
 
                 {stabilityScore > 0 && (
-                  <div className="px-3 py-1.5 rounded-xl bg-slate-950/80 backdrop-blur-md border border-slate-800 text-[11px] text-emerald-400 font-mono flex items-center gap-1.5">
-                    <Target className="w-3.5 h-3.5 text-emerald-500" />
+                  <div className="px-3 py-1.5 rounded-[10px] bg-[#080D18]/80 backdrop-blur-md border border-slate-800 text-[11px] text-emerald-400 font-mono flex items-center gap-1.5">
+                    <Target className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Stability: {stabilityScore}%</span>
                   </div>
                 )}
@@ -757,12 +761,12 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
           </div>
 
           {/* Quick Simulation Row */}
-          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 space-y-2">
+          <div className="p-4 rounded-[18px] bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-700 dark:text-gray-300 font-heading">
+              <span className="font-bold text-slate-700 dark:text-[#B6C2D2]">
                 Interactive Vocabulary Cards:
               </span>
-              <span className="text-[11px] text-slate-400">Tap to test translation without camera</span>
+              <span className="text-[11px] text-slate-400 dark:text-[#8493A8]">Tap to test translation without camera</span>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
@@ -770,10 +774,10 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
                 <button
                   key={g.id}
                   onClick={() => handleSimulateGesture(g.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-[10px] text-xs font-medium border transition-all cursor-pointer flex items-center gap-1.5 ${
                     lockedGesture === g.id
-                      ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold shadow-xs'
-                      : 'bg-gray-50 hover:bg-gray-100 dark:bg-slate-950 dark:hover:bg-slate-800 text-slate-700 dark:text-gray-300 border-gray-200 dark:border-slate-800'
+                      ? 'bg-[#22D3EE] text-[#080D18] border-[#22D3EE] font-bold shadow-xs'
+                      : 'bg-slate-50 hover:bg-slate-100 dark:bg-[#121C2D] dark:hover:bg-[#19263A] text-slate-700 dark:text-[#B6C2D2] border-slate-200 dark:border-[rgba(148,163,184,0.12)]'
                   }`}
                 >
                   <span>{g.emoji}</span>
@@ -789,11 +793,11 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
         <div className="lg:col-span-5 space-y-5">
           
           {/* Recognition Test Panel */}
-          <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-amber-500/40 shadow-xl space-y-5">
-            <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-800 pb-3">
+          <div className="p-5 sm:p-6 rounded-[18px] bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-xs space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)] pb-3">
               <div className="flex items-center gap-2">
-                <Target className="w-5 h-5 text-amber-500" />
-                <h4 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-white font-heading">
+                <Target className="w-5 h-5 text-[#22D3EE]" />
+                <h4 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-[#F8FAFC]">
                   Recognition Test Panel
                 </h4>
               </div>
@@ -801,10 +805,10 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setAutoSpeak(!autoSpeak)}
-                  className={`p-1.5 rounded-xl border text-xs transition-colors cursor-pointer ${
+                  className={`p-1.5 rounded-[10px] border text-xs transition-colors cursor-pointer ${
                     autoSpeak
-                      ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                      : 'bg-gray-100 dark:bg-slate-800 text-slate-400 border-gray-200 dark:border-slate-700'
+                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/25'
+                      : 'bg-slate-100 dark:bg-[#19263A] text-slate-400 border-slate-200 dark:border-[rgba(148,163,184,0.15)]'
                   }`}
                   title={autoSpeak ? 'Auto-Speech is ON' : 'Auto-Speech is OFF'}
                 >
@@ -814,7 +818,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
                 <select
                   value={selectedLanguage}
                   onChange={(e) => setSelectedLanguage(e.target.value as any)}
-                  className="bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 text-slate-800 dark:text-gray-200 rounded-xl px-2 py-1 text-xs font-medium"
+                  className="bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] text-slate-800 dark:text-[#F8FAFC] rounded-[10px] px-2 py-1 text-xs font-medium focus:border-[#22D3EE] focus:outline-none"
                 >
                   <option value="en-US">English (US)</option>
                   <option value="am-ET">አማርኛ (Amharic)</option>
@@ -824,38 +828,38 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
 
             {/* Current Prediction Display */}
             {classificationResult && !classificationResult.isUnknown && lockedDef ? (
-              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+              <div className="p-4 rounded-[14px] bg-cyan-500/10 border border-cyan-500/25 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-4xl">{lockedDef.emoji}</span>
                     <div>
-                      <h3 className="text-xl font-bold text-slate-900 dark:text-white font-heading">
+                      <h3 className="text-xl font-bold text-slate-900 dark:text-[#F8FAFC]">
                         {lockedDef.labelEn}
                       </h3>
-                      <div className="text-sm font-bold text-amber-600 dark:text-amber-400 font-ethiopic">
-                        {lockedDef.labelAm} <span className="text-xs text-gray-500 font-sans">("{lockedDef.phoneticAm}")</span>
+                      <div className="text-sm font-bold text-[#2DD4BF] font-ethiopic">
+                        {lockedDef.labelAm} <span className="text-xs text-slate-500 dark:text-[#8493A8] font-sans">("{lockedDef.phoneticAm}")</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="text-right">
-                    <div className="text-xl font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                    <div className="text-xl font-mono tabular-nums font-bold text-emerald-600 dark:text-emerald-400">
                       {currentConfidence}%
                     </div>
-                    <span className="text-[10px] text-slate-500 dark:text-gray-400 uppercase tracking-wider">
+                    <span className="text-[10px] text-slate-500 dark:text-[#8493A8] uppercase tracking-wider">
                       Confidence
                     </span>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 dark:text-gray-300 leading-relaxed pt-1.5 border-t border-amber-500/20">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 dark:text-[#B6C2D2] leading-relaxed pt-1.5 border-t border-cyan-500/20">
                   <div className="flex-1">
                     <strong>Verification:</strong> {classificationResult.reason}
                   </div>
-                  <span className={`px-2 py-0.5 rounded-md font-mono text-[10px] font-bold shrink-0 ${
+                  <span className={`px-2 py-0.5 rounded-[6px] font-mono text-[10px] font-bold shrink-0 ${
                     currentRecognitionSource === 'camera'
                       ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                      : 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                      : 'bg-cyan-500/20 text-[#22D3EE] border border-cyan-500/30'
                   }`}>
                     {currentRecognitionSource === 'camera' ? '● Real Camera Detection' : '○ Card Simulation'}
                   </span>
@@ -863,12 +867,12 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
               </div>
             ) : classificationResult && classificationResult.isUnknown ? (
               /* Explicit UNKNOWN State */
-              <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-400 dark:border-amber-500/40 space-y-2">
-                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-bold text-sm font-heading">
+              <div className="p-4 rounded-[14px] bg-amber-500/10 border border-amber-500/25 space-y-2">
+                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-bold text-sm">
                   <HelpCircle className="w-5 h-5 text-amber-500 shrink-0" />
                   <span>Unknown Hand Pose / Unverified Sign</span>
                 </div>
-                <p className="text-xs text-slate-600 dark:text-gray-300 leading-relaxed">
+                <p className="text-xs text-slate-600 dark:text-[#B6C2D2] leading-relaxed">
                   {classificationResult.reason}. Hand landmarks are detected, but fingers do not match any verified static gesture template.
                 </p>
                 <div className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
@@ -876,7 +880,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="p-6 text-center text-slate-400 border border-dashed border-gray-200 dark:border-slate-800 rounded-2xl space-y-1">
+              <div className="p-6 text-center text-slate-400 dark:text-[#8493A8] border border-dashed border-slate-200 dark:border-[rgba(148,163,184,0.15)] rounded-[14px] space-y-1">
                 <Eye className="w-6 h-6 mx-auto opacity-50" />
                 <p className="text-xs font-medium">Awaiting live hand movement...</p>
               </div>
@@ -885,23 +889,23 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
             {/* Live Geometric Feature Inspection */}
             {classificationResult && (
               <div className="space-y-2 text-xs">
-                <span className="text-slate-500 dark:text-gray-400 font-bold uppercase tracking-wider text-[11px]">
+                <span className="text-slate-500 dark:text-[#8493A8] font-bold uppercase tracking-wider text-[11px]">
                   Live Finger Extension Features
                 </span>
                 <div className="grid grid-cols-5 gap-1.5 text-center font-mono text-[11px]">
-                  <div className={`p-2 rounded-xl border ${classificationResult.features.thumbExtendedAway ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400 font-bold' : 'bg-gray-50 dark:bg-slate-950 border-gray-200 dark:border-slate-800 text-gray-500'}`}>
+                  <div className={`p-2 rounded-[10px] border ${classificationResult.features.thumbExtendedAway ? 'bg-cyan-500/15 border-cyan-500/30 text-[#22D3EE] font-bold' : 'bg-slate-50 dark:bg-[#121C2D] border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-slate-400 dark:text-[#8493A8]'}`}>
                     Thumb
                   </div>
-                  <div className={`p-2 rounded-xl border ${classificationResult.features.indexExtended ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400 font-bold' : 'bg-gray-50 dark:bg-slate-950 border-gray-200 dark:border-slate-800 text-gray-500'}`}>
+                  <div className={`p-2 rounded-[10px] border ${classificationResult.features.indexExtended ? 'bg-cyan-500/15 border-cyan-500/30 text-[#22D3EE] font-bold' : 'bg-slate-50 dark:bg-[#121C2D] border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-slate-400 dark:text-[#8493A8]'}`}>
                     Index
                   </div>
-                  <div className={`p-2 rounded-xl border ${classificationResult.features.middleExtended ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400 font-bold' : 'bg-gray-50 dark:bg-slate-950 border-gray-200 dark:border-slate-800 text-gray-500'}`}>
+                  <div className={`p-2 rounded-[10px] border ${classificationResult.features.middleExtended ? 'bg-cyan-500/15 border-cyan-500/30 text-[#22D3EE] font-bold' : 'bg-slate-50 dark:bg-[#121C2D] border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-slate-400 dark:text-[#8493A8]'}`}>
                     Middle
                   </div>
-                  <div className={`p-2 rounded-xl border ${classificationResult.features.ringExtended ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400 font-bold' : 'bg-gray-50 dark:bg-slate-950 border-gray-200 dark:border-slate-800 text-gray-500'}`}>
+                  <div className={`p-2 rounded-[10px] border ${classificationResult.features.ringExtended ? 'bg-cyan-500/15 border-cyan-500/30 text-[#22D3EE] font-bold' : 'bg-slate-50 dark:bg-[#121C2D] border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-slate-400 dark:text-[#8493A8]'}`}>
                     Ring
                   </div>
-                  <div className={`p-2 rounded-xl border ${classificationResult.features.pinkyExtended ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400 font-bold' : 'bg-gray-50 dark:bg-slate-950 border-gray-200 dark:border-slate-800 text-gray-500'}`}>
+                  <div className={`p-2 rounded-[10px] border ${classificationResult.features.pinkyExtended ? 'bg-cyan-500/15 border-cyan-500/30 text-[#22D3EE] font-bold' : 'bg-slate-50 dark:bg-[#121C2D] border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-slate-400 dark:text-[#8493A8]'}`}>
                     Pinky
                   </div>
                 </div>
@@ -910,27 +914,27 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
 
             {/* Candidate Breakdown */}
             {classificationResult && classificationResult.candidates.length > 0 && (
-              <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-slate-800 text-xs">
-                <span className="text-slate-500 dark:text-gray-400 font-semibold text-[11px]">
+              <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-xs">
+                <span className="text-slate-500 dark:text-[#8493A8] font-semibold text-[11px]">
                   Top Recognition Candidates:
                 </span>
                 <div className="space-y-1.5">
                   {classificationResult.candidates.slice(0, 3).map((c) => {
                     const def = GESTURE_DEFINITIONS[c.gesture];
                     return (
-                      <div key={c.gesture} className="flex items-center justify-between p-2 rounded-xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800/80">
-                        <span className="font-medium text-slate-800 dark:text-gray-200 flex items-center gap-1.5">
+                      <div key={c.gesture} className="flex items-center justify-between p-2 rounded-[10px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
+                        <span className="font-medium text-slate-800 dark:text-[#F8FAFC] flex items-center gap-1.5">
                           <span>{def?.emoji}</span>
                           <span>{def?.labelEn}</span>
                         </span>
                         <div className="flex items-center gap-2">
-                          <div className="w-20 bg-gray-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                          <div className="w-20 bg-slate-200 dark:bg-[#19263A] h-1.5 rounded-full overflow-hidden">
                             <div
-                              className="bg-amber-500 h-full rounded-full"
+                              className="bg-[#22D3EE] h-full rounded-full"
                               style={{ width: `${Math.round(c.confidence * 100)}%` }}
                             />
                           </div>
-                          <span className="font-mono text-[11px] font-bold text-slate-700 dark:text-gray-300">
+                          <span className="font-mono tabular-nums text-[11px] font-bold text-slate-700 dark:text-[#B6C2D2]">
                             {Math.round(c.confidence * 100)}%
                           </span>
                         </div>
@@ -943,11 +947,11 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
           </div>
 
           {/* Transcript Panel with Add, Edit, Undo, Clear, Copy, Speak */}
-          <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-800 pb-3">
-              <h4 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-white font-heading flex items-center gap-2">
+          <div className="p-5 sm:p-6 rounded-[18px] bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)] pb-3">
+              <h4 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2">
                 <span>Transcript Stream</span>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 text-[10px] font-mono font-bold">
+                <span className="px-2 py-0.5 rounded-[6px] bg-cyan-500/10 text-[#22D3EE] border border-cyan-500/20 text-[10px] font-mono font-bold">
                   {transcript.length} Words
                 </span>
               </h4>
@@ -956,7 +960,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
                 <button
                   onClick={handleSpeakFullTranscript}
                   disabled={transcript.length === 0}
-                  className="px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-emerald-600 dark:text-emerald-400 border border-gray-200 dark:border-slate-700 text-xs font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-40 transition-colors shadow-xs"
+                  className="px-2.5 py-1.5 rounded-[10px] bg-slate-50 dark:bg-[#19263A] hover:bg-slate-100 dark:hover:bg-[#1f2f47] text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-[rgba(148,163,184,0.15)] text-xs font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-40 transition-colors shadow-xs"
                   title="Speak Full Transcript aloud"
                 >
                   <Volume2 className="w-3.5 h-3.5" />
@@ -966,7 +970,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
                 <button
                   onClick={handleUndoTranscript}
                   disabled={transcript.length === 0}
-                  className="p-1.5 rounded-xl text-slate-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-[10px] text-slate-600 dark:text-[#B6C2D2] hover:bg-slate-100 dark:hover:bg-[#19263A] disabled:opacity-40 transition-colors cursor-pointer"
                   title="Undo Last Sign"
                 >
                   <Undo2 className="w-4 h-4" />
@@ -975,7 +979,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
                 <button
                   onClick={handleClearTranscript}
                   disabled={transcript.length === 0}
-                  className="p-1.5 rounded-xl text-red-500 hover:bg-red-500/10 disabled:opacity-40 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-[10px] text-red-500 hover:bg-red-500/10 disabled:opacity-40 transition-colors cursor-pointer"
                   title="Clear All"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -984,10 +988,10 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
                 <button
                   onClick={handleCopyTranscript}
                   disabled={transcript.length === 0}
-                  className="px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-gray-200 text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                  className="px-2.5 py-1.5 rounded-[10px] bg-slate-100 hover:bg-slate-200 dark:bg-[#19263A] dark:hover:bg-[#1f2f47] text-slate-700 dark:text-[#F8FAFC] text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors border border-slate-200 dark:border-[rgba(148,163,184,0.15)]"
                   title="Copy Full Transcript"
                 >
-                  {copiedTranscript ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedTranscript ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copiedTranscript ? 'Copied' : 'Copy'}</span>
                 </button>
               </div>
@@ -995,43 +999,43 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
 
             {/* Inline Editing Form if an item is being edited */}
             {editingItemId && (
-              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2 text-xs">
-                <div className="flex items-center justify-between font-bold text-amber-700 dark:text-amber-300 font-heading">
+              <div className="p-3.5 rounded-[14px] bg-cyan-500/10 border border-cyan-500/25 space-y-2 text-xs">
+                <div className="flex items-center justify-between font-bold text-cyan-700 dark:text-[#22D3EE]">
                   <span>Edit Transcript Item</span>
-                  <button onClick={handleCancelEdit} className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                  <button onClick={handleCancelEdit} className="text-slate-400 hover:text-slate-600 dark:hover:text-[#F8FAFC] cursor-pointer">
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[10px] text-gray-500 uppercase font-semibold block mb-0.5">English Text</label>
+                    <label className="text-[10px] text-slate-500 dark:text-[#8493A8] uppercase font-semibold block mb-0.5">English Text</label>
                     <input
                       type="text"
                       value={editTextEn}
                       onChange={(e) => setEditTextEn(e.target.value)}
-                      className="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 dark:text-white"
+                      className="w-full bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-2.5 py-1.5 text-xs text-slate-900 dark:text-[#F8FAFC] focus:border-[#22D3EE] focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] text-gray-500 uppercase font-semibold block mb-0.5">Amharic Fidel</label>
+                    <label className="text-[10px] text-slate-500 dark:text-[#8493A8] uppercase font-semibold block mb-0.5">Amharic Fidel</label>
                     <input
                       type="text"
                       value={editTextAm}
                       onChange={(e) => setEditTextAm(e.target.value)}
-                      className="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 dark:text-white font-ethiopic"
+                      className="w-full bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-2.5 py-1.5 text-xs text-slate-900 dark:text-[#F8FAFC] font-ethiopic focus:border-[#22D3EE] focus:outline-none"
                     />
                   </div>
                 </div>
                 <div className="flex items-center justify-end gap-2 pt-1">
                   <button
                     onClick={handleCancelEdit}
-                    className="px-3 py-1 rounded-xl text-xs bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 text-slate-700 dark:text-gray-300 cursor-pointer"
+                    className="px-3 py-1 rounded-[10px] text-xs bg-slate-100 hover:bg-slate-200 dark:bg-[#19263A] text-slate-700 dark:text-[#B6C2D2] cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSaveEdit}
-                    className="px-3 py-1 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer flex items-center gap-1 shadow-xs"
+                    className="px-3 py-1 rounded-[10px] text-xs font-bold bg-[#22D3EE] hover:bg-[#06b6d4] text-[#080D18] cursor-pointer flex items-center gap-1 shadow-xs"
                   >
                     <Save className="w-3 h-3" /> Save Changes
                   </button>
@@ -1040,60 +1044,55 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
             )}
 
             {/* Transcript Chips Box */}
-            <div className="min-h-24 p-4 rounded-2xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 flex flex-wrap gap-2 items-center">
+            <div className="min-h-24 p-4 rounded-[14px] bg-slate-50 dark:bg-[#080D18] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex flex-wrap gap-2 items-center">
               {transcript.map((item) => (
                 <div
                   key={item.id}
-                  className="group px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-xs text-xs font-medium text-slate-800 dark:text-gray-200 flex items-center gap-2 animate-in fade-in zoom-in-95 duration-150"
+                  className="group px-3 py-1.5 rounded-[10px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-xs text-xs font-medium text-slate-800 dark:text-[#F8FAFC] flex items-center gap-2 animate-in fade-in zoom-in-95 duration-150"
                 >
                   <span>{item.emoji}</span>
                   <span className="font-bold">{item.textEn}</span>
-                  <span className="text-amber-600 dark:text-amber-400 font-ethiopic text-[11px]">({item.textAm})</span>
-                  
-                  {/* Source Badge */}
-                  <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold ${
-                    item.source === 'camera'
-                      ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                      : 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
-                  }`}>
-                    {item.source === 'camera' ? '● Cam' : '○ Sim'}
-                  </span>
+                  <span className="text-[11px] font-ethiopic text-[#2DD4BF]">({item.textAm})</span>
 
-                  {item.isEdited && (
-                    <span className="text-[9px] text-purple-500 font-bold">edited</span>
-                  )}
-
-                  {/* Edit Trigger */}
-                  <button
-                    onClick={() => handleStartEdit(item)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
-                    title="Edit Item Text"
-                  >
-                    <Edit2 className="w-3 h-3" />
-                  </button>
+                  <div className="hidden group-hover:flex items-center gap-1 pl-1 border-l border-slate-200 dark:border-[rgba(148,163,184,0.15)]">
+                    <button
+                      onClick={() => handleStartEdit(item)}
+                      className="p-1 rounded text-slate-400 hover:text-[#22D3EE] cursor-pointer"
+                      title="Edit this item"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTranscriptItem(item.id)}
+                      className="p-1 rounded text-slate-400 hover:text-red-500 cursor-pointer"
+                      title="Delete item"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
               ))}
 
               {transcript.length === 0 && (
-                <div className="text-xs text-slate-400 italic">
-                  Transcript stream is empty. Hold verified gestures in camera view or click vocabulary cards to transcribe.
-                </div>
+                <span className="text-xs text-slate-400 dark:text-[#8493A8] italic">
+                  Recognized Ethiopian Sign Language signs and simulated phrases will stream here in real-time...
+                </span>
               )}
             </div>
 
             {/* Linguistic Status Notice */}
-            <div className="p-3 rounded-2xl bg-gray-100 dark:bg-slate-800/60 text-[11px] text-slate-500 dark:text-gray-400 flex items-center justify-between">
+            <div className="p-3 rounded-[10px] bg-slate-50 dark:bg-[#080D18] text-[11px] text-slate-500 dark:text-[#8493A8] flex items-center justify-between border border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
               <span>Linguistic Calibration: Verified EthSL vocabulary is calibrated for student assistive communication.</span>
-              <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold shrink-0">EthSL v1.4</span>
+              <span className="font-mono text-[#2DD4BF] font-bold shrink-0">EthSL v1.4</span>
             </div>
 
             {/* Manual Add Sign Button */}
             {lockedDef && (
               <button
                 onClick={() => appendToTranscript(lockedDef.id, currentConfidence / 100 || 0.9, currentRecognitionSource || 'camera')}
-                className="w-full py-2.5 rounded-2xl bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-gray-200 font-bold text-xs flex items-center justify-center gap-2 border border-gray-200 dark:border-slate-700 transition-colors cursor-pointer"
+                className="w-full py-2.5 rounded-[10px] bg-slate-100 hover:bg-slate-200 dark:bg-[#19263A] dark:hover:bg-[#1f2f47] text-slate-800 dark:text-[#F8FAFC] font-bold text-xs flex items-center justify-center gap-2 border border-slate-200 dark:border-[rgba(148,163,184,0.15)] transition-colors cursor-pointer"
               >
-                <PlusCircle className="w-4 h-4 text-emerald-500" />
+                <PlusCircle className="w-4 h-4 text-[#22D3EE]" />
                 <span>Add "{lockedDef.labelEn}" to Transcript</span>
               </button>
             )}

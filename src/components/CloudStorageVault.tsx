@@ -441,25 +441,25 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/85 backdrop-blur-md">
-      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-amber-500/40 rounded-3xl max-w-5xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md">
+      <div className="bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] rounded-[20px] max-w-5xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
-        <div className="p-5 sm:p-6 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between gap-4 bg-gray-50/70 dark:bg-slate-950/40">
+        <div className="p-5 sm:p-6 border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex items-center justify-between gap-4 bg-slate-50 dark:bg-[#080D18]">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-500">
-              <Cloud className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-[10px] bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-[#22D3EE]">
+              <Cloud className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white font-heading">
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
                   EjjiLink Cloud Storage & Vault
                 </h3>
-                <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[8px] text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                   <ShieldCheck className="w-3 h-3" /> Firestore Zero-Trust
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-gray-400">
+              <p className="text-xs text-slate-500 dark:text-[#8493A8]">
                 Preserve customized phrases, emergency signs, and student vocabulary synchronized across devices.
               </p>
             </div>
@@ -467,9 +467,9 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
 
           <div className="flex items-center gap-2">
             {currentUser ? (
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs border border-gray-200 dark:border-slate-700">
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-slate-100 dark:bg-[#19263A] text-xs border border-slate-200 dark:border-[rgba(148,163,184,0.15)]">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span className="font-medium text-slate-700 dark:text-gray-200 truncate max-w-[120px]">
+                <span className="font-medium text-slate-700 dark:text-[#B6C2D2] truncate max-w-[120px]">
                   {currentUser.isAnonymous ? 'Guest User' : currentUser.email || 'Cloud User'}
                 </span>
                 <button
@@ -484,10 +484,10 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
               <button
                 onClick={handleSignIn}
                 disabled={authLoading}
-                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-gray-200 text-xs font-semibold flex items-center gap-1.5 border border-gray-200 dark:border-slate-700 transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-[10px] bg-slate-100 hover:bg-slate-200 dark:bg-[#19263A] dark:hover:bg-[#1f2f47] text-slate-800 dark:text-[#F8FAFC] text-xs font-semibold flex items-center gap-1.5 border border-slate-200 dark:border-[rgba(148,163,184,0.15)] transition-colors cursor-pointer"
                 title="Sign in to sync with Cloud"
               >
-                <LogIn className="w-3.5 h-3.5 text-amber-500" />
+                <LogIn className="w-3.5 h-3.5 text-[#22D3EE]" />
                 <span>{authLoading ? 'Connecting...' : 'Sign In'}</span>
               </button>
             )}
@@ -495,7 +495,7 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
             <button
               onClick={handleSyncCloud}
               disabled={isSyncing}
-              className="px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 rounded-[10px] bg-[#19263A] hover:bg-[#1f2f47] text-[#22D3EE] border border-[rgba(34,211,238,0.25)] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
               title="Synchronize with Cloud Firestore"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
@@ -504,7 +504,7 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
 
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-2 rounded-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#19263A] transition-colors cursor-pointer"
               aria-label="Close"
             >
               <X className="w-5 h-5" />
@@ -513,18 +513,18 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
         </div>
 
         {/* Storage Metrics Bar */}
-        <div className="px-6 py-3 bg-amber-500/5 dark:bg-amber-500/10 border-b border-gray-200 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="px-6 py-2.5 bg-slate-100/60 dark:bg-[#121C2D]/60 border-b border-slate-200 dark:border-[rgba(148,163,184,0.10)] flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-gray-300">
-              <Database className="w-3.5 h-3.5 text-amber-500" />
-              <span>{items.length} Phrases in Vault</span>
+            <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-[#B6C2D2]">
+              <Database className="w-3.5 h-3.5 text-[#22D3EE]" />
+              <span className="tabular-nums">{items.length}</span> Phrases in Vault
             </span>
-            <span className="flex items-center gap-1.5 text-slate-500 dark:text-gray-400">
-              <HardDrive className="w-3.5 h-3.5 text-emerald-500" />
-              <span>{approxKB} KB Cached</span>
+            <span className="flex items-center gap-1.5 text-slate-500 dark:text-[#8493A8]">
+              <HardDrive className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="tabular-nums">{approxKB} KB</span> Cached
             </span>
-            <span className="hidden md:inline-flex items-center gap-1 text-slate-500 dark:text-slate-400">
-              <Wifi className="w-3 h-3 text-emerald-500" />
+            <span className="hidden md:inline-flex items-center gap-1 text-slate-500 dark:text-[#8493A8]">
+              <Wifi className="w-3 h-3 text-emerald-400" />
               <span>Status: {lastSyncTime}</span>
             </span>
           </div>
@@ -532,14 +532,14 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={handleExportBackup}
-              className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-slate-700 dark:text-gray-300 text-[11px] font-medium border border-gray-200 dark:border-slate-700 flex items-center gap-1 cursor-pointer transition-colors"
+              className="px-2.5 py-1 rounded-[8px] bg-white dark:bg-[#19263A] hover:bg-slate-50 dark:hover:bg-[#1f2f47] text-slate-700 dark:text-[#B6C2D2] text-[11px] font-medium border border-slate-200 dark:border-[rgba(148,163,184,0.15)] flex items-center gap-1 cursor-pointer transition-colors"
             >
-              <CloudDownload className="w-3 h-3 text-amber-500" />
+              <CloudDownload className="w-3 h-3 text-[#22D3EE]" />
               <span>Export Backup</span>
             </button>
 
-            <label className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-slate-700 dark:text-gray-300 text-[11px] font-medium border border-gray-200 dark:border-slate-700 flex items-center gap-1 cursor-pointer transition-colors">
-              <CloudUpload className="w-3 h-3 text-emerald-500" />
+            <label className="px-2.5 py-1 rounded-[8px] bg-white dark:bg-[#19263A] hover:bg-slate-50 dark:hover:bg-[#1f2f47] text-slate-700 dark:text-[#B6C2D2] text-[11px] font-medium border border-slate-200 dark:border-[rgba(148,163,184,0.15)] flex items-center gap-1 cursor-pointer transition-colors">
+              <CloudUpload className="w-3 h-3 text-emerald-400" />
               <span>Import JSON</span>
               <input
                 type="file"
@@ -556,8 +556,8 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
 
           {/* Toast Notice */}
           {toastMessage && (
-            <div className="p-3.5 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-900 dark:text-emerald-200 text-xs flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
-              <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+            <div className="p-3.5 rounded-[10px] bg-emerald-500/15 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200 text-xs flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+              <Check className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>{toastMessage}</span>
             </div>
           )}
@@ -565,19 +565,19 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
           {/* Controls: Search, Tag Filters, Add New Button */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search saved phrases or tags..."
-                className="w-full bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none transition-all text-slate-900 dark:text-white"
+                className="w-full bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] rounded-[10px] pl-9 pr-3 py-2 text-xs focus:ring-2 focus:ring-[#22D3EE]/50 focus:border-[#22D3EE] focus:outline-none transition-all text-slate-900 dark:text-[#F8FAFC]"
               />
             </div>
 
             <button
               onClick={() => setIsAddingNew(!isAddingNew)}
-              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer"
+              className="px-4 py-2 rounded-[10px] bg-[#22D3EE] hover:bg-[#06b6d4] text-[#080D18] font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{isAddingNew ? 'Close Form' : 'Add Custom Phrase'}</span>
@@ -586,17 +586,17 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
 
           {/* Tags row */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] text-slate-400 font-semibold mr-1 flex items-center gap-1">
+            <span className="text-[11px] text-slate-400 dark:text-[#8493A8] font-medium mr-1 flex items-center gap-1">
               <Tag className="w-3 h-3" /> Filter:
             </span>
             {allTags.map((tag) => (
               <button
                 key={tag}
                 onClick={() => setSelectedTag(tag)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors cursor-pointer ${
+                className={`px-2.5 py-1 rounded-[8px] text-[11px] font-medium transition-colors cursor-pointer ${
                   selectedTag === tag
-                    ? 'bg-amber-500 text-slate-950 font-bold'
-                    : 'bg-gray-100 dark:bg-slate-800 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-[#22D3EE] text-[#080D18] font-bold'
+                    : 'bg-slate-100 dark:bg-[#19263A] text-slate-600 dark:text-[#B6C2D2] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
                 }`}
               >
                 {tag}
@@ -606,31 +606,31 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
 
           {/* Add New Phrase Form */}
           {isAddingNew && (
-            <form onSubmit={handleCreateItem} className="p-5 rounded-2xl bg-amber-500/5 dark:bg-slate-950 border border-amber-500/30 space-y-4">
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white font-heading flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-500" />
+            <form onSubmit={handleCreateItem} className="p-5 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-cyan-500/30 space-y-4">
+              <h4 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#22D3EE]" />
                 Add New Phrase to Cloud Storage
               </h4>
 
               <div className="grid sm:grid-cols-2 gap-4 text-xs">
                 <div>
-                  <label className="block text-slate-700 dark:text-gray-300 font-medium mb-1">Phrase Title / Context</label>
+                  <label className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">Phrase Title / Context</label>
                   <input
                     type="text"
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     placeholder="e.g. Asking for Directions"
                     required
-                    className="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                    className="w-full bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] focus:border-[#22D3EE] focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 dark:text-gray-300 font-medium mb-1">Associated 3D Gesture</label>
+                  <label className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">Associated 3D Gesture</label>
                   <select
                     value={newGesture}
                     onChange={(e) => setNewGesture(e.target.value as GestureKey)}
-                    className="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none font-medium"
+                    className="w-full bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] focus:border-[#22D3EE] focus:outline-none font-medium"
                   >
                     {Object.values(GESTURE_DEFINITIONS).map((g) => (
                       <option key={g.id} value={g.id}>
@@ -641,36 +641,36 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 dark:text-gray-300 font-medium mb-1">English Phrase</label>
+                  <label className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">English Phrase</label>
                   <input
                     type="text"
                     value={newPhraseEn}
                     onChange={(e) => setNewPhraseEn(e.target.value)}
                     placeholder="e.g. Which way to the library?"
                     required
-                    className="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                    className="w-full bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] focus:border-[#22D3EE] focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 dark:text-gray-300 font-medium mb-1">Amharic Translation (Optional)</label>
+                  <label className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">Amharic Translation (Optional)</label>
                   <input
                     type="text"
                     value={newPhraseAm}
                     onChange={(e) => setNewPhraseAm(e.target.value)}
                     placeholder="e.g. ቤተ-መጽሐፍቱ የት በኩል ነው?"
-                    className="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none font-ethiopic"
+                    className="w-full bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] focus:border-[#22D3EE] focus:outline-none font-ethiopic"
                   />
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block text-slate-700 dark:text-gray-300 font-medium mb-1">Tags (Comma-separated)</label>
+                  <label className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">Tags (Comma-separated)</label>
                   <input
                     type="text"
                     value={newTags}
                     onChange={(e) => setNewTags(e.target.value)}
                     placeholder="Classroom, Travel, Medical, Custom"
-                    className="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                    className="w-full bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] focus:border-[#22D3EE] focus:outline-none"
                   />
                 </div>
               </div>
@@ -679,13 +679,13 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsAddingNew(false)}
-                  className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-slate-800 text-slate-700 dark:text-gray-300 font-semibold text-xs cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-700"
+                  className="px-4 py-2 rounded-[10px] bg-slate-100 dark:bg-[#19263A] text-slate-700 dark:text-[#B6C2D2] font-semibold text-xs cursor-pointer hover:bg-slate-200 dark:hover:bg-[#1f2f47]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
+                  className="px-5 py-2 rounded-[10px] bg-[#22D3EE] hover:bg-[#06b6d4] text-[#080D18] font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" /> Save to Vault
                 </button>
@@ -700,40 +700,40 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
               return (
                 <div
                   key={item.id}
-                  className="p-5 rounded-2xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 hover:border-amber-500/40 transition-all flex flex-col justify-between gap-4 group"
+                  className="p-5 rounded-[14px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] hover:border-[rgba(34,211,238,0.35)] transition-all flex flex-col justify-between gap-4 group"
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <span className="text-2xl">{def?.emoji || '👋'}</span>
                         <div>
-                          <h5 className="font-bold text-slate-900 dark:text-white text-sm font-heading">
+                          <h5 className="font-bold text-slate-900 dark:text-[#F8FAFC] text-sm">
                             {item.title}
                           </h5>
-                          <span className="text-[10px] text-slate-400">{item.timestamp}</span>
+                          <span className="text-[10px] text-slate-400 dark:text-[#8493A8]">{item.timestamp}</span>
                         </div>
                       </div>
 
                       <button
                         onClick={() => handleDeleteItem(item.id, item.title)}
-                        className="opacity-40 hover:opacity-100 p-1.5 rounded-lg text-red-500 hover:bg-red-500/10 transition-all cursor-pointer"
+                        className="opacity-40 hover:opacity-100 p-1.5 rounded-[8px] text-red-500 hover:bg-red-500/10 transition-all cursor-pointer"
                         title="Delete from Vault"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
 
-                    <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800/80 space-y-1">
-                      <p className="text-xs font-semibold text-slate-800 dark:text-gray-200">
+                    <div className="p-3 rounded-[10px] bg-slate-50 dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-1">
+                      <p className="text-xs font-semibold text-slate-800 dark:text-[#F8FAFC]">
                         {item.phraseEn}
                       </p>
-                      <p className="text-xs font-ethiopic text-amber-600 dark:text-amber-400">
+                      <p className="text-xs font-ethiopic text-[#2DD4BF]">
                         {item.phraseAm}
                       </p>
                     </div>
 
                     {item.notes && (
-                      <p className="text-[11px] text-slate-500 dark:text-gray-400 italic">
+                      <p className="text-[11px] text-slate-500 dark:text-[#8493A8] italic">
                         "{item.notes}"
                       </p>
                     )}
@@ -742,7 +742,7 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
                       {item.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="px-2 py-0.5 rounded-md bg-gray-200 dark:bg-slate-800 text-[10px] font-medium text-slate-600 dark:text-gray-400"
+                          className="px-2 py-0.5 rounded-[6px] bg-slate-100 dark:bg-[#19263A] text-[10px] font-medium text-slate-600 dark:text-[#8493A8]"
                         >
                           #{tag}
                         </span>
@@ -751,14 +751,14 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
                   </div>
 
                   {/* Actions on Card */}
-                  <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-slate-800/80">
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-200 dark:border-[rgba(148,163,184,0.10)]">
                     <button
                       onClick={() => {
                         if (def) {
                           speechService.speak(def, 'en-US');
                         }
                       }}
-                      className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 hover:bg-gray-100 dark:hover:bg-slate-800 text-emerald-600 dark:text-emerald-400 text-xs font-medium border border-gray-200 dark:border-slate-800 flex items-center gap-1.5 transition-colors cursor-pointer"
+                      className="px-3 py-1.5 rounded-[10px] bg-slate-50 dark:bg-[#19263A] hover:bg-slate-100 dark:hover:bg-[#1f2f47] text-emerald-600 dark:text-emerald-400 text-xs font-medium border border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <Volume2 className="w-3.5 h-3.5" />
                       <span>Speak</span>
@@ -769,7 +769,7 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
                         onSelectGesture(item.gestureKey);
                         onClose();
                       }}
-                      className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+                      className="px-3.5 py-1.5 rounded-[10px] bg-[#22D3EE] hover:bg-[#06b6d4] text-[#080D18] font-bold text-xs flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
                       <span>Articulate Hand</span>
@@ -781,8 +781,8 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
           </div>
 
           {filteredItems.length === 0 && (
-            <div className="p-12 text-center text-slate-500 dark:text-gray-400 space-y-2">
-              <Database className="w-8 h-8 mx-auto text-gray-400 opacity-60" />
+            <div className="p-12 text-center text-slate-500 dark:text-[#8493A8] space-y-2">
+              <Database className="w-8 h-8 mx-auto text-slate-400 opacity-60" />
               <p className="font-semibold text-sm">No saved phrases matched your search filter.</p>
               <p className="text-xs">Click "Add Custom Phrase" above to store your first customized entry in Cloud Storage.</p>
             </div>
@@ -790,15 +790,15 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 sm:p-5 border-t border-gray-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-gray-50/70 dark:bg-slate-950/40 text-xs text-slate-500 dark:text-gray-400">
+        <div className="p-4 sm:p-5 border-t border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex flex-wrap items-center justify-between gap-3 bg-slate-50 dark:bg-[#080D18] text-xs text-slate-500 dark:text-[#8493A8]">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span>EjjiLink Cloud Sync Active • The Ethio-Tech Initiative</span>
+            <span>EjjiLink Cloud Sync Active · The Ethio-Tech Initiative</span>
           </div>
 
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white font-bold text-xs transition-colors cursor-pointer"
+            className="px-5 py-2 rounded-[10px] bg-slate-900 dark:bg-[#19263A] hover:bg-slate-800 dark:hover:bg-[#1f2f47] text-white font-bold text-xs border border-slate-200 dark:border-[rgba(148,163,184,0.15)] transition-colors cursor-pointer"
           >
             Close Vault
           </button>

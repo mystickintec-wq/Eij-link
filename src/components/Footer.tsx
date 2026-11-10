@@ -1,14 +1,14 @@
 import React from 'react';
-import { Github, Send, Heart, Sparkles, Code2 } from 'lucide-react';
+import { Github, Send, Heart } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="bg-white dark:bg-slate-950 border-t border-gray-200 dark:border-slate-800 py-12 text-xs text-slate-600 dark:text-gray-400 transition-colors">
+    <footer className="bg-slate-100 dark:bg-[#080D18] border-t border-slate-200 dark:border-[rgba(148,163,184,0.12)] py-10 text-xs text-slate-500 dark:text-[#8493A8] transition-colors">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-8 border-b border-gray-200 dark:border-slate-800">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-slate-200 dark:border-[rgba(148,163,184,0.1)]">
           {/* School & Club Identity */}
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-amber-500/70 bg-[#0b192c] shrink-0 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-300 dark:border-[rgba(148,163,184,0.2)] bg-[#0D1422] shrink-0">
               <img
                 src="/assets/aistudio/Club_Logo_4c19d54c.jpg"
                 alt="The Ethio-Tech Initiative"
@@ -16,42 +16,35 @@ export const Footer: React.FC = () => {
               />
             </div>
             <div>
-              <div className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center gap-2 font-heading">
-                <span>EjjiLink AI</span>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30">
-                  React.js Architecture
-                </span>
+              <div className="font-semibold text-sm text-slate-900 dark:text-[#F8FAFC]">
+                EjjiLink AI
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-gray-400">
-                The Ethio-Tech Initiative • Holy Trinity Cathedral General Secondary School, Addis Ababa
+              <p className="text-[11px] text-slate-500 dark:text-[#8493A8]">
+                The Ethio-Tech Initiative · Holy Trinity Cathedral Secondary School, Addis Ababa
               </p>
             </div>
           </div>
 
-          {/* Tech Badges */}
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <span className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-emerald-700 dark:text-emerald-400 font-mono text-[11px] font-semibold">
-              React 19
-            </span>
-            <span className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-amber-700 dark:text-amber-400 font-mono text-[11px] font-semibold">
-              Three.js PBR 3D
-            </span>
-            <span className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-sky-700 dark:text-sky-400 font-mono text-[11px] font-semibold">
-              MediaPipe Hands
-            </span>
-            <span className="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-purple-700 dark:text-purple-400 font-mono text-[11px] font-semibold">
-              Web Speech API
-            </span>
+          {/* Clean metadata tech specs */}
+          <div className="flex flex-wrap items-center justify-center gap-2 text-xs font-mono text-slate-500 dark:text-[#8493A8]">
+            <span>React</span>
+            <span aria-hidden="true">·</span>
+            <span>Three.js PBR</span>
+            <span aria-hidden="true">·</span>
+            <span>MediaPipe Hands</span>
+            <span aria-hidden="true">·</span>
+            <span>Web Speech API</span>
           </div>
 
           {/* Social Links */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <a
               href="https://github.com/The-Ethio-Tech-Initiative"
               target="_blank"
               rel="noopener noreferrer"
-              className="p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-gray-300 hover:text-emerald-600 dark:hover:text-emerald-400 border border-gray-200 dark:border-slate-800 transition-colors shadow-xs"
+              className="w-8 h-8 rounded-[8px] bg-white dark:bg-[#121C2D] hover:bg-slate-200 dark:hover:bg-[#19263A] text-slate-700 dark:text-[#B6C2D2] hover:text-[#22D3EE] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] transition-colors flex items-center justify-center"
               title="GitHub Organization"
+              aria-label="GitHub Organization"
             >
               <Github className="w-4 h-4" />
             </a>
@@ -59,22 +52,24 @@ export const Footer: React.FC = () => {
               href="https://t.me/EthioTech_HTCS"
               target="_blank"
               rel="noopener noreferrer"
-              className="p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-gray-300 hover:text-sky-600 dark:hover:text-sky-400 border border-gray-200 dark:border-slate-800 transition-colors shadow-xs"
-              title="Telegram Channel"
+              className="w-8 h-8 rounded-[8px] bg-white dark:bg-[#121C2D] hover:bg-slate-200 dark:hover:bg-[#19263A] text-slate-700 dark:text-[#B6C2D2] hover:text-[#22D3EE] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] transition-colors flex items-center justify-center"
+              title="Telegram Community"
+              aria-label="Telegram Community"
             >
               <Send className="w-4 h-4" />
             </a>
           </div>
         </div>
 
-        {/* Bottom Credits & Integrity Disclaimer */}
-        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left text-[11px]">
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500 dark:text-[#8493A8]">
           <p>
-            Built by student innovators at Holy Trinity Cathedral General Secondary School. Inspired by humanity. Powered by innovation.
+            © {new Date().getFullYear()} The Ethio-Tech Initiative. Built for accessible Ethiopian communication.
           </p>
-          <p className="text-slate-500 font-medium">
-            🇪🇹 Innovation • Inclusion • Impact
-          </p>
+          <div className="flex items-center gap-1.5">
+            <span>Crafted with</span>
+            <Heart className="w-3.5 h-3.5 text-[#F87171] fill-[#F87171]" />
+            <span>in Addis Ababa, Ethiopia</span>
+          </div>
         </div>
       </div>
     </footer>

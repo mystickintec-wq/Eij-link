@@ -7,12 +7,12 @@ import {
   Check, 
   RefreshCw, 
   Sparkles, 
-  AlertCircle,
-  BookmarkPlus
+  AlertCircle
 } from 'lucide-react';
 import { translationService } from '../services/translationService';
 import { TranslateResponse } from '../types';
 import { speechService } from '../services/speechService';
+import { useCommunication } from '../context/CommunicationContext';
 
 const SUPPORTED_LANGUAGES = [
   { code: 'en', name: 'English', script: 'Latin' },
@@ -43,6 +43,7 @@ export const TranslationWorkspace: React.FC = () => {
   const [result, setResult] = useState<TranslateResponse | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const { setCommunicationState } = useCommunication();
 
   const handleTranslate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -50,6 +51,7 @@ export const TranslationWorkspace: React.FC = () => {
 
     setIsLoading(true);
     setError(null);
+    setCommunicationState('translating');
 
     try {
       const data = await translationService.translate({
@@ -58,9 +60,11 @@ export const TranslationWorkspace: React.FC = () => {
         targetLang,
       });
       setResult(data);
+      setCommunicationState('success');
     } catch (err: any) {
       console.error('Translation error:', err);
       setError(err.message || 'Translation failed. Please check your network.');
+      setCommunicationState('error');
     } finally {
       setIsLoading(false);
     }
@@ -89,53 +93,61 @@ export const TranslationWorkspace: React.FC = () => {
       text,
       bcp47,
       0.9,
-      () => setIsSpeaking(true),
-      () => setIsSpeaking(false),
-      () => setIsSpeaking(false)
+      () => {
+        setIsSpeaking(true);
+        setCommunicationState('speaking');
+      },
+      () => {
+        setIsSpeaking(false);
+        setCommunicationState('idle');
+      },
+      () => {
+        setIsSpeaking(false);
+        setCommunicationState('idle');
+      }
     );
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Workspace Header */}
-      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6">
+      {/* Workspace Header Panel */}
+      <div className="p-6 rounded-[18px] bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-sky-500/15 border border-sky-500/30 text-sky-500 flex items-center justify-center shrink-0">
-            <Languages className="w-6 h-6" />
+          <div className="w-10 h-10 rounded-[10px] bg-[#22D3EE]/10 text-[#22D3EE] flex items-center justify-center shrink-0">
+            <Languages className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl sm:text-2xl font-bold font-heading text-slate-900 dark:text-white">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC]">
                 Universal Text & Speech Translation
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30">
-                POST /api/translate
-              </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-[#8493A8] mt-0.5">
               High-accuracy translation between Ethiopian languages (Amharic Ge'ez, Afaan Oromoo, Tigrinya) and world languages with phonetic transcription.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-700 dark:text-sky-300 text-xs font-semibold self-start md:self-auto">
-          <span>Gemini 3.8 Flash • Neural Translation</span>
+        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-[#8493A8]">
+          <span className="font-mono text-[#22D3EE]">Gemini 3.8 Flash</span>
+          <span aria-hidden="true">·</span>
+          <span>Neural Engine</span>
         </div>
       </div>
 
       <div className="grid lg:grid-cols-12 gap-6">
         {/* Source Language Column */}
         <div className="lg:col-span-6 space-y-4">
-          <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-lg space-y-4">
+          <div className="p-6 rounded-[18px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-sm space-y-4">
             
             {/* Language Selection Header with Swap */}
-            <div className="flex items-center justify-between gap-2 pb-2 border-b border-gray-200 dark:border-slate-800">
+            <div className="flex items-end justify-between gap-3 pb-3 border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
               <div className="flex-1">
-                <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Source Language</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-[#B6C2D2] block mb-1.5">Source Language</label>
                 <select
                   value={sourceLang}
                   onChange={(e) => setSourceLang(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  className="w-full min-h-[44px] bg-slate-50 dark:bg-[#080D18] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] rounded-[10px] px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/30 focus:border-[#22D3EE]"
                 >
                   <option value="auto">Auto-Detect</option>
                   {SUPPORTED_LANGUAGES.map((l) => (
@@ -149,18 +161,19 @@ export const TranslationWorkspace: React.FC = () => {
               <button
                 type="button"
                 onClick={handleSwapLanguages}
-                className="mt-4 p-2.5 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
-                title="Swap languages"
+                className="w-11 h-11 rounded-[10px] bg-slate-100 dark:bg-[#19263A] hover:bg-slate-200 dark:hover:bg-[#1E2E44] text-slate-700 dark:text-[#B6C2D2] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                title="Swap source and target languages"
+                aria-label="Swap languages"
               >
                 <ArrowLeftRight className="w-4 h-4" />
               </button>
 
               <div className="flex-1">
-                <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Target Language</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-[#B6C2D2] block mb-1.5">Target Language</label>
                 <select
                   value={targetLang}
                   onChange={(e) => setTargetLang(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  className="w-full min-h-[44px] bg-slate-50 dark:bg-[#080D18] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] rounded-[10px] px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/30 focus:border-[#22D3EE]"
                 >
                   {SUPPORTED_LANGUAGES.map((l) => (
                     <option key={l.code} value={l.code}>
@@ -178,14 +191,14 @@ export const TranslationWorkspace: React.FC = () => {
                 onChange={(e) => setInputText(e.target.value)}
                 rows={6}
                 placeholder="Type or paste text here to translate..."
-                className="w-full bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 text-xs sm:text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500 focus:outline-none resize-none"
+                className="w-full bg-slate-50 dark:bg-[#080D18] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] rounded-[10px] p-4 text-sm text-slate-900 dark:text-[#F8FAFC] focus:ring-2 focus:ring-[#22D3EE]/30 focus:border-[#22D3EE] focus:outline-none resize-none leading-relaxed placeholder:text-[#8493A8]"
               />
-              <div className="flex items-center justify-between text-[11px] text-slate-400 px-1 pt-1">
-                <span>{inputText.length} / 5,000 characters</span>
+              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#8493A8] px-1 pt-1.5">
+                <span className="font-mono tabular-nums">{inputText.length} / 5,000 characters</span>
                 {inputText && (
                   <button
                     onClick={() => handleSpeak(inputText, sourceLang)}
-                    className="flex items-center gap-1 hover:text-sky-500 cursor-pointer"
+                    className="flex items-center gap-1 hover:text-[#22D3EE] text-slate-600 dark:text-[#B6C2D2] transition-colors cursor-pointer"
                   >
                     <Volume2 className="w-3.5 h-3.5" /> Speak Input
                   </button>
@@ -194,14 +207,14 @@ export const TranslationWorkspace: React.FC = () => {
             </div>
 
             {error && (
-              <div className="p-3.5 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-400 text-xs flex items-center gap-2">
+              <div className="p-3.5 rounded-[10px] bg-red-500/10 border border-red-500/20 text-[#F87171] text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
             {/* Action Bar */}
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center justify-between pt-1">
               <button
                 type="button"
                 onClick={() => {
@@ -210,7 +223,7 @@ export const TranslationWorkspace: React.FC = () => {
                   setError(null);
                 }}
                 disabled={!inputText}
-                className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-40 cursor-pointer"
+                className="h-10 px-4 rounded-[10px] text-xs font-medium text-slate-500 dark:text-[#8493A8] hover:text-slate-900 dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#19263A] transition-colors disabled:opacity-40 cursor-pointer"
               >
                 Clear
               </button>
@@ -219,7 +232,7 @@ export const TranslationWorkspace: React.FC = () => {
                 type="button"
                 onClick={() => handleTranslate()}
                 disabled={isLoading || !inputText.trim()}
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 text-white font-bold text-xs flex items-center gap-2 shadow-md transition-all disabled:opacity-50 cursor-pointer"
+                className="h-10 px-5 rounded-[10px] bg-[#22D3EE] hover:bg-[#2DD4BF] text-[#080D18] font-semibold text-xs sm:text-sm flex items-center gap-2 transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
               >
                 {isLoading ? (
                   <>
@@ -237,11 +250,11 @@ export const TranslationWorkspace: React.FC = () => {
           </div>
 
           {/* Quick Presets */}
-          <div className="p-4 rounded-3xl bg-white/60 dark:bg-slate-900/60 border border-gray-200 dark:border-slate-800/80 space-y-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block font-heading">
+          <div className="p-5 rounded-[18px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2.5">
+            <span className="text-xs font-semibold text-slate-700 dark:text-[#B6C2D2] block">
               Common Ethiopian Expressions:
             </span>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {PRESET_PHRASES.map((phrase, idx) => (
                 <button
                   key={idx}
@@ -249,7 +262,7 @@ export const TranslationWorkspace: React.FC = () => {
                     setInputText(phrase.text);
                     setResult(null);
                   }}
-                  className="px-2.5 py-1.5 rounded-xl bg-gray-50 dark:bg-slate-950 hover:bg-sky-500/10 dark:hover:bg-sky-500/10 border border-gray-200 dark:border-slate-800 text-[11px] text-slate-700 dark:text-slate-300 font-medium transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded-[8px] bg-slate-50 dark:bg-[#0D1422] hover:bg-[#22D3EE]/10 border border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-xs text-slate-700 dark:text-[#B6C2D2] hover:text-[#22D3EE] transition-colors cursor-pointer"
                 >
                   {phrase.text}
                 </button>
@@ -260,17 +273,17 @@ export const TranslationWorkspace: React.FC = () => {
 
         {/* Translation Output Column */}
         <div className="lg:col-span-6 space-y-4">
-          <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 shadow-xl space-y-4 min-h-[350px] flex flex-col justify-between">
+          <div className="p-6 rounded-[18px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-sm space-y-4 min-h-[360px] flex flex-col justify-between">
             <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)] pb-3">
                 <div className="flex items-center gap-2">
-                  <span className={`w-2.5 h-2.5 rounded-full ${result ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                  <span className="text-xs font-bold font-heading text-slate-900 dark:text-white uppercase tracking-wider">
+                  <span className={`w-2 h-2 rounded-full ${result ? 'bg-[#34D399]' : 'bg-slate-400 dark:bg-[#64748B]'}`} />
+                  <span className="text-xs font-semibold text-slate-900 dark:text-[#F8FAFC]">
                     Translation Output
                   </span>
                 </div>
                 {result?.detectedSourceLang && (
-                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                  <span className="text-xs text-slate-500 dark:text-[#8493A8]">
                     Detected: {result.detectedSourceLang}
                   </span>
                 )}
@@ -279,31 +292,31 @@ export const TranslationWorkspace: React.FC = () => {
               {result ? (
                 <div className="space-y-4 animate-in fade-in duration-200">
                   {/* Translated Text Container */}
-                  <div className="p-5 rounded-2xl bg-sky-500/5 dark:bg-slate-950 border border-sky-500/20 space-y-3">
-                    <p className="text-base sm:text-lg font-medium text-slate-900 dark:text-white leading-relaxed">
+                  <div className="p-5 rounded-[14px] bg-slate-50 dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-3">
+                    <p className="text-base sm:text-lg font-medium text-slate-900 dark:text-[#F8FAFC] leading-relaxed">
                       {result.translatedText}
                     </p>
 
                     {result.phoneticPronunciation && (
-                      <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800">
-                        <span className="text-[10px] text-slate-400 uppercase font-bold block mb-0.5">
+                      <div className="p-3 rounded-[10px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
+                        <span className="text-[11px] text-slate-500 dark:text-[#8493A8] font-semibold block mb-0.5">
                           Phonetic Pronunciation:
                         </span>
-                        <p className="text-xs font-mono text-sky-600 dark:text-sky-400">
+                        <p className="text-xs font-mono text-[#22D3EE]">
                           {result.phoneticPronunciation}
                         </p>
                       </div>
                     )}
 
                     {result.notes && (
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 italic">
+                      <p className="text-xs text-slate-500 dark:text-[#8493A8] italic">
                         "{result.notes}"
                       </p>
                     )}
                   </div>
                 </div>
               ) : (
-                <div className="p-12 text-center text-slate-400 space-y-2">
+                <div className="py-16 text-center text-slate-400 dark:text-[#8493A8] space-y-3">
                   <Languages className="w-10 h-10 mx-auto opacity-30" />
                   <p className="text-xs font-medium">Your translated text will appear here.</p>
                 </div>
@@ -312,20 +325,20 @@ export const TranslationWorkspace: React.FC = () => {
 
             {/* Bottom Actions */}
             {result && (
-              <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-slate-800">
+              <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
                 <button
                   onClick={() => handleSpeak(result.translatedText, targetLang)}
-                  className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-sky-600 dark:text-sky-400 text-xs font-semibold border border-gray-200 dark:border-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="h-10 px-4 rounded-[10px] bg-slate-100 dark:bg-[#19263A] hover:bg-slate-200 dark:hover:bg-[#1E2E44] text-[#22D3EE] text-xs font-medium border border-slate-200 dark:border-[rgba(148,163,184,0.15)] flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Volume2 className="w-4 h-4" />
-                  <span>{isSpeaking ? 'Speaking...' : 'Listen in Target Audio'}</span>
+                  <span>{isSpeaking ? 'Speaking...' : 'Listen to Audio'}</span>
                 </button>
 
                 <button
                   onClick={() => handleCopy(result.translatedText)}
-                  className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold border border-gray-200 dark:border-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="h-10 px-4 rounded-[10px] bg-slate-100 dark:bg-[#19263A] hover:bg-slate-200 dark:hover:bg-[#1E2E44] text-slate-800 dark:text-[#F8FAFC] text-xs font-medium border border-slate-200 dark:border-[rgba(148,163,184,0.15)] flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  {isCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                  {isCopied ? <Check className="w-4 h-4 text-[#34D399]" /> : <Copy className="w-4 h-4" />}
                   <span>{isCopied ? 'Copied' : 'Copy'}</span>
                 </button>
               </div>
