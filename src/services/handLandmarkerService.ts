@@ -1,12 +1,13 @@
 import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
-import { LandmarkPoint } from '../types';
+import { LandmarkPoint, DetectedHand } from '../types';
 
 export interface HandDetectionOutput {
   hasHand: boolean;
   handCount: number;
   landmarks: LandmarkPoint[];
   allHandsLandmarks: LandmarkPoint[][];
-  handedness: string; // 'Left' | 'Right' | 'Unknown'
+  hands: DetectedHand[];
+  handedness: string; // 'Left' | 'Right' | 'Dual Hands' | 'Unknown'
   handednessScore: number;
   timestamp: number;
   isValid: boolean;
@@ -99,9 +100,9 @@ class HandLandmarkerService {
             },
             runningMode: 'VIDEO',
             numHands: 2,
-            minHandDetectionConfidence: 0.5,
-            minHandPresenceConfidence: 0.5,
-            minTrackingConfidence: 0.5,
+            minHandDetectionConfidence: 0.42,
+            minHandPresenceConfidence: 0.42,
+            minTrackingConfidence: 0.42,
           });
           this.activeDelegate = 'GPU';
         } catch (gpuError) {
@@ -113,9 +114,9 @@ class HandLandmarkerService {
             },
             runningMode: 'VIDEO',
             numHands: 2,
-            minHandDetectionConfidence: 0.5,
-            minHandPresenceConfidence: 0.5,
-            minTrackingConfidence: 0.5,
+            minHandDetectionConfidence: 0.42,
+            minHandPresenceConfidence: 0.42,
+            minTrackingConfidence: 0.42,
           });
           this.activeDelegate = 'CPU';
         }
@@ -142,6 +143,7 @@ class HandLandmarkerService {
       handCount: 0,
       landmarks: [],
       allHandsLandmarks: [],
+      hands: [],
       handedness: 'Unknown',
       handednessScore: 0,
       timestamp: timestampMs,
@@ -162,39 +164,51 @@ class HandLandmarkerService {
       const results = this.landmarker.detectForVideo(video, timestampMs);
 
       if (results.landmarks && results.landmarks.length > 0) {
-        const rawFirstHand = results.landmarks[0].map((lm) => ({
-          x: lm.x,
-          y: lm.y,
-          z: lm.z ?? 0,
-        }));
+        const hands: DetectedHand[] = [];
+        const allHandsLandmarks: LandmarkPoint[][] = [];
 
-        // Strict 21-point validation
-        if (HandLandmarkerService.validateLandmarks(rawFirstHand)) {
-          const allHandsLandmarks: LandmarkPoint[][] = [];
-          for (const hand of results.landmarks) {
-            const mapped = hand.map((lm) => ({ x: lm.x, y: lm.y, z: lm.z ?? 0 }));
-            if (HandLandmarkerService.validateLandmarks(mapped)) {
-              allHandsLandmarks.push(mapped);
+        for (let i = 0; i < results.landmarks.length; i++) {
+          const rawHand = results.landmarks[i].map((lm) => ({
+            x: lm.x,
+            y: lm.y,
+            z: lm.z ?? 0,
+          }));
+
+          if (HandLandmarkerService.validateLandmarks(rawHand)) {
+            let handedness: 'Left' | 'Right' | 'Unknown' = 'Right';
+            let handednessScore = 0.9;
+
+            if (results.handedness && results.handedness[i] && results.handedness[i].length > 0) {
+              const hCategory = results.handedness[i][0];
+              const rawName = (hCategory.displayName || hCategory.categoryName || 'Right').toLowerCase();
+              handedness = rawName.includes('left') ? 'Left' : 'Right';
+              handednessScore = hCategory.score ?? 0.9;
+            } else if (i === 1) {
+              handedness = hands[0]?.handedness === 'Right' ? 'Left' : 'Right';
             }
-          }
 
-          let handedness = 'Right';
-          let handednessScore = 0.9;
-          if (results.handedness && results.handedness.length > 0 && results.handedness[0].length > 0) {
-            const topHandedness = results.handedness[0][0];
-            handedness = topHandedness.displayName || topHandedness.categoryName || 'Right';
-            handednessScore = topHandedness.score || 0.9;
+            allHandsLandmarks.push(rawHand);
+            hands.push({
+              index: i,
+              landmarks: rawHand,
+              handedness,
+              handednessScore,
+            });
           }
+        }
 
+        if (hands.length > 0) {
           this.lastDetectionTimestamp = timestampMs;
+          const primaryHand = hands[0];
 
           return {
             hasHand: true,
-            handCount: allHandsLandmarks.length,
-            landmarks: rawFirstHand,
+            handCount: hands.length,
+            landmarks: primaryHand.landmarks,
             allHandsLandmarks,
-            handedness,
-            handednessScore,
+            hands,
+            handedness: hands.length > 1 ? 'Dual Hands' : primaryHand.handedness,
+            handednessScore: primaryHand.handednessScore,
             timestamp: timestampMs,
             isValid: true,
           };

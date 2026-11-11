@@ -40,6 +40,13 @@ export interface LandmarkPoint {
   z: number;
 }
 
+export interface DetectedHand {
+  index: number;
+  landmarks: LandmarkPoint[];
+  handedness: 'Left' | 'Right' | 'Unknown';
+  handednessScore: number;
+}
+
 export interface DetectionResult {
   gesture: GestureKey | 'unknown' | null;
   confidence: number;

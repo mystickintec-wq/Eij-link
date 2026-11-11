@@ -34,6 +34,7 @@ import {
   TranslationHistoryItem, 
   TranscriptItem, 
   LandmarkPoint, 
+  DetectedHand,
   SystemDetectionStatus 
 } from '../types';
 import { GESTURE_DEFINITIONS, GESTURE_LIST } from '../data/gestures';
@@ -86,6 +87,13 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
   const [handsDetected, setHandsDetected] = useState(0);
   const [currentHandedness, setCurrentHandedness] = useState('Right');
   const [liveLandmarks, setLiveLandmarks] = useState<LandmarkPoint[]>([]);
+  const [detectedHandsList, setDetectedHandsList] = useState<DetectedHand[]>([]);
+  const [multiHandClassifications, setMultiHandClassifications] = useState<{
+    handedness: string;
+    gesture: GestureKey | 'unknown' | null;
+    confidence: number;
+    labelEn: string;
+  }[]>([]);
   const [classificationResult, setClassificationResult] = useState<ClassificationResult | null>(null);
   const [currentConfidence, setCurrentConfidence] = useState(0);
   const [stabilityScore, setStabilityScore] = useState(0);
@@ -126,11 +134,13 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
     }
   }, [activeGestureKey]);
 
-  // Clean draw landmarks helper
-  const drawLandmarks = (ctx: CanvasRenderingContext2D, landmarks: LandmarkPoint[], width: number, height: number) => {
-    ctx.strokeStyle = '#eab308'; // Axum Gold lines
-    ctx.lineWidth = 3;
-
+  // Draw landmarks for all detected hands (up to 2 hands) with distinct color coding & wrist badges
+  const drawDetectedHands = (
+    ctx: CanvasRenderingContext2D,
+    hands: DetectedHand[],
+    width: number,
+    height: number
+  ) => {
     const connections = [
       [0, 1], [1, 2], [2, 3], [3, 4],       // Thumb
       [0, 5], [5, 6], [6, 7], [7, 8],       // Index
@@ -139,22 +149,55 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
       [0, 17], [17, 18], [18, 19], [19, 20] // Pinky
     ];
 
-    for (const [start, end] of connections) {
-      if (landmarks[start] && landmarks[end]) {
-        ctx.beginPath();
-        ctx.moveTo(landmarks[start].x * width, landmarks[start].y * height);
-        ctx.lineTo(landmarks[end].x * width, landmarks[end].y * height);
-        ctx.stroke();
-      }
-    }
+    hands.forEach((hand) => {
+      const isLeft = hand.handedness === 'Left';
+      // Left hand: Vibrant Cyan/Sky palette; Right hand: Axum Gold/Emerald palette
+      const strokeColor = isLeft ? '#22d3ee' : '#eab308';
+      const nodeColor = isLeft ? '#38bdf8' : '#10b981';
 
-    // Glowing green nodes
-    ctx.fillStyle = '#10b981';
-    for (const lm of landmarks) {
-      ctx.beginPath();
-      ctx.arc(lm.x * width, lm.y * height, 4.5, 0, Math.PI * 2);
-      ctx.fill();
-    }
+      ctx.save();
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = 3.5;
+
+      for (const [start, end] of connections) {
+        if (hand.landmarks[start] && hand.landmarks[end]) {
+          ctx.beginPath();
+          ctx.moveTo(hand.landmarks[start].x * width, hand.landmarks[start].y * height);
+          ctx.lineTo(hand.landmarks[end].x * width, hand.landmarks[end].y * height);
+          ctx.stroke();
+        }
+      }
+
+      ctx.fillStyle = nodeColor;
+      for (const lm of hand.landmarks) {
+        ctx.beginPath();
+        ctx.arc(lm.x * width, lm.y * height, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Floating hand identification badge above wrist
+      const wrist = hand.landmarks[0];
+      if (wrist) {
+        const badgeX = wrist.x * width;
+        const badgeY = Math.max(24, wrist.y * height - 20);
+
+        ctx.fillStyle = isLeft ? 'rgba(8, 145, 178, 0.9)' : 'rgba(180, 83, 9, 0.9)';
+        ctx.beginPath();
+        ctx.roundRect(badgeX - 44, badgeY - 12, 88, 22, 6);
+        ctx.fill();
+
+        ctx.strokeStyle = isLeft ? '#67e8f9' : '#fde047';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 11px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${hand.handedness} Hand`, badgeX, badgeY - 1);
+      }
+      ctx.restore();
+    });
   };
 
   // Speak gesture
@@ -310,14 +353,19 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
         // Draw camera frame to canvas
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // Detect hand landmarks using MediaPipe
+        // Detect hand landmarks using MediaPipe (up to 2 hands)
         const detection = handLandmarkerService.detectVideoFrame(video, performance.now());
 
-        if (detection.hasHand && detection.landmarks.length === 21 && detection.isValid) {
+        if (detection.hasHand && detection.hands.length > 0 && detection.isValid) {
           setDetectionStatus('hand_detected');
           setCurrentRecognitionSource('camera');
           setHandsDetected(detection.handCount);
-          setCurrentHandedness(detection.handedness);
+          setDetectedHandsList(detection.hands);
+          setCurrentHandedness(
+            detection.handCount > 1
+              ? `Dual Hands (${detection.hands.map((h) => h.handedness).join(' + ')})`
+              : detection.handedness
+          );
           setLiveLandmarks(detection.landmarks);
           onLiveLandmarksUpdate?.(detection.landmarks, detection.handedness);
 
@@ -325,10 +373,23 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
           setLastDetectionTimestamp(now);
           setLastDetectionTimeText(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
 
-          // Draw skeleton overlays
-          drawLandmarks(ctx, detection.landmarks, canvas.width, canvas.height);
+          // Draw skeleton overlays for all detected hands
+          drawDetectedHands(ctx, detection.hands, canvas.width, canvas.height);
 
-          // Geometric feature extraction & pose classification
+          // Classify all detected hands simultaneously
+          const multiResults = detection.hands.map((h) => {
+            const cls = classifyHandPoseDetailed(h.landmarks);
+            const def = cls.predictedGesture ? GESTURE_DEFINITIONS[cls.predictedGesture] : null;
+            return {
+              handedness: h.handedness,
+              gesture: cls.predictedGesture,
+              confidence: Math.round(cls.confidence * 100),
+              labelEn: def ? def.labelEn : 'Neutral / Motion',
+            };
+          });
+          setMultiHandClassifications(multiResults);
+
+          // Primary hand feature extraction & temporal stabilization
           const detailed = classifyHandPoseDetailed(detection.landmarks);
           setClassificationResult(detailed);
 
@@ -340,7 +401,11 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
 
           setCurrentConfidence(Math.round(stabilized.smoothedConfidence * 100));
           setStabilityScore(Math.round(stabilized.stabilityScore * 100));
-          setStatusMessage(stabilized.statusMessage);
+          setStatusMessage(
+            detection.handCount > 1
+              ? `Dual Hands Active (2 detected) — Tracking ${stabilized.lockedGesture || detailed.predictedGesture || 'poses'}...`
+              : stabilized.statusMessage
+          );
 
           if (stabilized.isLocked && stabilized.lockedGesture) {
             const currentLock = stabilized.lockedGesture;
@@ -367,6 +432,8 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
           // Strictly flush out landmarks to prevent stale caching
           setDetectionStatus('no_hand_detected');
           setHandsDetected(0);
+          setDetectedHandsList([]);
+          setMultiHandClassifications([]);
           setLiveLandmarks([]);
           onLiveLandmarksUpdate?.([], 'Right');
           setClassificationResult(null);
@@ -554,9 +621,9 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
               }`}
             />
             <span className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-[#F8FAFC]">
-              {detectionStatus === 'hand_detected' && 'Hand Detected (Active)'}
-              {detectionStatus === 'no_hand_detected' && 'Searching for Hand...'}
-              {detectionStatus === 'initializing' && 'Initializing MediaPipe...'}
+              {detectionStatus === 'hand_detected' && (handsDetected > 1 ? 'Dual Hands Detected (2 Active)' : `Hand Detected (${currentHandedness})`)}
+              {detectionStatus === 'no_hand_detected' && 'Searching for Hands (1 or 2)...'}
+              {detectionStatus === 'initializing' && 'Initializing MediaPipe Hands (Dual)...'}
               {detectionStatus === 'ready' && (isCameraActive ? 'Camera Live' : 'Camera Standby')}
               {detectionStatus === 'error' && 'Camera / Vision Error'}
             </span>
@@ -565,7 +632,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
           <span className="hidden sm:inline-block text-slate-400 dark:text-[#8493A8]">·</span>
 
           <span className="text-xs text-slate-500 dark:text-[#8493A8] font-mono tabular-nums">
-            {fps} FPS {handsDetected > 0 ? `· ${handsDetected} Hand (${currentHandedness})` : ''}
+            {fps} FPS {handsDetected > 0 ? `· ${handsDetected === 2 ? '👐 Dual Hands (Left + Right)' : `1 Hand (${currentHandedness})`}` : ''}
           </span>
         </div>
 
@@ -664,7 +731,13 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
           <div>
             <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Landmarks Validity</div>
             <div className="font-semibold text-slate-800 dark:text-slate-100 font-mono text-[11px]">
-              {liveLandmarks.length === 21 ? '21 / 21 Points' : isCameraActive ? '0 Points (Scanning)' : 'Standby'}
+              {handsDetected === 2
+                ? '42 / 42 Pts (Dual Hands)'
+                : liveLandmarks.length === 21
+                ? '21 / 21 Points'
+                : isCameraActive
+                ? '0 Points (Scanning)'
+                : 'Standby'}
             </div>
           </div>
         </div>
@@ -745,18 +818,41 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
 
             {/* Live Guidance Bar Over Video */}
             {isCameraActive && (
-              <div className="absolute top-4 inset-x-4 flex items-center justify-between pointer-events-none">
-                <div className="px-3 py-1.5 rounded-[10px] bg-[#080D18]/80 backdrop-blur-md border border-slate-800 text-[11px] text-[#B6C2D2] font-mono">
-                  {statusMessage}
+              <>
+                <div className="absolute top-4 inset-x-4 flex items-center justify-between pointer-events-none">
+                  <div className="px-3 py-1.5 rounded-[10px] bg-[#080D18]/80 backdrop-blur-md border border-slate-800 text-[11px] text-[#B6C2D2] font-mono">
+                    {statusMessage}
+                  </div>
+
+                  {stabilityScore > 0 && (
+                    <div className="px-3 py-1.5 rounded-[10px] bg-[#080D18]/80 backdrop-blur-md border border-slate-800 text-[11px] text-emerald-400 font-mono flex items-center gap-1.5">
+                      <Target className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Stability: {stabilityScore}%</span>
+                    </div>
+                  )}
                 </div>
 
-                {stabilityScore > 0 && (
-                  <div className="px-3 py-1.5 rounded-[10px] bg-[#080D18]/80 backdrop-blur-md border border-slate-800 text-[11px] text-emerald-400 font-mono flex items-center gap-1.5">
-                    <Target className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Stability: {stabilityScore}%</span>
+                {/* Dual Hands Tracking HUD Banner */}
+                {handsDetected === 2 && (
+                  <div className="absolute bottom-3 inset-x-3 pointer-events-none flex items-center justify-center">
+                    <div className="flex flex-wrap items-center justify-center gap-2 px-3 py-1.5 rounded-xl bg-[#080D18]/90 backdrop-blur-md border border-[#22D3EE]/50 text-xs shadow-xl">
+                      <span className="flex items-center gap-1.5 font-bold text-[#22D3EE]">
+                        <span className="w-2 h-2 rounded-full bg-[#22D3EE] animate-pulse" />
+                        <span>Dual Hands Tracked</span>
+                      </span>
+                      <span className="text-slate-500">·</span>
+                      <span className="font-mono text-[11px] text-slate-300">42 Landmarks</span>
+                      {multiHandClassifications.length === 2 && (
+                        <div className="flex items-center gap-2 border-l border-slate-700 pl-2 font-mono text-[11px]">
+                          <span className="text-cyan-300">Left: <strong>{multiHandClassifications.find((h) => h.handedness === 'Left')?.labelEn || 'Active'}</strong></span>
+                          <span className="text-slate-500">|</span>
+                          <span className="text-amber-300">Right: <strong>{multiHandClassifications.find((h) => h.handedness === 'Right')?.labelEn || 'Active'}</strong></span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
-              </div>
+              </>
             )}
           </div>
 

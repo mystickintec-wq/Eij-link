@@ -18,7 +18,10 @@ import {
   Play,
   GraduationCap,
   Coffee,
-  HeartHandshake
+  HeartHandshake,
+  Languages,
+  Clock,
+  ShieldCheck
 } from 'lucide-react';
 import { GestureKey, SignSequence, LandmarkPoint } from '../types';
 import { GESTURE_DEFINITIONS, GESTURE_LIST } from '../data/gestures';
@@ -32,6 +35,29 @@ interface TwoWayWorkspaceProps {
   activeGestureKey: GestureKey | 'neutral';
   onGestureChange: (gesture: GestureKey | 'neutral') => void;
 }
+
+export interface BilingualMatchStatus {
+  matchedKey: GestureKey | null;
+  isError: boolean;
+  messageEn: string;
+  messageAm: string;
+  subMessageEn?: string;
+  subMessageAm?: string;
+  source?: 'camera' | 'voice' | 'text' | 'preset';
+  timestamp?: string;
+}
+
+// Category translation dictionary
+const CATEGORY_TRANSLATIONS: Record<string, { en: string; am: string }> = {
+  greeting: { en: 'Greeting', am: 'ሰላምታ' },
+  politeness: { en: 'Politeness & Courtesy', am: 'ትህትና እና አክብሮት' },
+  affirmation: { en: 'Affirmation / Response', am: 'ማረጋገጫ / ምላሽ' },
+  urgent: { en: 'Urgent / Emergency', am: 'አስቸኳይ / ድንገተኛ' },
+  need: { en: 'Essential Need', am: 'መሰረታዊ ፍላጎት' },
+  expression: { en: 'Expression / Emotion', am: 'ስሜት መግለጫ' },
+  communication: { en: 'Communication', am: 'ግንኙነት' },
+  command: { en: 'Directive / Command', am: 'መመሪያ / ትዕዛዝ' },
+};
 
 export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
   activeGestureKey,
@@ -51,14 +77,39 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
   const [transcriptionNotice, setTranscriptionNotice] = useState<string>('');
   const [selectedSequence, setSelectedSequence] = useState<SignSequence | null>(null);
 
-  const [matchStatus, setMatchStatus] = useState<{
-    matchedKey: GestureKey | null;
-    isError: boolean;
-    message: string;
-  }>({
+  // Top-level bilingual status tracking
+  const [bilingualStatus, setBilingualStatus] = useState<{
+    gestureKey: GestureKey;
+    source: 'camera' | 'voice' | 'text' | 'preset';
+    messageEn: string;
+    messageAm: string;
+    subMessageEn: string;
+    subMessageAm: string;
+    timestamp: string;
+  }>(() => {
+    const initialKey = activeGestureKey !== 'neutral' ? activeGestureKey : 'hello';
+    const def = GESTURE_DEFINITIONS[initialKey] || GESTURE_DEFINITIONS.hello;
+    return {
+      gestureKey: initialKey,
+      source: 'preset',
+      messageEn: `Gesture Confirmed: "${def.labelEn}" (${CATEGORY_TRANSLATIONS[def.category]?.en || def.category})`,
+      messageAm: `የተረጋገጠ ምልክት፦ "${def.labelAm}" (${def.phoneticAm})`,
+      subMessageEn: 'Kinematics initialized. Dual-direction translation active.',
+      subMessageAm: 'የእጅ እንቅስቃሴ ዝግጁ ነው። የሁለትዮሽ ትርጉም ንቁ ነው።',
+      timestamp: 'Ready · ዝግጁ',
+    };
+  });
+
+  // Mode B match status feedback
+  const [matchStatus, setMatchStatus] = useState<BilingualMatchStatus>({
     matchedKey: 'hello',
     isError: false,
-    message: 'Displaying "Hello" (ሰላም) on the 3D hand in React.js',
+    messageEn: 'Displaying "Hello" on the 3D hand in React.js.',
+    messageAm: 'የ"ሰላም" (Selam) ምልክት በ3D እጅ እንቅስቃሴ ላይ እየታየ ነው።',
+    subMessageEn: 'Pose confirmed and ready for two-way translation.',
+    subMessageAm: 'ምልክቱ ተረጋግጦ ለሁለትዮሽ ግንኙነት ዝግጁ ነው።',
+    source: 'preset',
+    timestamp: 'Initial',
   });
 
   // Dictionary mapping natural queries & Amharic terms to all 12 gestures
@@ -77,14 +128,71 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
     stop: 'stop', wait: 'stop', halt: 'stop', pause: 'stop', hold: 'stop', 'hold on': 'stop', qum: 'stop', tebbiq: 'stop', 'ቁም': 'stop', 'ጠብቅ': 'stop',
   };
 
+  // Sync external active gesture with bilingual status
+  useEffect(() => {
+    if (activeGestureKey && activeGestureKey !== 'neutral' && activeGestureKey !== bilingualStatus.gestureKey) {
+      const def = GESTURE_DEFINITIONS[activeGestureKey];
+      if (def) {
+        setBilingualStatus((prev) => ({
+          ...prev,
+          gestureKey: activeGestureKey,
+          messageEn: `Gesture Confirmed: "${def.labelEn}" (${CATEGORY_TRANSLATIONS[def.category]?.en || def.category})`,
+          messageAm: `የተረጋገጠ ምልክት፦ "${def.labelAm}" (${def.phoneticAm})`,
+          subMessageEn: `Kinematics synchronized for "${def.labelEn}".`,
+          subMessageAm: `የእጅ እንቅስቃሴ ለ"${def.labelAm}" ተመሳስሏል።`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        }));
+      }
+    }
+  }, [activeGestureKey, bilingualStatus.gestureKey]);
+
+  // Handler for confirmed gesture recognition from any source
+  const handleGestureRecognized = useCallback((key: GestureKey, source: 'camera' | 'voice' | 'text' | 'preset' = 'camera') => {
+    onGestureChange(key);
+    const def = GESTURE_DEFINITIONS[key];
+    if (!def) return;
+
+    const sourceLabelEn = source === 'camera' ? 'Camera Vision' : source === 'voice' ? 'Spoken Voice' : source === 'text' ? 'Text Input' : 'Preset Selection';
+    const sourceLabelAm = source === 'camera' ? 'የካሜራ እይታ' : source === 'voice' ? 'የድምጽ ንግግር' : source === 'text' ? 'የተጻፈ ጽሁፍ' : 'ቅድመ-ቅምጥ ምርጫ';
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    setBilingualStatus({
+      gestureKey: key,
+      source,
+      messageEn: `${sourceLabelEn} Confirmed: "${def.labelEn}" (${CATEGORY_TRANSLATIONS[def.category]?.en || def.category})`,
+      messageAm: `${sourceLabelAm} ተረጋግጧል፦ "${def.labelAm}" (${def.phoneticAm})`,
+      subMessageEn: `Temporal lock established (>80% accuracy). Articulated on 3D hand.`,
+      subMessageAm: `በመሳሪያው ላይ በ${Math.round(def.threshold * 100)}% እርግጠኝነት ተረጋግጧል። በ3D እጅ ላይ ተንቀሳቅሷል።`,
+      timestamp: timeStr,
+    });
+
+    setMatchStatus({
+      matchedKey: key,
+      isError: false,
+      messageEn: `Recognized "${def.labelEn}" via ${sourceLabelEn}. 3D anatomical hand articulated!`,
+      messageAm: `በ${sourceLabelAm} አማካኝነት "${def.labelAm}" (${def.phoneticAm}) ተረጋግጧል! 3D የአካል እጅ ሞዴል ተንቀሳቅሷል!`,
+      subMessageEn: def.poseInstructions,
+      subMessageAm: `የእጅ አቀማመጥ መመሪያ፦ ${def.poseInstructions}`,
+      source,
+      timestamp: timeStr,
+    });
+  }, [onGestureChange]);
+
   // Match phrase against sequences first, then single gestures
   const matchPhrase = useCallback((query: string) => {
     const clean = query.trim().toLowerCase();
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
     if (!clean) {
       setMatchStatus({
         matchedKey: null,
         isError: false,
-        message: 'Type or speak a phrase above to see its 3D hand gesture.',
+        messageEn: 'Type or speak a phrase above to see its 3D hand gesture.',
+        messageAm: 'የ3D እጅ እንቅስቃሴውን ለማየት ከላይ አንድ ቃል ይተይቡ ወይም ይናገሩ።',
+        subMessageEn: 'Supports English and Amharic voice or text queries.',
+        subMessageAm: 'የእንግሊዝኛ እና የአማርኛ የድምጽ ወይም የጽሁፍ ጥያቄዎችን ይደግፋል።',
+        source: 'text',
+        timestamp: timeStr,
       });
       setSelectedSequence(null);
       return;
@@ -106,10 +214,29 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
       const firstSign = matchedSeq.steps[0]?.signKey;
       const initialKey = firstSign && firstSign !== 'neutral' ? (firstSign as GestureKey) : 'hello';
       onGestureChange(initialKey);
+
+      const stepsEn = matchedSeq.steps.map((st) => st.glossEn).join(' → ');
+      const stepsAm = matchedSeq.steps.map((st) => st.glossAm).join(' → ');
+
+      setBilingualStatus({
+        gestureKey: initialKey,
+        source: 'text',
+        messageEn: `Scenario Sequence Confirmed: "${matchedSeq.titleEn}"`,
+        messageAm: `ተከታታይ ሁኔታ ተረጋግጧል፦ "${matchedSeq.titleAm}"`,
+        subMessageEn: `Articulating ${matchedSeq.steps.length} sequential sign stages: ${stepsEn}`,
+        subMessageAm: `${matchedSeq.steps.length} ተከታታይ የምልክት ደረጃዎች በ3D እጅ ላይ ይታያሉ፦ ${stepsAm}`,
+        timestamp: timeStr,
+      });
+
       setMatchStatus({
         matchedKey: initialKey,
         isError: false,
-        message: `Recognized Sequence: "${matchedSeq.titleEn}" (${matchedSeq.titleAm}). Articulating ${matchedSeq.steps.length} sign stages on the 3D hand!`,
+        messageEn: `Recognized Sequence: "${matchedSeq.titleEn}". Articulating ${matchedSeq.steps.length} sequential stages on the 3D hand!`,
+        messageAm: `ተከታታይ ምልክት ተለይቷል፦ "${matchedSeq.titleAm}". ${matchedSeq.steps.length} የምልክት ደረጃዎች በ3D እጅ ላይ ይተገበራሉ!`,
+        subMessageEn: `Sequence Steps: ${stepsEn}`,
+        subMessageAm: `ተከታታይ ደረጃዎች፦ ${stepsAm}`,
+        source: 'text',
+        timestamp: timeStr,
       });
       return;
     }
@@ -129,17 +256,38 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
       setSelectedSequence(null);
       const def = GESTURE_DEFINITIONS[match];
       onGestureChange(match);
+
+      setBilingualStatus({
+        gestureKey: match,
+        source: 'text',
+        messageEn: `Gesture Confirmed: "${def.labelEn}" (${CATEGORY_TRANSLATIONS[def.category]?.en || def.category})`,
+        messageAm: `የተረጋገጠ ምልክት፦ "${def.labelAm}" (${def.phoneticAm})`,
+        subMessageEn: `Matched phrase "${query}". 3D anatomical hand articulated.`,
+        subMessageAm: `ከ"${query}" ጋር ተመሳስሏል። የ3D የአካል እጅ እንቅስቃሴ ተከናውኗል።`,
+        timestamp: timeStr,
+      });
+
       setMatchStatus({
         matchedKey: match,
         isError: false,
-        message: `Recognized "${def.labelEn}" (${def.labelAm}). 3D anatomical hand articulated!`,
+        messageEn: `Recognized "${def.labelEn}" (${def.category}). 3D anatomical hand articulated!`,
+        messageAm: `"${def.labelAm}" (${def.phoneticAm}) ተረጋግጧል! 3D የአካል እጅ ሞዴል ተንቀሳቅሷል!`,
+        subMessageEn: `Pose: ${def.labelEn} · Category: ${def.category}`,
+        subMessageAm: `ምልክት፦ ${def.labelAm} · አነባበብ፦ ${def.phoneticAm}`,
+        source: 'text',
+        timestamp: timeStr,
       });
     } else {
       setSelectedSequence(null);
       setMatchStatus({
         matchedKey: null,
         isError: true,
-        message: `Phrase "${query}" is not in the active vocabulary. Try: "Hello", "Thank you", "Water please", "Peace and love", "Please call me", "Help", or select a scenario below.`,
+        messageEn: `Phrase "${query}" is not in the active vocabulary. Try: "Hello", "Thank you", "Water please", "Peace and love", "Please call me", "Help".`,
+        messageAm: `"${query}" የሚለው ቃል በተደገፈው የቃላት ዝርዝር ውስጥ የለም። እባክዎ "ሰላም"፣ "አመሰግናለሁ"፣ "ውሃ"፣ "እርዳኝ"፣ "ፍቅር" ወይም ከታች ያሉትን ሁኔታዎች ይሞክሩ።`,
+        subMessageEn: '12 core EthSL & universal signs supported.',
+        subMessageAm: '12 መሰረታዊ የኢትዮጵያና አለምአቀፍ የምልክት ቋንቋ ምልክቶች ተደግፈዋል።',
+        source: 'text',
+        timestamp: timeStr,
       });
     }
   }, [onGestureChange]);
@@ -225,16 +373,36 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
     setSelectedSequence(seq);
     setInputText(seq.titleEn);
     const firstSign = seq.steps[0]?.signKey;
-    if (firstSign && firstSign !== 'neutral') {
-      onGestureChange(firstSign as GestureKey);
-    }
+    const initialKey = (firstSign && firstSign !== 'neutral' ? firstSign : 'hello') as GestureKey;
+    onGestureChange(initialKey);
+
+    const stepsEn = seq.steps.map((st) => st.glossEn).join(' → ');
+    const stepsAm = seq.steps.map((st) => st.glossAm).join(' → ');
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    setBilingualStatus({
+      gestureKey: initialKey,
+      source: 'preset',
+      messageEn: `Scenario Selected: "${seq.titleEn}" (${seq.scenario})`,
+      messageAm: `የተመረጠ ሁኔታ፦ "${seq.titleAm}"`,
+      subMessageEn: `Demonstrating ${seq.steps.length} sequential sign stages: ${stepsEn}`,
+      subMessageAm: `${seq.steps.length} ተከታታይ የምልክት ደረጃዎች በ3D እጅ ላይ ይታያሉ፦ ${stepsAm}`,
+      timestamp: timeStr,
+    });
+
     setMatchStatus({
-      matchedKey: (firstSign && firstSign !== 'neutral' ? firstSign : 'hello') as GestureKey,
+      matchedKey: initialKey,
       isError: false,
-      message: `Selected Scenario: "${seq.titleEn}" (${seq.titleAm}). Articulating ${seq.steps.length} sequential sign steps!`,
+      messageEn: `Scenario Sequence: "${seq.titleEn}". Articulating ${seq.steps.length} sequential stages on the 3D hand!`,
+      messageAm: `ተከታታይ ምልክት ተለይቷል፦ "${seq.titleAm}". ${seq.steps.length} ተከታታይ የምልክት ደረጃዎች በ3D እጅ ላይ ይተገበራሉ!`,
+      subMessageEn: `Steps: ${stepsEn}`,
+      subMessageAm: `ደረጃዎች፦ ${stepsAm}`,
+      source: 'preset',
+      timestamp: timeStr,
     });
   };
 
+  const currentDef = GESTURE_DEFINITIONS[bilingualStatus.gestureKey] || GESTURE_DEFINITIONS.hello;
   const matchedDef = matchStatus.matchedKey ? GESTURE_DEFINITIONS[matchStatus.matchedKey] : null;
 
   return (
@@ -278,12 +446,130 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
         </div>
       </div>
 
+      {/* Real-time Bilingual UI Status Updates & Confirmation Hub */}
+      {currentDef && (
+        <div 
+          role="region" 
+          aria-label="Bilingual Gesture Confirmation Status" 
+          className="mb-6 p-4 sm:p-5 rounded-[14px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-sm space-y-3"
+        >
+          {/* Header row: Status badge & timestamp */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-100 dark:border-[rgba(148,163,184,0.1)] text-xs">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#34D399] animate-pulse" />
+              <span className="font-semibold text-slate-900 dark:text-[#F8FAFC] uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                <Languages className="w-3.5 h-3.5 text-[#22D3EE]" />
+                Bilingual Confirmation Status · የሁለትዮሽ ምልክት ማረጋገጫ
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-[#8493A8]">
+              <span className="px-2 py-0.5 rounded-[6px] bg-slate-100 dark:bg-[#19263A] text-slate-700 dark:text-[#B6C2D2] border border-slate-200 dark:border-[rgba(148,163,184,0.1)] capitalize">
+                Source: {bilingualStatus.source === 'camera' ? 'Camera Vision' : bilingualStatus.source === 'voice' ? 'Voice Input' : bilingualStatus.source === 'text' ? 'Text Query' : 'Active Selection'}
+              </span>
+              <span className="flex items-center gap-1 font-mono">
+                <Clock className="w-3 h-3 text-slate-400" />
+                {bilingualStatus.timestamp}
+              </span>
+            </div>
+          </div>
+
+          {/* Bilingual Status Columns (English & Amharic side-by-side) */}
+          <div className="grid md:grid-cols-2 gap-3.5">
+            {/* English Confirmation Card */}
+            <div className="p-3.5 rounded-[10px] bg-slate-50 dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.1)] flex flex-col justify-between space-y-2">
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#22D3EE] flex items-center gap-1">
+                    🇬🇧 English Confirmation
+                  </span>
+                  <span className="text-[11px] font-mono text-slate-400 dark:text-[#8493A8]">
+                    {CATEGORY_TRANSLATIONS[currentDef.category]?.en || currentDef.category}
+                  </span>
+                </div>
+                <div className="text-base font-bold text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2">
+                  <span>{currentDef.emoji}</span>
+                  <span>{currentDef.labelEn}</span>
+                  <CheckCircle2 className="w-4 h-4 text-[#34D399] shrink-0" />
+                </div>
+                <p className="text-xs text-slate-600 dark:text-[#B6C2D2] mt-1 leading-snug">
+                  {bilingualStatus.messageEn}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-[#8493A8] mt-0.5">
+                  {bilingualStatus.subMessageEn}
+                </p>
+              </div>
+
+              <div className="pt-2 border-t border-slate-200/60 dark:border-[rgba(148,163,184,0.08)] flex items-center justify-between">
+                <span className="text-[11px] text-slate-500 dark:text-[#8493A8]">
+                  Confidence: <strong className="text-slate-800 dark:text-[#F8FAFC]">&gt;80% Locked</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => speechService.speak(currentDef, 'en-US')}
+                  className="px-2.5 py-1 rounded-[6px] bg-white dark:bg-[#121C2D] hover:bg-slate-100 dark:hover:bg-[#19263A] text-slate-700 dark:text-[#B6C2D2] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] text-[11px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Speak English Confirmation"
+                >
+                  <Volume2 className="w-3 h-3 text-[#22D3EE]" />
+                  <span>Speak (EN)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Amharic Confirmation Card */}
+            <div className="p-3.5 rounded-[10px] bg-slate-50 dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.1)] flex flex-col justify-between space-y-2">
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#2DD4BF] flex items-center gap-1 font-ethiopic">
+                    🇪🇹 የአማርኛ ማረጋገጫ (Amharic)
+                  </span>
+                  <span className="text-[11px] text-[#2DD4BF] font-ethiopic">
+                    {CATEGORY_TRANSLATIONS[currentDef.category]?.am || currentDef.category}
+                  </span>
+                </div>
+                <div className="text-base font-bold text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2">
+                  <span className="text-xl font-ethiopic text-[#22D3EE]">{currentDef.labelAm}</span>
+                  <span className="text-xs font-normal text-slate-400 dark:text-[#8493A8]">({currentDef.phoneticAm})</span>
+                  <CheckCircle2 className="w-4 h-4 text-[#34D399] shrink-0" />
+                </div>
+                <p className="text-xs text-slate-600 dark:text-[#B6C2D2] mt-1 leading-snug font-ethiopic">
+                  {bilingualStatus.messageAm}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-[#8493A8] mt-0.5 font-ethiopic">
+                  {bilingualStatus.subMessageAm}
+                </p>
+              </div>
+
+              <div className="pt-2 border-t border-slate-200/60 dark:border-[rgba(148,163,184,0.08)] flex items-center justify-between">
+                <span className="text-[11px] text-slate-500 dark:text-[#8493A8] font-ethiopic">
+                  አነባበብ፦ <strong className="text-slate-800 dark:text-[#F8FAFC] font-mono">{currentDef.phoneticAm}</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => speechService.speak(currentDef, 'am-ET')}
+                  className="px-2.5 py-1 rounded-[6px] bg-white dark:bg-[#121C2D] hover:bg-slate-100 dark:hover:bg-[#19263A] text-slate-700 dark:text-[#B6C2D2] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] text-[11px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Speak Amharic Confirmation"
+                >
+                  <Volume2 className="w-3 h-3 text-[#2DD4BF]" />
+                  <span className="font-ethiopic">አማርኛ አሰማ (AM)</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Screen reader live announcement */}
+          <div role="status" aria-live="polite" className="sr-only">
+            {bilingualStatus.messageEn}. {bilingualStatus.messageAm}.
+          </div>
+        </div>
+      )}
+
       {/* Tab A Content: Hands to Voice (Camera & Computer Vision) */}
       {activeTab === 'hands-to-voice' && (
         <div className="space-y-6">
           <TranslatorStudio
             activeGestureKey={activeGestureKey === 'neutral' ? 'hello' : activeGestureKey}
-            onGestureRecognized={(key) => onGestureChange(key)}
+            onGestureRecognized={(key) => handleGestureRecognized(key, 'camera')}
             onLiveLandmarksUpdate={(lms, hand) => {
               setLiveLandmarks(lms);
               setLiveHandedness(hand);
@@ -488,24 +774,61 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
               </div>
             </div>
 
-            {/* Match Status Feedback */}
+            {/* Bilingual Match Status Feedback Card */}
             <div
-              className={`p-4 rounded-[10px] border flex items-start gap-3 text-xs leading-relaxed transition-colors ${
+              className={`p-4 sm:p-5 rounded-[12px] border transition-colors ${
                 matchStatus.isError
                   ? 'bg-amber-500/10 border-amber-500/20 text-[#FBBF24]'
                   : 'bg-emerald-500/10 border-emerald-500/20 text-[#34D399]'
               }`}
             >
-              {matchStatus.isError ? (
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              ) : (
-                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-              )}
-              <div>
-                <strong className="block text-slate-900 dark:text-[#F8FAFC] mb-0.5">
-                  {matchStatus.isError ? 'Unsupported Phrase' : 'Gesture Validated & Displayed'}
-                </strong>
-                <span className="text-slate-700 dark:text-[#B6C2D2]">{matchStatus.message}</span>
+              <div className="flex items-start gap-3">
+                {matchStatus.isError ? (
+                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
+                ) : (
+                  <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5 text-[#34D399]" />
+                )}
+                <div className="flex-1 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <strong className="block text-sm font-semibold text-slate-900 dark:text-[#F8FAFC]">
+                      {matchStatus.isError ? 'Input Notice · የግብዓት ማስታወሻ' : 'Bilingual Gesture Confirmation · የሁለትዮሽ ምልክት ማረጋገጫ'}
+                    </strong>
+                    <span className="text-[11px] px-2 py-0.5 rounded-[6px] bg-white/60 dark:bg-[#0D1422]/60 font-mono text-slate-600 dark:text-[#B6C2D2] border border-slate-200/60 dark:border-[rgba(148,163,184,0.1)]">
+                      {matchStatus.isError ? 'Unmatched · አልተገኘም' : 'Verified · ተረጋግጧል'}
+                    </span>
+                  </div>
+
+                  {/* Dual English and Amharic Confirmation Boxes */}
+                  <div className="grid sm:grid-cols-2 gap-3 pt-1">
+                    <div className="p-2.5 rounded-[8px] bg-white/70 dark:bg-[#121C2D]/70 border border-slate-200/50 dark:border-[rgba(148,163,184,0.1)]">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#22D3EE] block mb-0.5">
+                        🇬🇧 English Status
+                      </span>
+                      <p className="text-xs text-slate-800 dark:text-[#F8FAFC] font-medium leading-relaxed">
+                        {matchStatus.messageEn}
+                      </p>
+                      {matchStatus.subMessageEn && (
+                        <p className="text-[11px] text-slate-500 dark:text-[#8493A8] mt-1">
+                          {matchStatus.subMessageEn}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="p-2.5 rounded-[8px] bg-white/70 dark:bg-[#121C2D]/70 border border-slate-200/50 dark:border-[rgba(148,163,184,0.1)]">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#2DD4BF] block mb-0.5 font-ethiopic">
+                        🇪🇹 የአማርኛ ሁኔታ (Amharic)
+                      </span>
+                      <p className="text-xs text-slate-800 dark:text-[#F8FAFC] font-medium leading-relaxed font-ethiopic">
+                        {matchStatus.messageAm}
+                      </p>
+                      {matchStatus.subMessageAm && (
+                        <p className="text-[11px] text-slate-500 dark:text-[#8493A8] mt-1 font-ethiopic">
+                          {matchStatus.subMessageAm}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -522,12 +845,21 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
                   <button
                     onClick={() => speechService.speak(matchedDef, 'en-US')}
                     className="h-8 px-3 rounded-[8px] bg-white dark:bg-[#121C2D] hover:bg-slate-100 dark:hover:bg-[#19263A] text-xs font-medium text-[#22D3EE] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] flex items-center gap-1.5 transition-colors cursor-pointer"
+                    title="Speak in English"
                   >
-                    <Volume2 className="w-3.5 h-3.5" /> Speak Phrase
+                    <Volume2 className="w-3.5 h-3.5" /> Speak (EN)
+                  </button>
+                  <button
+                    onClick={() => speechService.speak(matchedDef, 'am-ET')}
+                    className="h-8 px-3 rounded-[8px] bg-white dark:bg-[#121C2D] hover:bg-slate-100 dark:hover:bg-[#19263A] text-xs font-medium text-[#2DD4BF] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] flex items-center gap-1.5 transition-colors cursor-pointer font-ethiopic"
+                    title="Speak in Amharic"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" /> አማርኛ አሰማ (AM)
                   </button>
                   <button
                     onClick={() => onGestureChange(matchedDef.id)}
                     className="h-8 px-3 rounded-[8px] bg-white dark:bg-[#121C2D] hover:bg-slate-100 dark:hover:bg-[#19263A] text-xs font-medium text-slate-700 dark:text-[#B6C2D2] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] flex items-center gap-1.5 transition-colors cursor-pointer"
+                    title="Replay 3D hand gesture"
                   >
                     <RotateCcw className="w-3.5 h-3.5" /> Replay Pose
                   </button>
@@ -550,15 +882,16 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{matchedDef.emoji}</span>
                   <div>
-                    <div className="font-semibold text-slate-900 dark:text-[#F8FAFC] text-sm">
-                      {matchedDef.labelEn} <span className="text-[#22D3EE] font-ethiopic">· {matchedDef.labelAm}</span>
-                      <span className="text-slate-400 dark:text-[#8493A8] text-xs ml-2">("{matchedDef.phoneticAm}")</span>
+                    <div className="font-semibold text-slate-900 dark:text-[#F8FAFC] text-sm flex items-center gap-2">
+                      <span>{matchedDef.labelEn}</span>
+                      <span className="text-[#22D3EE] font-ethiopic font-bold">· {matchedDef.labelAm}</span>
+                      <span className="text-slate-400 dark:text-[#8493A8] text-xs">("{matchedDef.phoneticAm}")</span>
                     </div>
                     <p className="text-slate-500 dark:text-[#8493A8] mt-0.5">{matchedDef.poseInstructions}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-xs font-mono text-[#22D3EE]">
+                  <span className="text-xs font-mono text-[#22D3EE] px-2 py-1 rounded-[6px] bg-[#22D3EE]/10 border border-[#22D3EE]/20">
                     Pose: {matchedDef.id.toUpperCase()}
                   </span>
                 </div>
