@@ -2,11 +2,17 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { GestureKey, SignSequence, LandmarkPoint, SignJointPose } from '../types';
+import { GestureKey, SignSequence, LandmarkPoint, SignJointPose, DetectedFace, SegmentationBackgroundMode, HeadJoints } from '../types';
 import { GESTURE_DEFINITIONS } from '../data/gestures';
 import { SIGN_SEQUENCES } from '../data/signSequences';
 import { computeJointPoseFromLandmarks, isValidLandmarkSet } from '../services/landmarkHandKinematics';
 import { speechService } from '../services/speechService';
+import { 
+  DUAL_ARM_PICTURE_PRESETS, 
+  DualArmPose, 
+  ArmJoints 
+} from '../services/dualArmKinematics';
+import { DualArmPoseAdjuster } from './DualArmPoseAdjuster';
 import { 
   Eye, 
   EyeOff, 
@@ -31,7 +37,11 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
-  FileCode
+  FileCode,
+  Smile,
+  UserCheck,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 
 export interface ThreeDHandViewerProps {
@@ -44,6 +54,12 @@ export interface ThreeDHandViewerProps {
   sequence?: SignSequence | null;
   onSequenceComplete?: () => void;
   showModeTabs?: boolean;
+  detectedFace?: DetectedFace | null;
+  backgroundMode?: SegmentationBackgroundMode;
+  onBackgroundModeChange?: (mode: SegmentationBackgroundMode) => void;
+  isFaceTrackingEnabled?: boolean;
+  onToggleFaceTracking?: () => void;
+  selfieVideoRef?: React.RefObject<HTMLVideoElement | null>;
 }
 
 // Preset joint rotational configurations for the 7 gestures + neutral pose
@@ -253,6 +269,12 @@ export const ThreeDHandViewer: React.FC<ThreeDHandViewerProps> = ({
   sequence = null,
   onSequenceComplete,
   showModeTabs = true,
+  detectedFace = null,
+  backgroundMode = 'studio',
+  onBackgroundModeChange,
+  isFaceTrackingEnabled = true,
+  onToggleFaceTracking,
+  selfieVideoRef,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [viewerMode, setViewerMode] = useState<'preset' | 'live' | 'sequence'>(initialMode);
@@ -274,6 +296,52 @@ export const ThreeDHandViewer: React.FC<ThreeDHandViewerProps> = ({
   const [customModelError, setCustomModelError] = useState<string | null>(null);
   const [showBlenderGuideModal, setShowBlenderGuideModal] = useState(false);
   const [copiedScript, setCopiedScript] = useState(false);
+
+  // Whole 2 Arms Avatar & Picture Movement Adjuster State
+  const [isDualArmMode, setIsDualArmMode] = useState<boolean>(true);
+  const [activePicturePresetId, setActivePicturePresetId] = useState<string>('selam');
+  const [leftArmJoints, setLeftArmJoints] = useState<ArmJoints>(DUAL_ARM_PICTURE_PRESETS[0].leftArm);
+  const [rightArmJoints, setRightArmJoints] = useState<ArmJoints>(DUAL_ARM_PICTURE_PRESETS[0].rightArm);
+  const [isMotionPlaying, setIsMotionPlaying] = useState<boolean>(true);
+  const [motionSpeed, setMotionSpeed] = useState<number>(1.0);
+  const [selectedArmTarget, setSelectedArmTarget] = useState<'both' | 'right' | 'left'>('both');
+  const [isArmAdjusterOpen, setIsArmAdjusterOpen] = useState<boolean>(false);
+
+  // MediaPipe Face Detection & Head Rig State
+  const [headJoints, setHeadJoints] = useState<HeadJoints>({ pitch: 0, yaw: 0, roll: 0 });
+  const [isFaceTrackingActive, setIsFaceTrackingActive] = useState<boolean>(isFaceTrackingEnabled);
+  const [showSelfiePip, setShowSelfiePip] = useState<boolean>(true);
+  const [isPipExpanded, setIsPipExpanded] = useState<boolean>(false);
+  const pipCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const isDualArmModeRef = useRef<boolean>(true);
+  const activePicturePresetRef = useRef<DualArmPose>(DUAL_ARM_PICTURE_PRESETS[0]);
+  const leftArmJointsRef = useRef<ArmJoints>(DUAL_ARM_PICTURE_PRESETS[0].leftArm);
+  const rightArmJointsRef = useRef<ArmJoints>(DUAL_ARM_PICTURE_PRESETS[0].rightArm);
+  const headJointsRef = useRef<HeadJoints>({ pitch: 0, yaw: 0, roll: 0 });
+  const detectedFaceRef = useRef<DetectedFace | null>(detectedFace);
+  const isFaceTrackingActiveRef = useRef<boolean>(isFaceTrackingEnabled);
+  const isMotionPlayingRef = useRef<boolean>(true);
+  const motionSpeedRef = useRef<number>(1.0);
+  const dualArmsRootRef = useRef<THREE.Group | null>(null);
+  const headGroupRef = useRef<THREE.Group | null>(null);
+  const faceReticleGroupRef = useRef<THREE.Group | null>(null);
+  const dualArmsRef = useRef<{
+    torso: THREE.Group;
+    head: THREE.Group;
+    left: {
+      shoulder: THREE.Group;
+      elbow: THREE.Group;
+      wrist: THREE.Group;
+      digits: Record<string, { mcp: THREE.Group; pip: THREE.Group; dip: THREE.Group }>;
+    };
+    right: {
+      shoulder: THREE.Group;
+      elbow: THREE.Group;
+      wrist: THREE.Group;
+      digits: Record<string, { mcp: THREE.Group; pip: THREE.Group; dip: THREE.Group }>;
+    };
+  } | null>(null);
 
   // References to Three.js elements
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -380,6 +448,125 @@ export const ThreeDHandViewer: React.FC<ThreeDHandViewerProps> = ({
   useEffect(() => {
     isCustomModelActiveRef.current = isCustomModelActive;
   }, [isCustomModelActive]);
+
+  useEffect(() => {
+    isDualArmModeRef.current = isDualArmMode;
+    if (dualArmsRootRef.current && handRootRef.current) {
+      dualArmsRootRef.current.visible = isDualArmMode;
+      handRootRef.current.visible = !isDualArmMode;
+      if (cameraRef.current) {
+        if (isDualArmMode) {
+          cameraRef.current.position.set(0, 1.25, 5.6);
+          cameraRef.current.lookAt(0, 0.75, 0);
+        } else {
+          cameraRef.current.position.set(0, 1.4, 4.4);
+          cameraRef.current.lookAt(0, 0.85, 0);
+        }
+      }
+    }
+  }, [isDualArmMode]);
+
+  useEffect(() => {
+    isMotionPlayingRef.current = isMotionPlaying;
+  }, [isMotionPlaying]);
+
+  useEffect(() => {
+    motionSpeedRef.current = motionSpeed;
+  }, [motionSpeed]);
+
+  useEffect(() => {
+    detectedFaceRef.current = detectedFace;
+  }, [detectedFace]);
+
+  useEffect(() => {
+    headJointsRef.current = headJoints;
+  }, [headJoints]);
+
+  useEffect(() => {
+    setIsFaceTrackingActive(isFaceTrackingEnabled);
+    isFaceTrackingActiveRef.current = isFaceTrackingEnabled;
+  }, [isFaceTrackingEnabled]);
+
+  const handleUpdateHead = (updates: Partial<HeadJoints>) => {
+    setHeadJoints((prev) => {
+      const next = { ...prev, ...updates };
+      headJointsRef.current = next;
+      return next;
+    });
+  };
+
+  const handleToggleFaceTracking = () => {
+    const nextVal = !isFaceTrackingActive;
+    setIsFaceTrackingActive(nextVal);
+    isFaceTrackingActiveRef.current = nextVal;
+    onToggleFaceTracking?.();
+  };
+
+  useEffect(() => {
+    if (!showSelfiePip) return;
+    let pipFrameId: number;
+    const renderPip = () => {
+      const v = selfieVideoRef?.current;
+      const c = pipCanvasRef.current;
+      if (v && c && v.readyState >= 2) {
+        const ctx = c.getContext('2d');
+        if (ctx) {
+          ctx.save();
+          ctx.drawImage(v, 0, 0, c.width, c.height);
+          if (detectedFace && isFaceTrackingActive) {
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 1.5;
+            const b = detectedFace.box;
+            const sx = c.width / (v.videoWidth || 640);
+            const sy = c.height / (v.videoHeight || 480);
+            ctx.strokeRect(b.originX * sx, b.originY * sy, b.width * sx, b.height * sy);
+          }
+          ctx.restore();
+        }
+      }
+      pipFrameId = requestAnimationFrame(renderPip);
+    };
+    pipFrameId = requestAnimationFrame(renderPip);
+    return () => cancelAnimationFrame(pipFrameId);
+  }, [showSelfiePip, selfieVideoRef, detectedFace, isFaceTrackingActive]);
+
+  const handleUpdateJoints = (arm: 'left' | 'right' | 'both', updates: Partial<ArmJoints>) => {
+    if (arm === 'both' || arm === 'left') {
+      setLeftArmJoints((prev) => {
+        const next = { ...prev, ...updates };
+        leftArmJointsRef.current = next;
+        return next;
+      });
+    }
+    if (arm === 'both' || arm === 'right') {
+      setRightArmJoints((prev) => {
+        const next = { ...prev, ...updates };
+        rightArmJointsRef.current = next;
+        return next;
+      });
+    }
+  };
+
+  const handleSelectPicturePreset = (preset: DualArmPose) => {
+    setActivePicturePresetId(preset.id);
+    activePicturePresetRef.current = preset;
+    setLeftArmJoints(preset.leftArm);
+    setRightArmJoints(preset.rightArm);
+    leftArmJointsRef.current = preset.leftArm;
+    rightArmJointsRef.current = preset.rightArm;
+    if (preset.isDynamic) {
+      setIsMotionPlaying(true);
+      isMotionPlayingRef.current = true;
+    }
+  };
+
+  const handleResetJoints = () => {
+    const p = activePicturePresetRef.current;
+    setLeftArmJoints(p.leftArm);
+    setRightArmJoints(p.rightArm);
+    leftArmJointsRef.current = p.leftArm;
+    rightArmJointsRef.current = p.rightArm;
+  };
 
   // Load custom GLB/GLTF model from URL or ArrayBuffer
   const loadGLB = useCallback((source: string | ArrayBuffer, fileName: string) => {
@@ -1160,6 +1347,324 @@ export const ThreeDHandViewer: React.FC<ThreeDHandViewerProps> = ({
       pinky: pinkyDigit,
     };
 
+    // =========================================================================
+    // Whole 2 Arms Avatar Hierarchy (Torso + Articulated Dual Arms & 10 Digits)
+    // =========================================================================
+    const dualArmsRoot = new THREE.Group();
+    dualArmsRootRef.current = dualArmsRoot;
+    dualArmsRoot.visible = isDualArmModeRef.current;
+    scene.add(dualArmsRoot);
+
+    // Torso / Clavicles Base
+    const torsoGroup = new THREE.Group();
+    torsoGroup.position.set(0, 0.45, -0.05);
+
+    const chestMesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.85, 0.72, 1.1, 24),
+      clayMat
+    );
+    chestMesh.position.y = -0.15;
+    chestMesh.castShadow = !isSoftwareGl;
+    chestMesh.receiveShadow = !isSoftwareGl;
+    chestMesh.userData = { isSkinMesh: true };
+    torsoGroup.add(chestMesh);
+
+    const clavicleMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1.9, 0.22, 0.35),
+      clayMat
+    );
+    clavicleMesh.position.set(0, 0.45, 0);
+    clavicleMesh.castShadow = !isSoftwareGl;
+    clavicleMesh.userData = { isSkinMesh: true };
+    torsoGroup.add(clavicleMesh);
+
+    const neckMesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.26, 0.3, 0.35, 16),
+      clayMat
+    );
+    neckMesh.position.set(0, 0.72, 0);
+    neckMesh.userData = { isSkinMesh: true };
+    torsoGroup.add(neckMesh);
+
+    // =========================================================================
+    // Anatomical Head & Face Rig (Driven by MediaPipe Face Detection)
+    // =========================================================================
+    const headGroup = new THREE.Group();
+    headGroup.position.set(0, 1.18, 0);
+    headGroupRef.current = headGroup;
+    torsoGroup.add(headGroup);
+
+    // 1. Head Cranium (Smoothed clay mesh)
+    const headGeo = new THREE.SphereGeometry(0.38, 24, 24);
+    headGeo.scale(1.0, 1.18, 0.96);
+    const headMesh = new THREE.Mesh(headGeo, clayMat);
+    headMesh.castShadow = !isSoftwareGl;
+    headMesh.receiveShadow = !isSoftwareGl;
+    headMesh.userData = { isSkinMesh: true };
+    headGroup.add(headMesh);
+
+    // 2. Jaw & Chin structure
+    const jawMesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.22, 0.28, 0.28, 16),
+      clayMat
+    );
+    jawMesh.position.set(0, -0.32, 0.08);
+    jawMesh.userData = { isSkinMesh: true };
+    headGroup.add(jawMesh);
+
+    // 3. Eyes (Right & Left)
+    const eyeMat = new THREE.MeshStandardMaterial({
+      color: 0x0f172a, // dark slate iris/pupil
+      roughness: 0.2,
+      metalness: 0.1,
+    });
+    const eyeWhiteMat = new THREE.MeshStandardMaterial({
+      color: 0xf8fafc, // sclera
+      roughness: 0.3,
+    });
+
+    [-0.13, 0.13].forEach((xEye) => {
+      // Sclera
+      const sclera = new THREE.Mesh(
+        new THREE.SphereGeometry(0.062, 16, 16),
+        eyeWhiteMat
+      );
+      sclera.position.set(xEye, 0.04, 0.34);
+      headGroup.add(sclera);
+
+      // Pupil/Iris
+      const pupil = new THREE.Mesh(
+        new THREE.SphereGeometry(0.035, 12, 12),
+        eyeMat
+      );
+      pupil.position.set(xEye, 0.04, 0.385);
+      headGroup.add(pupil);
+
+      // Brow ridge
+      const brow = new THREE.Mesh(
+        new THREE.BoxGeometry(0.14, 0.025, 0.05),
+        clayMat
+      );
+      brow.position.set(xEye, 0.13, 0.35);
+      brow.rotation.z = xEye > 0 ? -0.1 : 0.1;
+      headGroup.add(brow);
+    });
+
+    // 4. Anatomical Nose
+    const noseMesh = new THREE.Mesh(
+      new THREE.ConeGeometry(0.065, 0.17, 12),
+      clayMat
+    );
+    noseMesh.position.set(0, -0.06, 0.39);
+    noseMesh.rotation.x = 0.35;
+    noseMesh.userData = { isSkinMesh: true };
+    headGroup.add(noseMesh);
+
+    // 5. Expressive Mouth / Lips
+    const mouthMesh = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.025, 0.14, 6, 12),
+      clayMat
+    );
+    mouthMesh.rotation.z = Math.PI / 2;
+    mouthMesh.position.set(0, -0.22, 0.34);
+    mouthMesh.userData = { isSkinMesh: true };
+    headGroup.add(mouthMesh);
+
+    // 6. Ears (Left & Right)
+    [-0.39, 0.39].forEach((xEar) => {
+      const earMesh = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.05, 0.12, 6, 8),
+        clayMat
+      );
+      earMesh.position.set(xEar, 0.02, -0.02);
+      earMesh.rotation.z = xEar > 0 ? -0.2 : 0.2;
+      earMesh.userData = { isSkinMesh: true };
+      headGroup.add(earMesh);
+    });
+
+    // 7. MediaPipe Face Detection Keypoints Reticle on 3D Model
+    const faceReticleGroup = new THREE.Group();
+    faceReticleGroup.position.set(0, 0, 0.40);
+    faceReticleGroupRef.current = faceReticleGroup;
+    faceReticleGroup.visible = false;
+
+    const reticleMat = new THREE.MeshBasicMaterial({ color: 0x22d3ee });
+    const kpPositions = [
+      new THREE.Vector3(-0.13, 0.04, 0),
+      new THREE.Vector3(0.13, 0.04, 0),
+      new THREE.Vector3(0, -0.06, 0.02),
+      new THREE.Vector3(0, -0.22, -0.02),
+      new THREE.Vector3(-0.38, 0.02, -0.4),
+      new THREE.Vector3(0.38, 0.02, -0.4),
+    ];
+    kpPositions.forEach((pos) => {
+      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.018, 8, 8), reticleMat);
+      dot.position.copy(pos);
+      faceReticleGroup.add(dot);
+    });
+    headGroup.add(faceReticleGroup);
+
+    dualArmsRoot.add(torsoGroup);
+
+    // Helper to build a complete articulated arm with shoulder, elbow, forearm, wrist & digits
+    function buildCompleteArticulatedArm(isLeft: boolean) {
+      const armRoot = new THREE.Group();
+      armRoot.position.set(isLeft ? -0.95 : 0.95, 0.9, 0);
+
+      const shoulderJoint = createJointHead(0.13);
+      shoulderJoint.userData = { isBoneMesh: true };
+      armRoot.add(shoulderJoint);
+
+      const shoulderGroup = new THREE.Group();
+      armRoot.add(shoulderGroup);
+
+      const humerusLen = 0.95;
+      const upperArmMesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.14, 0.17, humerusLen, 16),
+        clayMat
+      );
+      upperArmMesh.position.y = -humerusLen / 2;
+      upperArmMesh.castShadow = !isSoftwareGl;
+      upperArmMesh.userData = { isSkinMesh: true };
+      shoulderGroup.add(upperArmMesh);
+
+      const upperArmBone = createBlenderBone(humerusLen, 0.11);
+      upperArmBone.rotation.x = Math.PI;
+      upperArmBone.userData = { isBoneMesh: true };
+      shoulderGroup.add(upperArmBone);
+
+      const elbowGroup = new THREE.Group();
+      elbowGroup.position.set(0, -humerusLen, 0);
+      shoulderGroup.add(elbowGroup);
+
+      const elbowJoint = createJointHead(0.11);
+      elbowJoint.userData = { isBoneMesh: true };
+      elbowGroup.add(elbowJoint);
+
+      const forearmLen = 0.88;
+      const forearmMesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.12, 0.14, forearmLen, 16),
+        clayMat
+      );
+      forearmMesh.position.y = -forearmLen / 2;
+      forearmMesh.castShadow = !isSoftwareGl;
+      forearmMesh.userData = { isSkinMesh: true };
+      elbowGroup.add(forearmMesh);
+
+      const forearmBone = createBlenderBone(forearmLen, 0.10);
+      forearmBone.rotation.x = Math.PI;
+      forearmBone.userData = { isBoneMesh: true };
+      elbowGroup.add(forearmBone);
+
+      const wristGroup = new THREE.Group();
+      wristGroup.position.set(0, -forearmLen, 0);
+      elbowGroup.add(wristGroup);
+
+      const wristJoint = createJointHead(0.095);
+      wristJoint.userData = { isBoneMesh: true };
+      wristGroup.add(wristJoint);
+
+      const palmMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(0.56, 0.55, 0.19, 4, 4, 3),
+        clayMat
+      );
+      palmMesh.position.set(0, -0.3, 0);
+      palmMesh.castShadow = !isSoftwareGl;
+      palmMesh.userData = { isSkinMesh: true };
+      wristGroup.add(palmMesh);
+
+      function buildPhalanxDigit(
+        xOff: number,
+        yOff: number,
+        zOff: number,
+        scale: number,
+        isThumb: boolean = false
+      ) {
+        const mcp = new THREE.Group();
+        mcp.position.set(xOff, yOff, zOff);
+
+        const mcpJoint = createJointHead(0.05 * scale);
+        mcpJoint.userData = { isBoneMesh: true };
+        mcp.add(mcpJoint);
+
+        const pLen = (isThumb ? 0.22 : 0.26) * scale;
+        const pMesh = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.045 * scale, 0.055 * scale, pLen, 12),
+          clayMat
+        );
+        pMesh.position.y = -pLen / 2;
+        pMesh.castShadow = !isSoftwareGl;
+        pMesh.userData = { isSkinMesh: true };
+        mcp.add(pMesh);
+
+        const pip = new THREE.Group();
+        pip.position.set(0, -pLen, 0);
+        mcp.add(pip);
+
+        const pipJoint = createJointHead(0.045 * scale);
+        pipJoint.userData = { isBoneMesh: true };
+        pip.add(pipJoint);
+
+        const mLen = (isThumb ? 0.18 : 0.21) * scale;
+        const mMesh = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.04 * scale, 0.046 * scale, mLen, 12),
+          clayMat
+        );
+        mMesh.position.y = -mLen / 2;
+        mMesh.castShadow = !isSoftwareGl;
+        mMesh.userData = { isSkinMesh: true };
+        pip.add(mMesh);
+
+        const dip = new THREE.Group();
+        dip.position.set(0, -mLen, 0);
+        pip.add(dip);
+
+        const dipJoint = createJointHead(0.04 * scale);
+        dipJoint.userData = { isBoneMesh: true };
+        dip.add(dipJoint);
+
+        const dLen = (isThumb ? 0.15 : 0.17) * scale;
+        const dMesh = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.035 * scale, 0.04 * scale, dLen, 12),
+          clayMat
+        );
+        dMesh.position.y = -dLen / 2;
+        dMesh.castShadow = !isSoftwareGl;
+        dMesh.userData = { isSkinMesh: true };
+        dip.add(dMesh);
+
+        wristGroup.add(mcp);
+        return { mcp, pip, dip };
+      }
+
+      const digits = {
+        thumb: buildPhalanxDigit(isLeft ? -0.28 : 0.28, -0.22, 0.04, 0.88, true),
+        index: buildPhalanxDigit(isLeft ? -0.16 : 0.16, -0.58, 0.01, 0.95, false),
+        middle: buildPhalanxDigit(isLeft ? -0.01 : 0.01, -0.61, 0.02, 1.05, false),
+        ring: buildPhalanxDigit(isLeft ? 0.14 : -0.14, -0.57, 0.01, 0.95, false),
+        pinky: buildPhalanxDigit(isLeft ? 0.26 : -0.26, -0.52, -0.01, 0.82, false),
+      };
+
+      dualArmsRoot.add(armRoot);
+
+      return {
+        shoulder: shoulderGroup,
+        elbow: elbowGroup,
+        wrist: wristGroup,
+        digits,
+      };
+    }
+
+    const leftArmConstruct = buildCompleteArticulatedArm(true);
+    const rightArmConstruct = buildCompleteArticulatedArm(false);
+
+    dualArmsRef.current = {
+      torso: torsoGroup,
+      head: headGroup,
+      left: leftArmConstruct,
+      right: rightArmConstruct,
+    };
+
     // 7. Interactive Orbit & Viewing Controls (Mouse & Touch Dragging)
     let isDragging = false;
     let prevMousePos = { x: 0, y: 0 };
@@ -1217,19 +1722,158 @@ export const ThreeDHandViewer: React.FC<ThreeDHandViewerProps> = ({
       }
 
       // Smooth camera / hand rotation damping
-      if (handRootRef.current) {
-        handRootRef.current.rotation.y = THREE.MathUtils.damp(
-          handRootRef.current.rotation.y,
-          targetRotationY,
-          6,
-          rawDt
-        );
-        handRootRef.current.rotation.x = THREE.MathUtils.damp(
-          handRootRef.current.rotation.x,
-          targetRotationX,
-          6,
-          rawDt
-        );
+      if (isDualArmModeRef.current) {
+        if (dualArmsRootRef.current) {
+          dualArmsRootRef.current.rotation.y = THREE.MathUtils.damp(
+            dualArmsRootRef.current.rotation.y,
+            targetRotationY,
+            6,
+            rawDt
+          );
+          dualArmsRootRef.current.rotation.x = THREE.MathUtils.damp(
+            dualArmsRootRef.current.rotation.x,
+            targetRotationX,
+            6,
+            rawDt
+          );
+        }
+      } else {
+        if (handRootRef.current) {
+          handRootRef.current.rotation.y = THREE.MathUtils.damp(
+            handRootRef.current.rotation.y,
+            targetRotationY,
+            6,
+            rawDt
+          );
+          handRootRef.current.rotation.x = THREE.MathUtils.damp(
+            handRootRef.current.rotation.x,
+            targetRotationX,
+            6,
+            rawDt
+          );
+        }
+      }
+
+      if (isDualArmModeRef.current) {
+        if (dualArmsRootRef.current) dualArmsRootRef.current.visible = true;
+        if (handRootRef.current) handRootRef.current.visible = false;
+
+        const dualArms = dualArmsRef.current;
+        if (dualArms) {
+          const activePreset = activePicturePresetRef.current;
+          let leftT: ArmJoints = { ...leftArmJointsRef.current };
+          let rightT: ArmJoints = { ...rightArmJointsRef.current };
+
+          // If dynamic picture motion is playing, calculate interpolated oscillation
+          if (activePreset.isDynamic && isMotionPlayingRef.current && activePreset.dynamicCycle) {
+            const cycle = activePreset.dynamicCycle;
+            const cycleSpeed = motionSpeedRef.current;
+            const t = (Math.sin((now * 0.001 * cycleSpeed * Math.PI * 2) / cycle.durationSec) + 1) / 2;
+
+            if (cycle.leftArmDelta) {
+              const lDelta = cycle.leftArmDelta;
+              if (lDelta.shoulderPitch !== undefined) leftT.shoulderPitch += lDelta.shoulderPitch * t;
+              if (lDelta.shoulderYaw !== undefined) leftT.shoulderYaw += lDelta.shoulderYaw * t;
+              if (lDelta.shoulderRoll !== undefined) leftT.shoulderRoll += lDelta.shoulderRoll * t;
+              if (lDelta.elbowBend !== undefined) leftT.elbowBend += lDelta.elbowBend * t;
+              if (lDelta.elbowTwist !== undefined) leftT.elbowTwist += lDelta.elbowTwist * t;
+              if (lDelta.wristPitch !== undefined) leftT.wristPitch += lDelta.wristPitch * t;
+              if (lDelta.wristRoll !== undefined) leftT.wristRoll += lDelta.wristRoll * t;
+              if (lDelta.fingerCurl !== undefined) leftT.fingerCurl += lDelta.fingerCurl * t;
+              if (lDelta.fingerSpread !== undefined) leftT.fingerSpread += lDelta.fingerSpread * t;
+            }
+            if (cycle.rightArmDelta) {
+              const rDelta = cycle.rightArmDelta;
+              if (rDelta.shoulderPitch !== undefined) rightT.shoulderPitch += rDelta.shoulderPitch * t;
+              if (rDelta.shoulderYaw !== undefined) rightT.shoulderYaw += rDelta.shoulderYaw * t;
+              if (rDelta.shoulderRoll !== undefined) rightT.shoulderRoll += rDelta.shoulderRoll * t;
+              if (rDelta.elbowBend !== undefined) rightT.elbowBend += rDelta.elbowBend * t;
+              if (rDelta.elbowTwist !== undefined) rightT.elbowTwist += rDelta.elbowTwist * t;
+              if (rDelta.wristPitch !== undefined) rightT.wristPitch += rDelta.wristPitch * t;
+              if (rDelta.wristRoll !== undefined) rightT.wristRoll += rDelta.wristRoll * t;
+              if (rDelta.fingerCurl !== undefined) rightT.fingerCurl += rDelta.fingerCurl * t;
+              if (rDelta.fingerSpread !== undefined) rightT.fingerSpread += rDelta.fingerSpread * t;
+            }
+            if (cycle.torsoDelta && dualArms.torso) {
+              dualArms.torso.rotation.x = cycle.torsoDelta[0] * t;
+            }
+          }
+
+          const dampRate = 9.0;
+          // Left Arm Rotations
+          dualArms.left.shoulder.rotation.x = THREE.MathUtils.damp(dualArms.left.shoulder.rotation.x, leftT.shoulderPitch, dampRate, dt);
+          dualArms.left.shoulder.rotation.y = THREE.MathUtils.damp(dualArms.left.shoulder.rotation.y, leftT.shoulderYaw, dampRate, dt);
+          dualArms.left.shoulder.rotation.z = THREE.MathUtils.damp(dualArms.left.shoulder.rotation.z, leftT.shoulderRoll, dampRate, dt);
+
+          dualArms.left.elbow.rotation.x = THREE.MathUtils.damp(dualArms.left.elbow.rotation.x, leftT.elbowBend, dampRate, dt);
+          dualArms.left.elbow.rotation.y = THREE.MathUtils.damp(dualArms.left.elbow.rotation.y, leftT.elbowTwist, dampRate, dt);
+
+          dualArms.left.wrist.rotation.x = THREE.MathUtils.damp(dualArms.left.wrist.rotation.x, leftT.wristPitch, dampRate, dt);
+          dualArms.left.wrist.rotation.z = THREE.MathUtils.damp(dualArms.left.wrist.rotation.z, leftT.wristRoll, dampRate, dt);
+
+          // Right Arm Rotations
+          dualArms.right.shoulder.rotation.x = THREE.MathUtils.damp(dualArms.right.shoulder.rotation.x, rightT.shoulderPitch, dampRate, dt);
+          dualArms.right.shoulder.rotation.y = THREE.MathUtils.damp(dualArms.right.shoulder.rotation.y, rightT.shoulderYaw, dampRate, dt);
+          dualArms.right.shoulder.rotation.z = THREE.MathUtils.damp(dualArms.right.shoulder.rotation.z, rightT.shoulderRoll, dampRate, dt);
+
+          dualArms.right.elbow.rotation.x = THREE.MathUtils.damp(dualArms.right.elbow.rotation.x, rightT.elbowBend, dampRate, dt);
+          dualArms.right.elbow.rotation.y = THREE.MathUtils.damp(dualArms.right.elbow.rotation.y, rightT.elbowTwist, dampRate, dt);
+
+          dualArms.right.wrist.rotation.x = THREE.MathUtils.damp(dualArms.right.wrist.rotation.x, rightT.wristPitch, dampRate, dt);
+          dualArms.right.wrist.rotation.z = THREE.MathUtils.damp(dualArms.right.wrist.rotation.z, rightT.wristRoll, dampRate, dt);
+
+          // Apply finger curls to both hands
+          (['thumb', 'index', 'middle', 'ring', 'pinky'] as const).forEach((d) => {
+            const lD = dualArms.left.digits[d];
+            if (lD) {
+              lD.mcp.rotation.x = THREE.MathUtils.damp(lD.mcp.rotation.x, -leftT.fingerCurl * 0.7, dampRate, dt);
+              lD.pip.rotation.x = THREE.MathUtils.damp(lD.pip.rotation.x, -leftT.fingerCurl * 0.8, dampRate, dt);
+              lD.dip.rotation.x = THREE.MathUtils.damp(lD.dip.rotation.x, -leftT.fingerCurl * 0.6, dampRate, dt);
+              lD.mcp.rotation.z = THREE.MathUtils.damp(lD.mcp.rotation.z, leftT.fingerSpread * (d === 'pinky' ? 0.3 : d === 'index' ? -0.3 : 0), dampRate, dt);
+            }
+            const rD = dualArms.right.digits[d];
+            if (rD) {
+              rD.mcp.rotation.x = THREE.MathUtils.damp(rD.mcp.rotation.x, -rightT.fingerCurl * 0.7, dampRate, dt);
+              rD.pip.rotation.x = THREE.MathUtils.damp(rD.pip.rotation.x, -rightT.fingerCurl * 0.8, dampRate, dt);
+              rD.dip.rotation.x = THREE.MathUtils.damp(rD.dip.rotation.x, -rightT.fingerCurl * 0.6, dampRate, dt);
+              rD.mcp.rotation.z = THREE.MathUtils.damp(rD.mcp.rotation.z, rightT.fingerSpread * (d === 'pinky' ? -0.3 : d === 'index' ? 0.3 : 0), dampRate, dt);
+            }
+          });
+
+          // Head & MediaPipe Face Tracking Driver
+          if (dualArms.head) {
+            if (isFaceTrackingActiveRef.current && detectedFaceRef.current) {
+              const df = detectedFaceRef.current;
+              const targetYaw = -df.orientation.yaw;
+              const targetPitch = df.orientation.pitch;
+              const targetRoll = -df.orientation.roll;
+
+              dualArms.head.rotation.y = THREE.MathUtils.damp(dualArms.head.rotation.y, targetYaw, dampRate, dt);
+              dualArms.head.rotation.x = THREE.MathUtils.damp(dualArms.head.rotation.x, targetPitch, dampRate, dt);
+              dualArms.head.rotation.z = THREE.MathUtils.damp(dualArms.head.rotation.z, targetRoll, dampRate, dt);
+
+              if (faceReticleGroupRef.current) {
+                faceReticleGroupRef.current.visible = true;
+              }
+            } else {
+              const hPreset = activePreset.head || { pitch: 0, yaw: 0, roll: 0 };
+              const targetYaw = headJointsRef.current.yaw || hPreset.yaw;
+              const targetPitch = headJointsRef.current.pitch || hPreset.pitch;
+              const targetRoll = headJointsRef.current.roll || hPreset.roll;
+
+              dualArms.head.rotation.y = THREE.MathUtils.damp(dualArms.head.rotation.y, targetYaw, dampRate, dt);
+              dualArms.head.rotation.x = THREE.MathUtils.damp(dualArms.head.rotation.x, targetPitch, dampRate, dt);
+              dualArms.head.rotation.z = THREE.MathUtils.damp(dualArms.head.rotation.z, targetRoll, dampRate, dt);
+
+              if (faceReticleGroupRef.current) {
+                faceReticleGroupRef.current.visible = false;
+              }
+            }
+          }
+        }
+      } else {
+        if (dualArmsRootRef.current) dualArmsRootRef.current.visible = false;
+        if (handRootRef.current) handRootRef.current.visible = true;
       }
 
       // Determine Target Joint Pose based on current active mode
@@ -1518,7 +2162,54 @@ export const ThreeDHandViewer: React.FC<ThreeDHandViewerProps> = ({
 
         {/* Right Action Controls: Blender Import, Guide & Viewers */}
         <div className="flex flex-wrap items-center gap-1.5 pointer-events-auto">
-          {/* Prominent Model Switcher: Original Rigged Hand vs Custom Blender Model */}
+          {/* Avatar Mode: Whole 2 Arms vs Single Hand */}
+          <div className="flex items-center p-1 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-cyan-500/40 backdrop-blur-md shadow-md text-xs">
+            <button
+              onClick={() => {
+                setIsDualArmMode(true);
+                isDualArmModeRef.current = true;
+                if (dualArmsRootRef.current) dualArmsRootRef.current.visible = true;
+                if (handRootRef.current) handRootRef.current.visible = false;
+                if (cameraRef.current) {
+                  cameraRef.current.position.set(0, 1.25, 5.6);
+                  cameraRef.current.lookAt(0, 0.75, 0);
+                }
+              }}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                isDualArmMode
+                  ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-gray-300 hover:text-slate-950 dark:hover:text-white'
+              }`}
+              title="Whole 2 Arms Figure (Adjustable for picture movements)"
+            >
+              <span>👐</span>
+              <span>Whole 2 Arms</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setIsDualArmMode(false);
+                isDualArmModeRef.current = false;
+                if (dualArmsRootRef.current) dualArmsRootRef.current.visible = false;
+                if (handRootRef.current) handRootRef.current.visible = true;
+                if (cameraRef.current) {
+                  cameraRef.current.position.set(0, 1.4, 4.4);
+                  cameraRef.current.lookAt(0, 0.85, 0);
+                }
+              }}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                !isDualArmMode
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-gray-300 hover:text-slate-950 dark:hover:text-white'
+              }`}
+              title="Single Hand Focus Mode"
+            >
+              <span>🖐️</span>
+              <span>Single Hand</span>
+            </button>
+          </div>
+
+          {/* Model Switcher: Original Rigged Hand vs Custom Blender Model */}
           <div className="flex items-center p-1 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-gray-200 dark:border-emerald-500/40 backdrop-blur-md shadow-md text-xs">
             <button
               onClick={() => toggleCustomModel(false)}
@@ -1589,6 +2280,26 @@ export const ThreeDHandViewer: React.FC<ThreeDHandViewerProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Whole 2 Arms Picture Movement & Joint Angles Adjuster */}
+      {isDualArmMode && (
+        <DualArmPoseAdjuster
+          activePresetId={activePicturePresetId}
+          onSelectPreset={handleSelectPicturePreset}
+          leftArmJoints={leftArmJoints}
+          rightArmJoints={rightArmJoints}
+          onUpdateJoints={handleUpdateJoints}
+          onResetJoints={handleResetJoints}
+          isMotionPlaying={isMotionPlaying}
+          onToggleMotion={() => setIsMotionPlaying(!isMotionPlaying)}
+          motionSpeed={motionSpeed}
+          onChangeSpeed={(spd) => setMotionSpeed(spd)}
+          selectedArmTarget={selectedArmTarget}
+          onSelectArmTarget={(target) => setSelectedArmTarget(target)}
+          isOpen={isArmAdjusterOpen}
+          onToggleOpen={() => setIsArmAdjusterOpen(!isArmAdjusterOpen)}
+        />
+      )}
 
       {/* Collapsible Sleek Bottom Control Dock */}
       <div

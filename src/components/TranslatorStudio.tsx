@@ -53,6 +53,7 @@ import {
 import { DatasetCollectorModal } from './DatasetCollectorModal';
 import { EvaluationLabModal } from './EvaluationLabModal';
 import { ThreeDHandViewer } from './ThreeDHandViewer';
+import { CameraStandbyEthslGuide } from './CameraStandbyEthslGuide';
 
 interface TranslatorStudioProps {
   onGestureRecognized?: (gestureKey: GestureKey) => void;
@@ -778,25 +779,12 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
               className={`w-full h-full object-cover ${isMirrored ? 'scale-x-[-1]' : ''}`}
             />
 
-            {/* Standby Placeholder when camera is inactive */}
+            {/* Ethiopian Sign Language (EthSL) Interactive Curriculum in Camera Standby */}
             {!isCameraActive && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-slate-400 bg-[#080D18]/90 space-y-3">
-                <div className="w-16 h-16 rounded-full bg-[#121C2D] border border-slate-800 flex items-center justify-center text-[#22D3EE]">
-                  <Video className="w-8 h-8 opacity-80" />
-                </div>
-                <div>
-                  <h4 className="text-[#F8FAFC] font-bold text-base">Camera Vision is Inactive</h4>
-                  <p className="text-xs text-slate-400 dark:text-[#8493A8] max-w-sm mt-1">
-                    Click <strong>"Start Camera"</strong> above to begin real-time hand tracking, or click any sign card below to test the pipeline.
-                  </p>
-                </div>
-                <button
-                  onClick={startCamera}
-                  className="px-5 py-2.5 rounded-[10px] bg-[#22D3EE] hover:bg-[#06b6d4] text-[#080D18] font-bold text-xs shadow-sm cursor-pointer transition-all flex items-center gap-2"
-                >
-                  <Video className="w-4 h-4" /> Start Camera
-                </button>
-              </div>
+              <CameraStandbyEthslGuide
+                onStartCamera={startCamera}
+                onSelectGesture={(gestureKey) => handleSimulateGesture(gestureKey)}
+              />
             )}
 
             {/* Error Overlay */}
