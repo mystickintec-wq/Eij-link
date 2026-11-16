@@ -1,24 +1,19 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { 
-  Video, 
-  VideoOff, 
-  RefreshCw, 
-  Volume2, 
-  VolumeX, 
-  Copy, 
-  Check, 
-  Trash2, 
-  Activity, 
-  Target, 
-  Sparkles, 
-  Lock, 
-  AlertCircle,
+import {
+  Video,
+  VideoOff,
+  RefreshCw,
+  Volume2,
+  VolumeX,
+  Copy,
+  Check,
+  Trash2,
+  Activity,
+  Target,
   Database,
   Undo2,
   PlusCircle,
   Eye,
-  Sliders,
-  CheckCircle2,
   HelpCircle,
   RotateCcw,
   Cpu,
@@ -27,45 +22,59 @@ import {
   FlaskConical,
   Edit2,
   Save,
-  X
+  X,
 } from 'lucide-react';
-import { 
-  GestureKey, 
-  TranslationHistoryItem, 
-  TranscriptItem, 
-  LandmarkPoint, 
+import {
+  GestureKey,
+  TranslationHistoryItem,
+  TranscriptItem,
+  LandmarkPoint,
   DetectedHand,
-  SystemDetectionStatus 
+  SystemDetectionStatus,
 } from '../types';
 import { GESTURE_DEFINITIONS, GESTURE_LIST } from '../data/gestures';
-import { 
-  classifyHandPoseDetailed, 
-  ClassificationResult, 
-  ClassificationCandidate 
+import {
+  classifyHandPoseDetailed,
+  ClassificationResult,
 } from '../services/gestureClassifier';
 import { TemporalStabilizer } from '../services/temporalStabilizer';
 import { speechService } from '../services/speechService';
-import { 
-  handLandmarkerService, 
-  ModelLifecycleState, 
-  DelegateType 
+import {
+  handLandmarkerService,
+  ModelLifecycleState,
+  DelegateType,
 } from '../services/handLandmarkerService';
 import { DatasetCollectorModal } from './DatasetCollectorModal';
 import { EvaluationLabModal } from './EvaluationLabModal';
-import { ThreeDHandViewer } from './ThreeDHandViewer';
 import { CameraStandbyEthslGuide } from './CameraStandbyEthslGuide';
+import {
+  Alert,
+  Button,
+  Card,
+  IconButton,
+  LoadingState,
+  PermissionDeniedState,
+  SelectField,
+  StatusBadge,
+  TextField,
+  WorkspaceHeader,
+  useToast,
+} from './ui';
 
 interface TranslatorStudioProps {
   onGestureRecognized?: (gestureKey: GestureKey) => void;
   activeGestureKey: GestureKey;
   onLiveLandmarksUpdate?: (landmarks: LandmarkPoint[], handedness: string) => void;
+  embedded?: boolean;
 }
 
 export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
   onGestureRecognized,
   activeGestureKey,
   onLiveLandmarksUpdate,
+  embedded = false,
 }) => {
+  const { showToast } = useToast();
   // DOM References
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -311,6 +320,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
   const handleClearTranscript = () => {
     setTranscript([]);
     lastTranscribedGestureRef.current = null;
+    showToast('Transcript cleared', 'info');
   };
 
   const handleCopyTranscript = () => {
@@ -321,6 +331,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
 
     navigator.clipboard.writeText(fullText);
     setCopiedTranscript(true);
+    showToast('Transcript copied to clipboard', 'success');
     setTimeout(() => setCopiedTranscript(false), 2500);
   };
 
@@ -602,154 +613,250 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
 
   const lockedDef = lockedGesture ? GESTURE_DEFINITIONS[lockedGesture] : null;
 
+  const statusTone =
+    detectionStatus === 'hand_detected'
+      ? 'success'
+      : detectionStatus === 'initializing'
+      ? 'warning'
+      : detectionStatus === 'error'
+      ? 'error'
+      : isCameraActive
+      ? 'info'
+      : 'neutral';
+
+  const statusLabel =
+    detectionStatus === 'hand_detected'
+      ? handsDetected > 1
+        ? 'Dual Hands Detected (2 Active)'
+        : `Hand Detected (${currentHandedness})`
+      : detectionStatus === 'no_hand_detected'
+      ? 'Searching for Hands (1 or 2)...'
+      : detectionStatus === 'initializing'
+      ? 'Initializing Vision...'
+      : detectionStatus === 'error'
+      ? 'Camera / Vision Error'
+      : isCameraActive
+      ? 'Camera Live'
+      : 'Camera Standby';
+
   return (
-    <div className="space-y-6">
-      {/* Top Controls Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5 rounded-[18px] bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-xs">
-        
-        {/* Status Pill */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span
-              className={`w-2.5 h-2.5 rounded-full ${
-                detectionStatus === 'hand_detected'
-                  ? 'bg-emerald-400 animate-pulse'
-                  : detectionStatus === 'initializing'
-                  ? 'bg-amber-400 animate-ping'
-                  : detectionStatus === 'error'
-                  ? 'bg-red-400'
-                  : 'bg-slate-400'
-              }`}
-            />
-            <span className="font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-[#F8FAFC]">
-              {detectionStatus === 'hand_detected' && (handsDetected > 1 ? 'Dual Hands Detected (2 Active)' : `Hand Detected (${currentHandedness})`)}
-              {detectionStatus === 'no_hand_detected' && 'Searching for Hands (1 or 2)...'}
-              {detectionStatus === 'initializing' && 'Initializing MediaPipe Hands (Dual)...'}
-              {detectionStatus === 'ready' && (isCameraActive ? 'Camera Live' : 'Camera Standby')}
-              {detectionStatus === 'error' && 'Camera / Vision Error'}
+    <div className="space-y-4">
+      {!embedded && (
+        <WorkspaceHeader
+          title="Live Recognition Studio"
+          description="Real-time on-device MediaPipe hand tracking (single & dual hand), temporal pose stabilization, and bilingual English / Amharic sign transcription."
+          icon={<Video className="w-5 h-5" />}
+          accent="cyan"
+          meta={
+            <>
+              <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
+              <span className="font-mono tabular-nums text-xs text-slate-600 dark:text-[#A0AEC0]">
+                {fps} FPS {handsDetected > 0 ? `· ${handsDetected === 2 ? 'Dual Hands' : `1 Hand (${currentHandedness})`}` : ''}
+              </span>
+            </>
+          }
+          actions={
+            <>
+              {!isCameraActive ? (
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={startCamera}
+                  isLoading={detectionStatus === 'initializing'}
+                  leftIcon={<Video className="w-4 h-4" />}
+                >
+                  Start Camera
+                </Button>
+              ) : (
+                <Button
+                  variant="danger"
+                  size="md"
+                  onClick={stopCamera}
+                  leftIcon={<VideoOff className="w-4 h-4" />}
+                >
+                  Stop Camera
+                </Button>
+              )}
+
+              {isCameraActive && (
+                <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={() => setIsMirrored(!isMirrored)}
+                  leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+                  title="Toggle Mirror View"
+                >
+                  {isMirrored ? 'Mirrored' : 'Normal'}
+                </Button>
+              )}
+
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => setIsDatasetModalOpen(true)}
+                leftIcon={<Database className="w-3.5 h-3.5 text-[#0E7490] dark:text-[#43D9E9]" />}
+                title="Collect consented dataset samples for ML model training"
+              >
+                Dataset Collector
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => setIsEvalLabOpen(true)}
+                leftIcon={<FlaskConical className="w-3.5 h-3.5 text-[#4F46E5] dark:text-[#8585FF]" />}
+                title="Open Scientific Evaluation Lab, Confusion Matrix, and Unit Tests"
+              >
+                Evaluation Lab
+              </Button>
+            </>
+          }
+        />
+      )}
+
+      {/* Embedded Action Bar (when nested inside TwoWayWorkspace) */}
+      {embedded && (
+        <Card padding="sm" className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <StatusBadge tone={statusTone}>{statusLabel}</StatusBadge>
+            <span className="text-xs text-slate-600 dark:text-[#A0AEC0] font-mono tabular-nums">
+              {fps} FPS {handsDetected > 0 ? `· ${handsDetected === 2 ? 'Dual Hands' : `1 Hand (${currentHandedness})`}` : ''}
             </span>
           </div>
 
-          <span className="hidden sm:inline-block text-slate-400 dark:text-[#8493A8]">·</span>
+          <div className="flex flex-wrap items-center gap-2">
+            {!isCameraActive ? (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={startCamera}
+                isLoading={detectionStatus === 'initializing'}
+                leftIcon={<Video className="w-4 h-4" />}
+              >
+                Start Camera
+              </Button>
+            ) : (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={stopCamera}
+                leftIcon={<VideoOff className="w-4 h-4" />}
+              >
+                Stop Camera
+              </Button>
+            )}
 
-          <span className="text-xs text-slate-500 dark:text-[#8493A8] font-mono tabular-nums">
-            {fps} FPS {handsDetected > 0 ? `· ${handsDetected === 2 ? '👐 Dual Hands (Left + Right)' : `1 Hand (${currentHandedness})`}` : ''}
-          </span>
-        </div>
+            {isCameraActive && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsMirrored(!isMirrored)}
+                leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+              >
+                {isMirrored ? 'Mirrored' : 'Normal'}
+              </Button>
+            )}
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
-          {!isCameraActive ? (
-            <button
-              onClick={startCamera}
-              className="px-4 py-2 rounded-[10px] bg-[#22D3EE] hover:bg-[#06b6d4] text-[#080D18] font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+            {detectionStatus === 'error' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={retryCamera}
+                leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+              >
+                Retry Camera
+              </Button>
+            )}
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsDatasetModalOpen(true)}
+              leftIcon={<Database className="w-3.5 h-3.5 text-[#0E7490] dark:text-[#43D9E9]" />}
             >
-              <Video className="w-4 h-4" /> Start Camera
-            </button>
-          ) : (
-            <button
-              onClick={stopCamera}
-              className="px-4 py-2 rounded-[10px] bg-red-600 hover:bg-red-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              Dataset Collector
+            </Button>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsEvalLabOpen(true)}
+              leftIcon={<FlaskConical className="w-3.5 h-3.5 text-[#4F46E5] dark:text-[#8585FF]" />}
             >
-              <VideoOff className="w-4 h-4" /> Stop Camera
-            </button>
-          )}
+              Evaluation Lab
+            </Button>
+          </div>
+        </Card>
+      )}
 
-          {isCameraActive && (
-            <button
-              onClick={() => setIsMirrored(!isMirrored)}
-              className="px-3 py-2 rounded-[10px] bg-slate-100 hover:bg-slate-200 dark:bg-[#19263A] dark:hover:bg-[#1f2f47] text-slate-700 dark:text-[#B6C2D2] font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer border border-slate-200 dark:border-[rgba(148,163,184,0.15)]"
-              title="Toggle Mirror View"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>{isMirrored ? 'Mirrored' : 'Normal'}</span>
-            </button>
-          )}
+      {/* Camera Permission / Initialization Errors */}
+      {cameraError && (
+        <PermissionDeniedState
+          device="camera"
+          message={cameraError}
+          onRetry={retryCamera}
+        />
+      )}
 
-          {detectionStatus === 'error' && (
-            <button
-              onClick={retryCamera}
-              className="px-3.5 py-2 rounded-[10px] bg-amber-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
-            >
-              <RefreshCw className="w-3.5 h-3.5" /> Retry Camera
-            </button>
-          )}
+      {detectionStatus === 'initializing' && !cameraError && (
+        <LoadingState
+          title="Initializing On-Device Vision Pipeline"
+          description="Loading MediaPipe Hand Landmarker weights and requesting webcam stream..."
+          className="py-4"
+        />
+      )}
 
-          <button
-            onClick={() => setIsDatasetModalOpen(true)}
-            className="px-3.5 py-2 rounded-[10px] bg-[#19263A] hover:bg-[#1f2f47] text-[#22D3EE] border border-[rgba(34,211,238,0.25)] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Collect consented dataset samples for ML model training"
-          >
-            <Database className="w-3.5 h-3.5" /> Dataset Collector
-          </button>
-
-          <button
-            onClick={() => setIsEvalLabOpen(true)}
-            className="px-3.5 py-2 rounded-[10px] bg-[#19263A] hover:bg-[#1f2f47] text-[#8B5CF6] border border-purple-500/25 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Open Scientific Evaluation Lab, Confusion Matrix, and Unit Tests"
-          >
-            <FlaskConical className="w-3.5 h-3.5 text-[#8B5CF6]" /> Evaluation Lab
-          </button>
-        </div>
-      </div>
-
-      {/* Phase B: Real-Time Pipeline Diagnostics Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-[14px] bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-xs shadow-xs">
+      {/* Real-Time Pipeline Diagnostics Strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-[14px] bg-white dark:bg-[#101C2C] border border-slate-200 dark:border-[#253448] text-xs">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-[10px] bg-cyan-500/10 text-[#22D3EE]">
+          <div className="p-2 rounded-[10px] bg-[#0E7490]/10 dark:bg-[#43D9E9]/10 text-[#0E7490] dark:text-[#43D9E9]">
             <Activity className="w-4 h-4" />
           </div>
-          <div>
-            <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-[#8493A8] tracking-wider">State Machine</div>
-            <div className="font-semibold text-slate-800 dark:text-[#F8FAFC] flex items-center gap-1.5">
-              <span className={`w-2 h-2 rounded-full ${
-                detectionStatus === 'hand_detected' ? 'bg-emerald-400 animate-pulse' :
-                detectionStatus === 'initializing' ? 'bg-amber-400 animate-ping' :
-                detectionStatus === 'error' ? 'bg-red-400' :
-                isCameraActive ? 'bg-cyan-400' : 'bg-slate-400'
-              }`} />
-              <span className="capitalize">{detectionStatus.replace('_', ' ')}</span>
+          <div className="min-w-0">
+            <div className="text-[11px] font-medium text-slate-600 dark:text-[#A0AEC0]">Pipeline State</div>
+            <div className="font-semibold text-slate-900 dark:text-[#F4F7FB] capitalize truncate">
+              {detectionStatus.replace(/_/g, ' ')}
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-[10px] bg-teal-500/10 text-[#2DD4BF]">
+          <div className="p-2 rounded-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
             <Cpu className="w-4 h-4" />
           </div>
-          <div>
-            <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-[#8493A8] tracking-wider">Vision Engine</div>
-            <div className="font-semibold text-slate-800 dark:text-[#F8FAFC] font-mono text-[11px]">
-              {modelEngineState === 'loaded' ? `Tasks Vision (${modelDelegate})` : `Vision (${modelEngineState})`}
+          <div className="min-w-0">
+            <div className="text-[11px] font-medium text-slate-600 dark:text-[#A0AEC0]">Vision Engine</div>
+            <div className="font-semibold text-slate-900 dark:text-[#F4F7FB] font-mono text-[11px] truncate">
+              {modelEngineState === 'loaded' ? `MediaPipe (${modelDelegate})` : `Vision (${modelEngineState})`}
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-[10px] bg-blue-500/10 text-[#60A5FA]">
+          <div className="p-2 rounded-[10px] bg-[#4F46E5]/10 dark:bg-[#8585FF]/15 text-[#4F46E5] dark:text-[#8585FF]">
             <ShieldCheck className="w-4 h-4" />
           </div>
-          <div>
-            <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Landmarks Validity</div>
-            <div className="font-semibold text-slate-800 dark:text-slate-100 font-mono text-[11px]">
+          <div className="min-w-0">
+            <div className="text-[11px] font-medium text-slate-600 dark:text-[#A0AEC0]">Landmarks Tracked</div>
+            <div className="font-semibold text-slate-900 dark:text-[#F4F7FB] font-mono tabular-nums text-[11px] truncate">
               {handsDetected === 2
-                ? '42 / 42 Pts (Dual Hands)'
+                ? '42 / 42 Pts (Dual)'
                 : liveLandmarks.length === 21
-                ? '21 / 21 Points'
+                ? '21 / 21 Pts'
                 : isCameraActive
-                ? '0 Points (Scanning)'
+                ? '0 Pts (Scanning)'
                 : 'Standby'}
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+          <div className="p-2 rounded-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-400">
             <Clock className="w-4 h-4" />
           </div>
-          <div>
-            <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider">Last Detection</div>
-            <div className="font-semibold text-slate-800 dark:text-slate-100 font-mono text-[11px]">
+          <div className="min-w-0">
+            <div className="text-[11px] font-medium text-slate-600 dark:text-[#A0AEC0]">Last Detection</div>
+            <div className="font-semibold text-slate-900 dark:text-[#F4F7FB] font-mono tabular-nums text-[11px] truncate">
               {lastDetectionTimeText}
             </div>
           </div>
@@ -757,84 +864,64 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
       </div>
 
       {/* Main Studio Grid */}
-      <div className="grid lg:grid-cols-12 gap-6 items-start">
-        
-        {/* Left Column: Live Camera Video & Overlay (7 cols) */}
+      <div className="grid lg:grid-cols-12 gap-5 items-start">
+        {/* Left Column: Primary Camera Viewport & Quick Vocabulary (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="relative aspect-[4/3] rounded-[18px] overflow-hidden bg-[#080D18] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] shadow-md flex items-center justify-center">
-            
-            {/* Hidden Video Source */}
-            <video
-              ref={videoRef}
-              playsInline
-              muted
-              className="hidden"
-            />
+          <div
+            className={`relative rounded-[16px] overflow-hidden border border-slate-200 dark:border-[#253448] shadow-sm flex items-center justify-center ${
+              !isCameraActive
+                ? 'min-h-[540px] md:min-h-[500px] lg:min-h-0 lg:aspect-[4/3] bg-white dark:bg-[#080D18]'
+                : 'aspect-[4/3] bg-[#080D18]'
+            }`}
+          >
+            <video ref={videoRef} playsInline muted className="hidden" />
 
-            {/* Visual Canvas Display */}
             <canvas
               ref={canvasRef}
               width={960}
               height={720}
-              className={`w-full h-full object-cover ${isMirrored ? 'scale-x-[-1]' : ''}`}
+              aria-label="Live sign language camera detection preview"
+              className={`w-full h-full object-cover ${isMirrored ? 'scale-x-[-1]' : ''} ${!isCameraActive ? 'hidden' : ''}`}
             />
 
-            {/* Ethiopian Sign Language (EthSL) Interactive Curriculum in Camera Standby */}
             {!isCameraActive && (
               <CameraStandbyEthslGuide
+                variant="overlay"
                 onStartCamera={startCamera}
                 onSelectGesture={(gestureKey) => handleSimulateGesture(gestureKey)}
               />
             )}
 
-            {/* Error Overlay */}
-            {cameraError && (
-              <div className="absolute inset-x-4 bottom-4 p-4 rounded-[14px] bg-red-950/90 border border-red-500/50 text-red-200 text-xs flex items-start gap-3 backdrop-blur-md">
-                <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <strong className="block text-white font-bold">Webcam Error</strong>
-                  <span>{cameraError}</span>
-                </div>
-                <button
-                  onClick={retryCamera}
-                  className="px-3 py-1 bg-red-800 hover:bg-red-700 text-white font-bold rounded-[8px] shrink-0 cursor-pointer text-[11px]"
-                >
-                  Retry
-                </button>
-              </div>
-            )}
-
-            {/* Live Guidance Bar Over Video */}
             {isCameraActive && (
               <>
-                <div className="absolute top-4 inset-x-4 flex items-center justify-between pointer-events-none">
-                  <div className="px-3 py-1.5 rounded-[10px] bg-[#080D18]/80 backdrop-blur-md border border-slate-800 text-[11px] text-[#B6C2D2] font-mono">
+                <div className="absolute top-3 inset-x-3 flex items-center justify-between gap-2 pointer-events-none">
+                  <div className="px-3 py-1.5 rounded-[8px] bg-[#080D18]/85 backdrop-blur-md border border-[#253448] text-[11px] text-[#F4F7FB] font-mono truncate max-w-[70%]">
                     {statusMessage}
                   </div>
 
                   {stabilityScore > 0 && (
-                    <div className="px-3 py-1.5 rounded-[10px] bg-[#080D18]/80 backdrop-blur-md border border-slate-800 text-[11px] text-emerald-400 font-mono flex items-center gap-1.5">
+                    <div className="px-3 py-1.5 rounded-[8px] bg-[#080D18]/85 backdrop-blur-md border border-emerald-500/40 text-[11px] text-emerald-300 font-mono tabular-nums flex items-center gap-1.5 shrink-0">
                       <Target className="w-3.5 h-3.5 text-emerald-400" />
                       <span>Stability: {stabilityScore}%</span>
                     </div>
                   )}
                 </div>
 
-                {/* Dual Hands Tracking HUD Banner */}
                 {handsDetected === 2 && (
                   <div className="absolute bottom-3 inset-x-3 pointer-events-none flex items-center justify-center">
-                    <div className="flex flex-wrap items-center justify-center gap-2 px-3 py-1.5 rounded-xl bg-[#080D18]/90 backdrop-blur-md border border-[#22D3EE]/50 text-xs shadow-xl">
-                      <span className="flex items-center gap-1.5 font-bold text-[#22D3EE]">
-                        <span className="w-2 h-2 rounded-full bg-[#22D3EE] animate-pulse" />
-                        <span>Dual Hands Tracked</span>
-                      </span>
+                    <div className="flex flex-wrap items-center justify-center gap-2 px-3.5 py-2 rounded-[10px] bg-[#080D18]/90 backdrop-blur-md border border-[#43D9E9]/50 text-xs shadow-lg">
+                      <span className="font-semibold text-[#43D9E9]">Dual Hands Tracked</span>
                       <span className="text-slate-500">·</span>
-                      <span className="font-mono text-[11px] text-slate-300">42 Landmarks</span>
+                      <span className="font-mono tabular-nums text-[11px] text-slate-300">42 Landmarks</span>
                       {multiHandClassifications.length === 2 && (
-                        <div className="flex items-center gap-2 border-l border-slate-700 pl-2 font-mono text-[11px]">
-                          <span className="text-cyan-300">Left: <strong>{multiHandClassifications.find((h) => h.handedness === 'Left')?.labelEn || 'Active'}</strong></span>
+                        <div className="flex items-center gap-2 border-l border-[#253448] pl-2 font-mono text-[11px]">
+                          <span className="text-[#43D9E9]">
+                            Left: <strong>{multiHandClassifications.find((h) => h.handedness === 'Left')?.labelEn || 'Active'}</strong>
+                          </span>
                           <span className="text-slate-500">|</span>
-                          <span className="text-amber-300">Right: <strong>{multiHandClassifications.find((h) => h.handedness === 'Right')?.labelEn || 'Active'}</strong></span>
+                          <span className="text-amber-300">
+                            Right: <strong>{multiHandClassifications.find((h) => h.handedness === 'Right')?.labelEn || 'Active'}</strong>
+                          </span>
                         </div>
                       )}
                     </div>
@@ -844,182 +931,230 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
             )}
           </div>
 
-          {/* Quick Simulation Row */}
-          <div className="p-4 rounded-[18px] bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-700 dark:text-[#B6C2D2]">
-                Interactive Vocabulary Cards:
+          {/* Interactive Vocabulary Simulation Row */}
+          <Card padding="sm" className="space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-slate-800 dark:text-[#F4F7FB]">
+                Quick Gesture Test Cards
               </span>
-              <span className="text-[11px] text-slate-400 dark:text-[#8493A8]">Tap to test translation without camera</span>
+              <span className="text-[11px] text-slate-600 dark:text-[#A0AEC0]">
+                Test recognition and voice output without a webcam
+              </span>
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
-              {GESTURE_LIST.map((g) => (
-                <button
-                  key={g.id}
-                  onClick={() => handleSimulateGesture(g.id)}
-                  className={`px-3 py-1.5 rounded-[10px] text-xs font-medium border transition-all cursor-pointer flex items-center gap-1.5 ${
-                    lockedGesture === g.id
-                      ? 'bg-[#22D3EE] text-[#080D18] border-[#22D3EE] font-bold shadow-xs'
-                      : 'bg-slate-50 hover:bg-slate-100 dark:bg-[#121C2D] dark:hover:bg-[#19263A] text-slate-700 dark:text-[#B6C2D2] border-slate-200 dark:border-[rgba(148,163,184,0.12)]'
-                  }`}
-                >
-                  <span>{g.emoji}</span>
-                  <span>{g.labelEn}</span>
-                  <span className="text-[10px] opacity-75 font-ethiopic">({g.labelAm})</span>
-                </button>
-              ))}
+            <div className="flex flex-wrap gap-2">
+              {GESTURE_LIST.map((g) => {
+                const isSelected = lockedGesture === g.id;
+                return (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onClick={() => handleSimulateGesture(g.id)}
+                    aria-pressed={isSelected}
+                    className={`min-h-[36px] px-3 py-1.5 rounded-[10px] text-xs font-medium border transition-colors cursor-pointer flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                      isSelected
+                        ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18] border-transparent font-semibold'
+                        : 'bg-slate-50 hover:bg-slate-100 dark:bg-[#172438] dark:hover:bg-[#1e2f4a] text-slate-700 dark:text-[#F4F7FB] border-slate-200 dark:border-[#253448]'
+                    }`}
+                  >
+                    <span aria-hidden="true">{g.emoji}</span>
+                    <span>{g.labelEn}</span>
+                    <span
+                      className={`text-[11px] font-ethiopic ${
+                        isSelected ? 'text-white dark:text-[#080D18]' : 'text-slate-600 dark:text-[#A0AEC0]'
+                      }`}
+                    >
+                      ({g.labelAm})
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-          </div>
+          </Card>
         </div>
 
-        {/* Right Column: Recognition Test Panel & Transcript (5 cols) */}
-        <div className="lg:col-span-5 space-y-5">
-          
-          {/* Recognition Test Panel */}
-          <div className="p-5 sm:p-6 rounded-[18px] bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-xs space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)] pb-3">
+        {/* Right Column: Recognition Results, Speech Output & Transcript (5 cols) */}
+        <div className="lg:col-span-5 space-y-4">
+          {/* Recognition Output Card */}
+          <Card padding="sm" className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-[#253448] pb-2.5">
               <div className="flex items-center gap-2">
-                <Target className="w-5 h-5 text-[#22D3EE]" />
-                <h4 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-[#F8FAFC]">
-                  Recognition Test Panel
-                </h4>
+                <Target className="w-4 h-4 text-[#0E7490] dark:text-[#43D9E9]" aria-hidden="true" />
+                <h3 className="font-heading font-bold text-sm text-slate-900 dark:text-[#F4F7FB]">
+                  Recognition Output & Speech
+                </h3>
               </div>
 
-              <div className="flex items-center gap-1.5">
-                <button
+              <div className="flex items-center gap-2">
+                <IconButton
+                  variant={autoSpeak ? 'primary' : 'secondary'}
+                  size="sm"
                   onClick={() => setAutoSpeak(!autoSpeak)}
-                  className={`p-1.5 rounded-[10px] border text-xs transition-colors cursor-pointer ${
-                    autoSpeak
-                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/25'
-                      : 'bg-slate-100 dark:bg-[#19263A] text-slate-400 border-slate-200 dark:border-[rgba(148,163,184,0.15)]'
-                  }`}
-                  title={autoSpeak ? 'Auto-Speech is ON' : 'Auto-Speech is OFF'}
+                  aria-pressed={autoSpeak}
+                  label={autoSpeak ? 'Disable auto speech' : 'Enable auto speech'}
                 >
-                  {autoSpeak ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-                </button>
+                  {autoSpeak ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                </IconButton>
 
-                <select
+                <SelectField
+                  aria-label="Speech output language"
                   value={selectedLanguage}
                   onChange={(e) => setSelectedLanguage(e.target.value as any)}
-                  className="bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] text-slate-800 dark:text-[#F8FAFC] rounded-[10px] px-2 py-1 text-xs font-medium focus:border-[#22D3EE] focus:outline-none"
+                  className="min-h-[36px] text-xs py-1"
                 >
                   <option value="en-US">English (US)</option>
                   <option value="am-ET">አማርኛ (Amharic)</option>
-                </select>
+                </SelectField>
               </div>
             </div>
 
-            {/* Current Prediction Display */}
             {classificationResult && !classificationResult.isUnknown && lockedDef ? (
-              <div className="p-4 rounded-[14px] bg-cyan-500/10 border border-cyan-500/25 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-4xl">{lockedDef.emoji}</span>
-                    <div>
-                      <h3 className="text-xl font-bold text-slate-900 dark:text-[#F8FAFC]">
+              <div className="p-3.5 rounded-[12px] bg-cyan-50/70 dark:bg-[#43D9E9]/10 border border-cyan-200 dark:border-[#43D9E9]/30 space-y-2.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-4xl shrink-0" aria-hidden="true">{lockedDef.emoji}</span>
+                    <div className="min-w-0">
+                      <h4 className="text-lg font-bold text-slate-900 dark:text-[#F4F7FB] truncate">
                         {lockedDef.labelEn}
-                      </h3>
-                      <div className="text-sm font-bold text-[#2DD4BF] font-ethiopic">
-                        {lockedDef.labelAm} <span className="text-xs text-slate-500 dark:text-[#8493A8] font-sans">("{lockedDef.phoneticAm}")</span>
+                      </h4>
+                      <div className="text-sm font-bold text-[#0E7490] dark:text-[#43D9E9] font-ethiopic">
+                        {lockedDef.labelAm}{' '}
+                        <span className="text-xs font-normal text-slate-600 dark:text-[#A0AEC0] font-sans">
+                          ("{lockedDef.phoneticAm}")
+                        </span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="text-right">
-                    <div className="text-xl font-mono tabular-nums font-bold text-emerald-600 dark:text-emerald-400">
+                  <div className="text-right shrink-0">
+                    <div className="text-xl font-mono tabular-nums font-bold text-emerald-700 dark:text-emerald-400">
                       {currentConfidence}%
                     </div>
-                    <span className="text-[10px] text-slate-500 dark:text-[#8493A8] uppercase tracking-wider">
-                      Confidence
-                    </span>
+                    <span className="text-[11px] text-slate-600 dark:text-[#A0AEC0]">Confidence</span>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 dark:text-[#B6C2D2] leading-relaxed pt-1.5 border-t border-cyan-500/20">
-                  <div className="flex-1">
-                    <strong>Verification:</strong> {classificationResult.reason}
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 dark:text-[#A0AEC0] pt-2 border-t border-cyan-200/60 dark:border-[#43D9E9]/20">
+                  <div className="flex-1 min-w-0">
+                    <strong className="text-slate-800 dark:text-[#F4F7FB]">Verification:</strong> {classificationResult.reason}
                   </div>
-                  <span className={`px-2 py-0.5 rounded-[6px] font-mono text-[10px] font-bold shrink-0 ${
-                    currentRecognitionSource === 'camera'
-                      ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                      : 'bg-cyan-500/20 text-[#22D3EE] border border-cyan-500/30'
-                  }`}>
-                    {currentRecognitionSource === 'camera' ? '● Real Camera Detection' : '○ Card Simulation'}
-                  </span>
+                  <StatusBadge tone={currentRecognitionSource === 'camera' ? 'success' : 'info'}>
+                    {currentRecognitionSource === 'camera' ? 'Live Camera' : 'Card Simulation'}
+                  </StatusBadge>
+                </div>
+
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => speechService.speak(lockedDef, 'en-US')}
+                    leftIcon={<Volume2 className="w-3.5 h-3.5" />}
+                  >
+                    Speak EN
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => speechService.speak(lockedDef, 'am-ET')}
+                    leftIcon={<Volume2 className="w-3.5 h-3.5" />}
+                    className="font-ethiopic"
+                  >
+                    አማርኛ አሰማ
+                  </Button>
                 </div>
               </div>
             ) : classificationResult && classificationResult.isUnknown ? (
-              /* Explicit UNKNOWN State */
-              <div className="p-4 rounded-[14px] bg-amber-500/10 border border-amber-500/25 space-y-2">
-                <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 font-bold text-sm">
-                  <HelpCircle className="w-5 h-5 text-amber-500 shrink-0" />
-                  <span>Unknown Hand Pose / Unverified Sign</span>
+              <Alert variant="warning" title="Unrecognized Hand Pose">
+                {classificationResult.reason}. Hand landmarks are detected, but fingers do not match a calibrated static sign yet.
+              </Alert>
+            ) : lockedDef ? (
+              <div className="p-3.5 rounded-[12px] bg-slate-50 dark:bg-[#172438] border border-slate-200 dark:border-[#253448] flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-3xl shrink-0" aria-hidden="true">{lockedDef.emoji}</span>
+                  <div className="min-w-0">
+                    <div className="text-sm font-bold text-slate-900 dark:text-[#F4F7FB] truncate">
+                      {lockedDef.labelEn}{' '}
+                      <span className="font-ethiopic text-[#0E7490] dark:text-[#43D9E9]">· {lockedDef.labelAm}</span>
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-[#A0AEC0]">
+                      {isCameraActive ? 'Scanning camera frames...' : 'Selected from quick vocabulary or history'}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-xs text-slate-600 dark:text-[#B6C2D2] leading-relaxed">
-                  {classificationResult.reason}. Hand landmarks are detected, but fingers do not match any verified static gesture template.
-                </p>
-                <div className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-                  Try adjusting fingers closer to standard pose, or check the reference guide.
-                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => triggerSpeech(lockedDef.id)}
+                  leftIcon={<Volume2 className="w-3.5 h-3.5" />}
+                  disabled={isSpeaking}
+                >
+                  {isSpeaking ? 'Speaking...' : 'Speak'}
+                </Button>
               </div>
             ) : (
-              <div className="p-6 text-center text-slate-400 dark:text-[#8493A8] border border-dashed border-slate-200 dark:border-[rgba(148,163,184,0.15)] rounded-[14px] space-y-1">
-                <Eye className="w-6 h-6 mx-auto opacity-50" />
-                <p className="text-xs font-medium">Awaiting live hand movement...</p>
+              <div className="p-5 text-center text-slate-600 dark:text-[#A0AEC0] border border-dashed border-slate-300 dark:border-[#253448] rounded-[12px] space-y-1.5">
+                <Eye className="w-5 h-5 mx-auto text-slate-500 dark:text-[#A0AEC0]" aria-hidden="true" />
+                <p className="text-xs font-medium">Start camera or select a gesture card to begin.</p>
               </div>
             )}
 
-            {/* Live Geometric Feature Inspection */}
+            {/* Live Finger Extension Features */}
             {classificationResult && (
               <div className="space-y-2 text-xs">
-                <span className="text-slate-500 dark:text-[#8493A8] font-bold uppercase tracking-wider text-[11px]">
-                  Live Finger Extension Features
+                <span className="text-slate-600 dark:text-[#A0AEC0] font-semibold text-xs">
+                  Finger Extension Telemetry
                 </span>
                 <div className="grid grid-cols-5 gap-1.5 text-center font-mono text-[11px]">
-                  <div className={`p-2 rounded-[10px] border ${classificationResult.features.thumbExtendedAway ? 'bg-cyan-500/15 border-cyan-500/30 text-[#22D3EE] font-bold' : 'bg-slate-50 dark:bg-[#121C2D] border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-slate-400 dark:text-[#8493A8]'}`}>
-                    Thumb
-                  </div>
-                  <div className={`p-2 rounded-[10px] border ${classificationResult.features.indexExtended ? 'bg-cyan-500/15 border-cyan-500/30 text-[#22D3EE] font-bold' : 'bg-slate-50 dark:bg-[#121C2D] border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-slate-400 dark:text-[#8493A8]'}`}>
-                    Index
-                  </div>
-                  <div className={`p-2 rounded-[10px] border ${classificationResult.features.middleExtended ? 'bg-cyan-500/15 border-cyan-500/30 text-[#22D3EE] font-bold' : 'bg-slate-50 dark:bg-[#121C2D] border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-slate-400 dark:text-[#8493A8]'}`}>
-                    Middle
-                  </div>
-                  <div className={`p-2 rounded-[10px] border ${classificationResult.features.ringExtended ? 'bg-cyan-500/15 border-cyan-500/30 text-[#22D3EE] font-bold' : 'bg-slate-50 dark:bg-[#121C2D] border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-slate-400 dark:text-[#8493A8]'}`}>
-                    Ring
-                  </div>
-                  <div className={`p-2 rounded-[10px] border ${classificationResult.features.pinkyExtended ? 'bg-cyan-500/15 border-cyan-500/30 text-[#22D3EE] font-bold' : 'bg-slate-50 dark:bg-[#121C2D] border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-slate-400 dark:text-[#8493A8]'}`}>
-                    Pinky
-                  </div>
+                  {[
+                    { name: 'Thumb', active: classificationResult.features.thumbExtendedAway },
+                    { name: 'Index', active: classificationResult.features.indexExtended },
+                    { name: 'Middle', active: classificationResult.features.middleExtended },
+                    { name: 'Ring', active: classificationResult.features.ringExtended },
+                    { name: 'Pinky', active: classificationResult.features.pinkyExtended },
+                  ].map((finger) => (
+                    <div
+                      key={finger.name}
+                      className={`p-2 rounded-[8px] border ${
+                        finger.active
+                          ? 'bg-cyan-50 dark:bg-[#43D9E9]/15 border-cyan-300 dark:border-[#43D9E9]/40 text-[#0E7490] dark:text-[#43D9E9] font-semibold'
+                          : 'bg-slate-50 dark:bg-[#172438] border-slate-200 dark:border-[#253448] text-slate-600 dark:text-[#A0AEC0]'
+                      }`}
+                    >
+                      {finger.name}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
             {/* Candidate Breakdown */}
             {classificationResult && classificationResult.candidates.length > 0 && (
-              <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-xs">
-                <span className="text-slate-500 dark:text-[#8493A8] font-semibold text-[11px]">
-                  Top Recognition Candidates:
+              <div className="space-y-2 pt-3 border-t border-slate-200 dark:border-[#253448] text-xs">
+                <span className="text-slate-600 dark:text-[#A0AEC0] font-semibold">
+                  Top Candidates
                 </span>
                 <div className="space-y-1.5">
                   {classificationResult.candidates.slice(0, 3).map((c) => {
                     const def = GESTURE_DEFINITIONS[c.gesture];
+                    const pct = Math.round(c.confidence * 100);
                     return (
-                      <div key={c.gesture} className="flex items-center justify-between p-2 rounded-[10px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
-                        <span className="font-medium text-slate-800 dark:text-[#F8FAFC] flex items-center gap-1.5">
-                          <span>{def?.emoji}</span>
+                      <div
+                        key={c.gesture}
+                        className="flex items-center justify-between p-2.5 rounded-[10px] bg-slate-50 dark:bg-[#172438] border border-slate-200 dark:border-[#253448]"
+                      >
+                        <span className="font-medium text-slate-800 dark:text-[#F4F7FB] flex items-center gap-1.5">
+                          <span aria-hidden="true">{def?.emoji}</span>
                           <span>{def?.labelEn}</span>
                         </span>
                         <div className="flex items-center gap-2">
-                          <div className="w-20 bg-slate-200 dark:bg-[#19263A] h-1.5 rounded-full overflow-hidden">
+                          <div className="w-20 bg-slate-200 dark:bg-[#080D18] h-1.5 rounded-full overflow-hidden">
                             <div
-                              className="bg-[#22D3EE] h-full rounded-full"
-                              style={{ width: `${Math.round(c.confidence * 100)}%` }}
+                              className="bg-[#0E7490] dark:bg-[#43D9E9] h-full rounded-full"
+                              style={{ width: `${pct}%` }}
                             />
                           </div>
-                          <span className="font-mono tabular-nums text-[11px] font-bold text-slate-700 dark:text-[#B6C2D2]">
-                            {Math.round(c.confidence * 100)}%
+                          <span className="font-mono tabular-nums text-[11px] font-semibold text-slate-700 dark:text-[#A0AEC0] w-9 text-right">
+                            {pct}%
                           </span>
                         </div>
                       </div>
@@ -1028,128 +1163,160 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Transcript Panel with Add, Edit, Undo, Clear, Copy, Speak */}
-          <div className="p-5 sm:p-6 rounded-[18px] bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)] pb-3">
-              <h4 className="font-bold text-sm uppercase tracking-wider text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2">
-                <span>Transcript Stream</span>
-                <span className="px-2 py-0.5 rounded-[6px] bg-cyan-500/10 text-[#22D3EE] border border-cyan-500/20 text-[10px] font-mono font-bold">
-                  {transcript.length} Words
+            {/* Recent Recognition History Strip */}
+            {history.length > 0 && (
+              <div className="space-y-2 pt-3 border-t border-slate-200 dark:border-[#253448] text-xs">
+                <span className="text-slate-600 dark:text-[#A0AEC0] font-semibold">
+                  Recent Detections
                 </span>
-              </h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {history.slice(0, 5).map((item) => (
+                    <span
+                      key={item.id}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] bg-slate-50 dark:bg-[#172438] border border-slate-200 dark:border-[#253448] text-[11px] text-slate-700 dark:text-[#F4F7FB]"
+                    >
+                      <span aria-hidden="true">{item.emoji}</span>
+                      <span className="font-medium">{item.labelEn}</span>
+                      <span className="font-mono tabular-nums text-slate-600 dark:text-[#A0AEC0]">{item.confidence}%</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Card>
 
-              <div className="flex items-center gap-1.5">
-                <button
+          {/* Transcript Panel */}
+          <Card padding="sm" className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-[#253448] pb-2.5">
+              <div className="flex items-center gap-2">
+                <h3 className="font-heading font-bold text-sm text-slate-900 dark:text-[#F4F7FB]">
+                  Transcript Stream
+                </h3>
+                <StatusBadge tone="info">
+                  <span className="font-mono tabular-nums">{transcript.length} items</span>
+                </StatusBadge>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={handleSpeakFullTranscript}
                   disabled={transcript.length === 0}
-                  className="px-2.5 py-1.5 rounded-[10px] bg-slate-50 dark:bg-[#19263A] hover:bg-slate-100 dark:hover:bg-[#1f2f47] text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-[rgba(148,163,184,0.15)] text-xs font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-40 transition-colors shadow-xs"
+                  leftIcon={<Volume2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />}
                   title="Speak Full Transcript aloud"
                 >
-                  <Volume2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Speak All</span>
-                </button>
+                  Speak All
+                </Button>
 
-                <button
+                <IconButton
+                  variant="ghost"
+                  size="sm"
                   onClick={handleUndoTranscript}
                   disabled={transcript.length === 0}
-                  className="p-1.5 rounded-[10px] text-slate-600 dark:text-[#B6C2D2] hover:bg-slate-100 dark:hover:bg-[#19263A] disabled:opacity-40 transition-colors cursor-pointer"
-                  title="Undo Last Sign"
+                  label="Undo last transcript item"
                 >
                   <Undo2 className="w-4 h-4" />
-                </button>
+                </IconButton>
 
-                <button
+                <IconButton
+                  variant="ghost"
+                  size="sm"
                   onClick={handleClearTranscript}
                   disabled={transcript.length === 0}
-                  className="p-1.5 rounded-[10px] text-red-500 hover:bg-red-500/10 disabled:opacity-40 transition-colors cursor-pointer"
-                  title="Clear All"
+                  label="Clear all transcript items"
+                  className="text-rose-700 dark:text-rose-400"
                 >
                   <Trash2 className="w-4 h-4" />
-                </button>
+                </IconButton>
 
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={handleCopyTranscript}
                   disabled={transcript.length === 0}
-                  className="px-2.5 py-1.5 rounded-[10px] bg-slate-100 hover:bg-slate-200 dark:bg-[#19263A] dark:hover:bg-[#1f2f47] text-slate-700 dark:text-[#F8FAFC] text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors border border-slate-200 dark:border-[rgba(148,163,184,0.15)]"
-                  title="Copy Full Transcript"
+                  leftIcon={
+                    copiedTranscript ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )
+                  }
                 >
-                  {copiedTranscript ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedTranscript ? 'Copied' : 'Copy'}</span>
-                </button>
+                  {copiedTranscript ? 'Copied' : 'Copy'}
+                </Button>
               </div>
             </div>
 
-            {/* Inline Editing Form if an item is being edited */}
             {editingItemId && (
-              <div className="p-3.5 rounded-[14px] bg-cyan-500/10 border border-cyan-500/25 space-y-2 text-xs">
-                <div className="flex items-center justify-between font-bold text-cyan-700 dark:text-[#22D3EE]">
+              <div className="p-3 rounded-[12px] bg-cyan-50/70 dark:bg-[#43D9E9]/10 border border-cyan-200 dark:border-[#43D9E9]/30 space-y-2.5 text-xs">
+                <div className="flex items-center justify-between font-semibold text-[#0E7490] dark:text-[#43D9E9]">
                   <span>Edit Transcript Item</span>
-                  <button onClick={handleCancelEdit} className="text-slate-400 hover:text-slate-600 dark:hover:text-[#F8FAFC] cursor-pointer">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                <div className="grid sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-[10px] text-slate-500 dark:text-[#8493A8] uppercase font-semibold block mb-0.5">English Text</label>
-                    <input
-                      type="text"
-                      value={editTextEn}
-                      onChange={(e) => setEditTextEn(e.target.value)}
-                      className="w-full bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-2.5 py-1.5 text-xs text-slate-900 dark:text-[#F8FAFC] focus:border-[#22D3EE] focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-slate-500 dark:text-[#8493A8] uppercase font-semibold block mb-0.5">Amharic Fidel</label>
-                    <input
-                      type="text"
-                      value={editTextAm}
-                      onChange={(e) => setEditTextAm(e.target.value)}
-                      className="w-full bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-2.5 py-1.5 text-xs text-slate-900 dark:text-[#F8FAFC] font-ethiopic focus:border-[#22D3EE] focus:outline-none"
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center justify-end gap-2 pt-1">
-                  <button
+                  <IconButton
+                    variant="ghost"
+                    size="sm"
                     onClick={handleCancelEdit}
-                    className="px-3 py-1 rounded-[10px] text-xs bg-slate-100 hover:bg-slate-200 dark:bg-[#19263A] text-slate-700 dark:text-[#B6C2D2] cursor-pointer"
+                    label="Cancel editing"
                   >
+                    <X className="w-3.5 h-3.5" />
+                  </IconButton>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-2.5">
+                  <TextField
+                    label="English Text"
+                    value={editTextEn}
+                    onChange={(e) => setEditTextEn(e.target.value)}
+                  />
+                  <TextField
+                    label="Amharic Fidel"
+                    value={editTextAm}
+                    onChange={(e) => setEditTextAm(e.target.value)}
+                    className="font-ethiopic"
+                  />
+                </div>
+                <div className="flex items-center justify-end gap-2">
+                  <Button variant="ghost" size="sm" onClick={handleCancelEdit}>
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
                     onClick={handleSaveEdit}
-                    className="px-3 py-1 rounded-[10px] text-xs font-bold bg-[#22D3EE] hover:bg-[#06b6d4] text-[#080D18] cursor-pointer flex items-center gap-1 shadow-xs"
+                    leftIcon={<Save className="w-3.5 h-3.5" />}
                   >
-                    <Save className="w-3 h-3" /> Save Changes
-                  </button>
+                    Save Changes
+                  </Button>
                 </div>
               </div>
             )}
 
-            {/* Transcript Chips Box */}
-            <div className="min-h-24 p-4 rounded-[14px] bg-slate-50 dark:bg-[#080D18] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex flex-wrap gap-2 items-center">
+            <div className="min-h-16 p-3 rounded-[12px] bg-slate-50 dark:bg-[#080D18] border border-slate-200 dark:border-[#253448] flex flex-wrap gap-2 items-center">
               {transcript.map((item) => (
                 <div
                   key={item.id}
-                  className="group px-3 py-1.5 rounded-[10px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-xs text-xs font-medium text-slate-800 dark:text-[#F8FAFC] flex items-center gap-2 animate-in fade-in zoom-in-95 duration-150"
+                  className="px-3 py-1.5 rounded-[10px] bg-white dark:bg-[#172438] border border-slate-200 dark:border-[#253448] text-xs font-medium text-slate-800 dark:text-[#F4F7FB] flex items-center gap-2"
                 >
-                  <span>{item.emoji}</span>
-                  <span className="font-bold">{item.textEn}</span>
-                  <span className="text-[11px] font-ethiopic text-[#2DD4BF]">({item.textAm})</span>
+                  <span aria-hidden="true">{item.emoji}</span>
+                  <span className="font-semibold">{item.textEn}</span>
+                  <span className="text-[11px] font-ethiopic text-[#0E7490] dark:text-[#43D9E9]">
+                    ({item.textAm})
+                  </span>
 
-                  <div className="hidden group-hover:flex items-center gap-1 pl-1 border-l border-slate-200 dark:border-[rgba(148,163,184,0.15)]">
+                  <div className="flex items-center gap-0.5 pl-1.5 border-l border-slate-200 dark:border-[#253448]">
                     <button
+                      type="button"
                       onClick={() => handleStartEdit(item)}
-                      className="p-1 rounded text-slate-400 hover:text-[#22D3EE] cursor-pointer"
-                      title="Edit this item"
+                      className="p-1 rounded text-slate-600 dark:text-[#A0AEC0] hover:text-[#0E7490] dark:hover:text-[#43D9E9] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
+                      aria-label={`Edit ${item.textEn}`}
                     >
                       <Edit2 className="w-3 h-3" />
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleDeleteTranscriptItem(item.id)}
-                      className="p-1 rounded text-slate-400 hover:text-red-500 cursor-pointer"
-                      title="Delete item"
+                      className="p-1 rounded text-slate-600 dark:text-[#A0AEC0] hover:text-rose-700 dark:hover:text-rose-400 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
+                      aria-label={`Delete ${item.textEn}`}
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
@@ -1158,29 +1325,31 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
               ))}
 
               {transcript.length === 0 && (
-                <span className="text-xs text-slate-400 dark:text-[#8493A8] italic">
-                  Recognized Ethiopian Sign Language signs and simulated phrases will stream here in real-time...
-                </span>
+                <div className="w-full py-1.5 text-center text-xs text-slate-600 dark:text-[#A0AEC0] flex items-center justify-center gap-2">
+                  <HelpCircle className="w-4 h-4 text-slate-500 dark:text-[#A0AEC0]" aria-hidden="true" />
+                  <span>Recognized Ethiopian Sign Language signs will appear here in real time.</span>
+                </div>
               )}
             </div>
 
-            {/* Linguistic Status Notice */}
-            <div className="p-3 rounded-[10px] bg-slate-50 dark:bg-[#080D18] text-[11px] text-slate-500 dark:text-[#8493A8] flex items-center justify-between border border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
-              <span>Linguistic Calibration: Verified EthSL vocabulary is calibrated for student assistive communication.</span>
-              <span className="font-mono text-[#2DD4BF] font-bold shrink-0">EthSL v1.4</span>
-            </div>
-
-            {/* Manual Add Sign Button */}
             {lockedDef && (
-              <button
-                onClick={() => appendToTranscript(lockedDef.id, currentConfidence / 100 || 0.9, currentRecognitionSource || 'camera')}
-                className="w-full py-2.5 rounded-[10px] bg-slate-100 hover:bg-slate-200 dark:bg-[#19263A] dark:hover:bg-[#1f2f47] text-slate-800 dark:text-[#F8FAFC] font-bold text-xs flex items-center justify-center gap-2 border border-slate-200 dark:border-[rgba(148,163,184,0.15)] transition-colors cursor-pointer"
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() =>
+                  appendToTranscript(
+                    lockedDef.id,
+                    currentConfidence / 100 || 0.9,
+                    currentRecognitionSource || 'camera'
+                  )
+                }
+                leftIcon={<PlusCircle className="w-4 h-4 text-[#0E7490] dark:text-[#43D9E9]" />}
+                className="w-full"
               >
-                <PlusCircle className="w-4 h-4 text-[#22D3EE]" />
-                <span>Add "{lockedDef.labelEn}" to Transcript</span>
-              </button>
+                Add "{lockedDef.labelEn}" to Transcript
+              </Button>
             )}
-          </div>
+          </Card>
         </div>
       </div>
 

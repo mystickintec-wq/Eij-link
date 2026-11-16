@@ -1,21 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Captions, 
-  Mic, 
-  MicOff, 
-  Copy, 
-  Trash2, 
-  Check, 
-  Contrast, 
-  AlertCircle, 
+import {
+  Captions,
+  Mic,
+  MicOff,
+  Copy,
+  Trash2,
+  Check,
+  Contrast,
   Upload,
   Globe,
-  Radio
+  Radio,
 } from 'lucide-react';
 import { geminiVoiceRecorder, transcribeAudioBlob, TranscriptionResult } from '../services/transcribeService';
 import { useCommunication } from '../context/CommunicationContext';
+import {
+  Alert,
+  Button,
+  Card,
+  EmptyState,
+  PermissionDeniedState,
+  StatusBadge,
+  WorkspaceHeader,
+  useToast,
+} from './ui';
 
 export const CaptionsWorkspace: React.FC = () => {
+  const { showToast } = useToast();
   const [isListening, setIsListening] = useState(false);
   const [liveInterim, setLiveInterim] = useState('');
   const [captionHistory, setCaptionHistory] = useState<string[]>([
@@ -152,12 +162,14 @@ export const CaptionsWorkspace: React.FC = () => {
     const fullText = captionHistory.join('\n');
     navigator.clipboard.writeText(fullText);
     setIsCopied(true);
+    showToast('Captions copied to clipboard', 'success');
     setTimeout(() => setIsCopied(false), 2500);
   };
 
   const handleClear = () => {
     setCaptionHistory([]);
     setLiveInterim('');
+    showToast('Caption board cleared', 'info');
   };
 
   const getTextClass = () => {
@@ -167,96 +179,82 @@ export const CaptionsWorkspace: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Workspace Header */}
-      <div className="p-6 rounded-[18px] bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-[10px] bg-[#60A5FA]/10 text-[#60A5FA] flex items-center justify-center shrink-0">
-            <Captions className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC]">
-                Live Speech Captions & Transcribe
-              </h2>
-            </div>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-[#8493A8] mt-0.5">
-              Continuous live speech-to-text captions via browser Web Speech API, with Gemini cloud audio file transcription.
-            </p>
-          </div>
-        </div>
+    <div className="space-y-5">
+      <WorkspaceHeader
+        title="Live Speech Captions & Transcribe"
+        description="Continuous live speech-to-text captions via Web Speech API with Gemini cloud audio file transcription."
+        icon={<Captions className="w-5 h-5" />}
+        accent="violet"
+        meta={
+          isListening ? (
+            <StatusBadge tone="error">
+              <span className="font-mono tabular-nums">Mic Active · {audioLevel}%</span>
+            </StatusBadge>
+          ) : (
+            <StatusBadge tone="neutral">{activeEngineName}</StatusBadge>
+          )
+        }
+        actions={
+          <>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept="audio/*,.mp3,.wav,.webm,.m4a,.ogg"
+              className="hidden"
+              aria-label="Upload audio file for transcription"
+            />
 
-        {/* Live Controls */}
-        <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
-          {isListening && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-red-500/10 border border-red-500/20 text-[#F87171] text-xs font-medium">
-              <span className="w-2 h-2 rounded-full bg-[#F87171]" />
-              <span className="font-mono tabular-nums">Mic Level: {audioLevel}%</span>
-            </div>
-          )}
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={() => fileInputRef.current?.click()}
+              isLoading={isUploading}
+              leftIcon={<Upload className="w-4 h-4 text-[#0E7490] dark:text-[#43D9E9]" />}
+              title="Upload audio file for transcription"
+            >
+              {isUploading ? 'Transcribing...' : 'Upload Audio'}
+            </Button>
 
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            accept="audio/*,.mp3,.wav,.webm,.m4a,.ogg"
-            className="hidden"
-          />
+            <Button
+              variant={isListening ? 'danger' : 'primary'}
+              size="md"
+              onClick={handleToggleListening}
+              leftIcon={isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            >
+              {isListening ? 'Stop Captions' : 'Start Captions'}
+            </Button>
+          </>
+        }
+      />
 
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            className="h-10 px-4 rounded-[10px] bg-slate-100 dark:bg-[#19263A] hover:bg-slate-200 dark:hover:bg-[#1E2E44] text-slate-800 dark:text-[#F8FAFC] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
-            title="Upload audio file for transcription"
-          >
-            <Upload className="w-3.5 h-3.5 text-[#22D3EE]" />
-            <span>{isUploading ? 'Transcribing...' : 'Upload Audio'}</span>
-          </button>
-
-          <button
-            onClick={handleToggleListening}
-            className={`h-10 px-5 rounded-[10px] text-xs sm:text-sm font-semibold flex items-center gap-2 transition-colors cursor-pointer shadow-xs ${
-              isListening
-                ? 'bg-red-500/10 hover:bg-red-500/20 text-[#F87171] border border-red-500/30'
-                : 'bg-[#22D3EE] hover:bg-[#2DD4BF] text-[#080D18]'
-            }`}
-          >
-            {isListening ? (
-              <>
-                <MicOff className="w-4 h-4" /> Stop Captions
-              </>
-            ) : (
-              <>
-                <Mic className="w-4 h-4" /> Start Captions
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Control Bar: Language, Engine, and Status */}
-      <div className="p-4 rounded-[14px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex flex-wrap items-center justify-between gap-4 text-xs">
+      {/* Control Bar: Language and Engine */}
+      <Card padding="sm" className="flex flex-wrap items-center justify-between gap-4 text-xs">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1.5 font-semibold text-slate-700 dark:text-[#B6C2D2]">
-            <Globe className="w-3.5 h-3.5 text-[#22D3EE]" />
+          <div className="flex items-center gap-2 font-semibold text-slate-700 dark:text-[#F4F7FB]">
+            <Globe className="w-4 h-4 text-[#0E7490] dark:text-[#43D9E9]" aria-hidden="true" />
             <span>Language:</span>
-            <div className="flex bg-slate-100 dark:bg-[#0D1422] rounded-[8px] p-0.5 border border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
+            <div className="flex bg-slate-100 dark:bg-[#172438] rounded-[10px] p-1 border border-slate-200 dark:border-[#253448]">
               <button
+                type="button"
                 onClick={() => handleLanguageChange('en-US')}
-                className={`px-2.5 py-1 rounded-[6px] text-xs font-medium cursor-pointer transition-colors ${
+                aria-pressed={selectedLanguage === 'en-US'}
+                className={`px-3 py-1.5 rounded-[7px] text-xs font-medium cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                   selectedLanguage === 'en-US'
-                    ? 'bg-[#22D3EE] text-[#080D18] font-semibold shadow-xs'
-                    : 'text-slate-600 dark:text-[#B6C2D2] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
+                    ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18] font-semibold'
+                    : 'text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB]'
                 }`}
               >
                 English (US)
               </button>
               <button
+                type="button"
                 onClick={() => handleLanguageChange('am-ET')}
-                className={`px-2.5 py-1 rounded-[6px] text-xs font-medium cursor-pointer transition-colors ${
+                aria-pressed={selectedLanguage === 'am-ET'}
+                className={`px-3 py-1.5 rounded-[7px] text-xs font-medium cursor-pointer transition-colors font-ethiopic focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                   selectedLanguage === 'am-ET'
-                    ? 'bg-[#22D3EE] text-[#080D18] font-semibold shadow-xs'
-                    : 'text-slate-600 dark:text-[#B6C2D2] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
+                    ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18] font-semibold'
+                    : 'text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB]'
                 }`}
               >
                 አማርኛ (Amharic)
@@ -264,91 +262,69 @@ export const CaptionsWorkspace: React.FC = () => {
             </div>
           </div>
 
-          <div className="h-4 w-px bg-slate-200 dark:bg-[#19263A] hidden sm:block" />
+          <div className="h-4 w-px bg-slate-200 dark:bg-[#253448] hidden sm:block" />
 
-          <div className="flex items-center gap-1.5 font-semibold text-slate-700 dark:text-[#B6C2D2]">
-            <Radio className="w-3.5 h-3.5 text-[#60A5FA]" />
+          <div className="flex items-center gap-2 font-semibold text-slate-700 dark:text-[#F4F7FB]">
+            <Radio className="w-4 h-4 text-[#4F46E5] dark:text-[#8585FF]" aria-hidden="true" />
             <span>Engine:</span>
-            <div className="flex bg-slate-100 dark:bg-[#0D1422] rounded-[8px] p-0.5 border border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
-              <button
-                onClick={() => handleEngineChange('auto')}
-                className={`px-2.5 py-1 rounded-[6px] text-xs font-medium cursor-pointer transition-colors ${
-                  enginePreference === 'auto'
-                    ? 'bg-slate-200 dark:bg-[#19263A] text-slate-900 dark:text-[#F8FAFC] shadow-xs'
-                    : 'text-slate-600 dark:text-[#B6C2D2] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
-                }`}
-                title="Continuous Web Speech with Gemini audio upload support"
-              >
-                Auto (Hybrid)
-              </button>
-              <button
-                onClick={() => handleEngineChange('web-speech')}
-                className={`px-2.5 py-1 rounded-[6px] text-xs font-medium cursor-pointer transition-colors ${
-                  enginePreference === 'web-speech'
-                    ? 'bg-slate-200 dark:bg-[#19263A] text-slate-900 dark:text-[#F8FAFC] shadow-xs'
-                    : 'text-slate-600 dark:text-[#B6C2D2] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
-                }`}
-                title="Browser Web Speech API"
-              >
-                Web Speech
-              </button>
-              <button
-                onClick={() => handleEngineChange('gemini-cloud')}
-                className={`px-2.5 py-1 rounded-[6px] text-xs font-medium cursor-pointer transition-colors ${
-                  enginePreference === 'gemini-cloud'
-                    ? 'bg-slate-200 dark:bg-[#19263A] text-slate-900 dark:text-[#F8FAFC] shadow-xs'
-                    : 'text-slate-600 dark:text-[#B6C2D2] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
-                }`}
-                title="Gemini 3.5 Transcribe Cloud Backend"
-              >
-                Gemini Cloud
-              </button>
+            <div className="flex bg-slate-100 dark:bg-[#172438] rounded-[10px] p-1 border border-slate-200 dark:border-[#253448]">
+              {[
+                { id: 'auto' as const, label: 'Auto (Hybrid)' },
+                { id: 'web-speech' as const, label: 'Web Speech' },
+                { id: 'gemini-cloud' as const, label: 'Gemini Cloud' },
+              ].map((eng) => (
+                <button
+                  key={eng.id}
+                  type="button"
+                  onClick={() => handleEngineChange(eng.id)}
+                  aria-pressed={enginePreference === eng.id}
+                  className={`px-2.5 py-1.5 rounded-[7px] text-xs cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                    enginePreference === eng.id
+                      ? 'bg-white dark:bg-[#101C2C] text-[#0E7490] dark:text-[#43D9E9] border border-slate-300/80 dark:border-[#43D9E9]/35 font-semibold shadow-xs'
+                      : 'border border-transparent font-medium text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB]'
+                  }`}
+                >
+                  {eng.label}
+                </button>
+              ))}
             </div>
           </div>
         </div>
-
-        <div className="flex items-center gap-2 text-slate-500 dark:text-[#8493A8]">
-          <span className="w-2 h-2 rounded-full bg-[#34D399]" />
-          <span>Active: <strong className="text-slate-700 dark:text-[#B6C2D2]">{activeEngineName}</strong></span>
-        </div>
-      </div>
-
-      {statusNotice && (
-        <div className="px-4 py-2 rounded-[10px] bg-slate-100 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-slate-700 dark:text-[#B6C2D2] text-xs flex items-center justify-between">
-          <span>{statusNotice}</span>
-          <span className="text-[11px] text-slate-400 dark:text-[#8493A8] font-mono">Status</span>
-        </div>
-      )}
+      </Card>
 
       {errorMessage && (
-        <div className="p-3.5 rounded-[10px] bg-red-500/10 border border-red-500/20 text-[#F87171] text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{errorMessage}</span>
-        </div>
+        <PermissionDeniedState
+          device="microphone"
+          message={errorMessage}
+          onRetry={handleToggleListening}
+        />
+      )}
+
+      {statusNotice && !errorMessage && (
+        <Alert variant="info">{statusNotice}</Alert>
       )}
 
       {/* Main Caption Board */}
       <div
-        className={`p-6 sm:p-8 rounded-[18px] border shadow-sm space-y-6 min-h-[420px] flex flex-col justify-between transition-all ${
+        className={`p-6 sm:p-8 rounded-[16px] border space-y-6 min-h-[420px] flex flex-col justify-between transition-colors ${
           highContrast
             ? 'bg-black text-white border-yellow-400 font-bold'
-            : 'bg-white dark:bg-[#121C2D] border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-slate-900 dark:text-[#F8FAFC]'
+            : 'bg-white dark:bg-[#101C2C] border-slate-200 dark:border-[#253448] text-slate-900 dark:text-[#F4F7FB]'
         } ${dyslexicFont ? 'tracking-wide font-mono' : ''}`}
       >
-        {/* Top Accessibility Quick Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)] pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-[#253448] pb-4">
           <div className="flex items-center gap-2 text-xs">
-            <span className="font-semibold text-slate-500 dark:text-[#8493A8]">
-              Display Size:
-            </span>
+            <span className="font-semibold text-slate-600 dark:text-[#A0AEC0]">Display Size:</span>
             {(['normal', 'large', 'xlarge'] as const).map((size) => (
               <button
                 key={size}
+                type="button"
                 onClick={() => setTextSize(size)}
-                className={`px-2.5 py-1 rounded-[6px] text-xs font-semibold capitalize cursor-pointer transition-colors ${
+                aria-pressed={textSize === size}
+                className={`min-h-[34px] px-3 py-1 rounded-[8px] text-xs font-semibold capitalize cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                   textSize === size
-                    ? 'bg-[#22D3EE] text-[#080D18]'
-                    : 'bg-slate-100 dark:bg-[#0D1422] text-slate-700 dark:text-[#B6C2D2]'
+                    ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18]'
+                    : 'bg-slate-100 dark:bg-[#172438] text-slate-700 dark:text-[#A0AEC0]'
                 }`}
               >
                 {size}
@@ -357,76 +333,97 @@ export const CaptionsWorkspace: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setDyslexicFont(!dyslexicFont)}
+              aria-pressed={dyslexicFont}
+            >
+              Mono / Dyslexic
+            </Button>
+
             <button
+              type="button"
               onClick={() => setHighContrast(!highContrast)}
-              className={`h-8 px-3 rounded-[8px] text-xs font-semibold border flex items-center gap-1.5 transition-colors cursor-pointer ${
+              aria-pressed={highContrast}
+              className={`h-9 px-3.5 rounded-[8px] text-xs font-semibold border flex items-center gap-1.5 transition-colors cursor-pointer ${
                 highContrast
                   ? 'bg-yellow-400 text-black border-yellow-300 font-bold'
-                  : 'bg-slate-100 dark:bg-[#0D1422] border-slate-200 dark:border-[rgba(148,163,184,0.15)] text-slate-700 dark:text-[#B6C2D2]'
+                  : 'bg-slate-100 dark:bg-[#172438] border-slate-200 dark:border-[#253448] text-slate-700 dark:text-[#F4F7FB]'
               }`}
             >
-              <Contrast className="w-3.5 h-3.5" />
+              <Contrast className="w-3.5 h-3.5" aria-hidden="true" />
               <span>High Contrast</span>
             </button>
           </div>
         </div>
 
         {/* Captions Stream Area */}
-        <div className="flex-1 space-y-3 overflow-y-auto max-h-[380px] p-2">
+        <div
+          role="log"
+          aria-live="polite"
+          className="flex-1 space-y-3 overflow-y-auto max-h-[380px] pr-1"
+        >
           {captionHistory.length > 0 ? (
             captionHistory.map((line, idx) => (
               <div
                 key={idx}
-                className={`p-3 rounded-[10px] transition-all ${getTextClass()} ${
+                className={`p-3.5 rounded-[10px] transition-colors font-ethiopic ${getTextClass()} ${
                   idx === captionHistory.length - 1 && !liveInterim
-                    ? 'bg-[#22D3EE]/10 border border-[#22D3EE]/20 font-medium text-slate-900 dark:text-[#F8FAFC]'
-                    : 'text-slate-700 dark:text-[#B6C2D2]'
+                    ? highContrast
+                      ? 'bg-yellow-400/20 border border-yellow-400 text-white'
+                      : 'bg-cyan-50/70 dark:bg-[#43D9E9]/10 border border-cyan-200 dark:border-[#43D9E9]/25 font-medium text-slate-900 dark:text-[#F4F7FB]'
+                    : highContrast
+                    ? 'text-yellow-100'
+                    : 'text-slate-700 dark:text-[#A0AEC0]'
                 }`}
               >
                 {line}
               </div>
             ))
           ) : (
-            <div className="py-16 text-center text-slate-400 dark:text-[#8493A8]">
-              <Captions className="w-12 h-12 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">Click "Start Captions" above to begin real-time speech transcription.</p>
-            </div>
+            <EmptyState
+              icon={<Captions className="w-5 h-5" />}
+              title="No Captions Yet"
+              description="Click Start Captions above or upload an audio recording to begin real-time speech transcription."
+            />
           )}
 
-          {/* Real-time Interim Streaming Transcript */}
           {liveInterim && (
-            <div className={`p-3 rounded-[10px] bg-[#22D3EE]/15 border border-[#22D3EE]/40 text-slate-900 dark:text-[#22D3EE] italic ${getTextClass()}`}>
+            <div
+              className={`p-3.5 rounded-[10px] bg-cyan-50 dark:bg-[#43D9E9]/15 border border-cyan-300 dark:border-[#43D9E9]/40 text-slate-900 dark:text-[#43D9E9] italic font-ethiopic ${getTextClass()}`}
+            >
               {liveInterim}
             </div>
           )}
         </div>
 
         {/* Bottom Actions Bar */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-xs">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#34D399]" />
-            <span className="text-slate-500 dark:text-[#8493A8]">
-              {captionHistory.length} segments transcribed
-            </span>
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200 dark:border-[#253448] text-xs">
+          <span className={`font-mono tabular-nums ${highContrast ? 'text-yellow-200' : 'text-slate-600 dark:text-[#A0AEC0]'}`}>
+            {captionHistory.length} segments transcribed
+          </span>
 
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={handleClear}
               disabled={captionHistory.length === 0}
-              className="h-8 px-3 rounded-[8px] bg-slate-100 hover:bg-slate-200 dark:bg-[#19263A] dark:hover:bg-[#1E2E44] text-slate-700 dark:text-[#B6C2D2] font-medium flex items-center gap-1 cursor-pointer transition-colors disabled:opacity-40"
+              leftIcon={<Trash2 className="w-3.5 h-3.5" />}
             >
-              <Trash2 className="w-3.5 h-3.5" /> Clear
-            </button>
+              Clear
+            </Button>
 
-            <button
+            <Button
+              variant="primary"
+              size="sm"
               onClick={handleCopyTranscript}
               disabled={captionHistory.length === 0}
-              className="h-8 px-4 rounded-[8px] bg-[#22D3EE] hover:bg-[#2DD4BF] text-[#080D18] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-40"
+              leftIcon={isCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
             >
-              {isCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{isCopied ? 'Copied' : 'Copy All'}</span>
-            </button>
+              {isCopied ? 'Copied' : 'Copy All'}
+            </Button>
           </div>
         </div>
       </div>

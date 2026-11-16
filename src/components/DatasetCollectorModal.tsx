@@ -67,12 +67,12 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
 
   const handleCaptureSample = () => {
     if (!hasConsent) {
-      alert('Please check the informed consent checkbox before recording training samples.');
+      showToast('Please check the informed consent checkbox before recording training samples.');
       return;
     }
 
     if (!currentLandmarks || currentLandmarks.length < 21) {
-      alert('No active hand landmarks detected by the camera right now. Please present your hand in front of the camera and click Capture again.');
+      showToast('No active hand landmarks detected by the camera right now. Present your hand and try again.');
       return;
     }
 
@@ -87,7 +87,7 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
     });
 
     if (isDuplicate) {
-      alert('Duplicate pose detected: Hand has not moved sufficiently since the last recorded frame. Adjust position slightly before capturing.');
+      showToast('Duplicate pose detected: Hand has not moved sufficiently since the last recorded frame.');
       return;
     }
 
@@ -118,7 +118,7 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
 
   const handleExportJSON = () => {
     if (samples.length === 0) {
-      alert('No samples recorded yet. Capture at least one sample first!');
+      showToast('No samples recorded yet. Capture at least one sample first.');
       return;
     }
 
@@ -179,10 +179,10 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
           saveSamples(importedSamples);
           showToast(`Successfully imported ${importedSamples.length} samples!`);
         } else {
-          alert('Invalid format: File does not contain dataset samples.');
+          showToast('Invalid format: File does not contain dataset samples.');
         }
       } catch (err) {
-        alert('Could not parse JSON dataset file.');
+        showToast('Could not parse JSON dataset file.');
       }
     };
     reader.readAsText(file);
@@ -205,13 +205,19 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md">
-      <div className="bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] rounded-[20px] max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Consented EthSL Dataset Collector"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md"
+    >
+      <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
+      <div className="relative z-10 bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] rounded-[20px] max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden ejji-animate-modal">
         
         {/* Header */}
         <div className="p-5 sm:p-6 border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex items-center justify-between gap-4 bg-slate-50 dark:bg-[#080D18]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[10px] bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-[#22D3EE]">
+            <div className="w-10 h-10 rounded-[10px] bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-[#0E7490] dark:text-[#43D9E9]">
               <Database className="w-5 h-5" />
             </div>
             <div>
@@ -219,19 +225,21 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
                 <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-[#F8FAFC]">
                   Consented EthSL Dataset Collector
                 </h3>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[8px] text-[10px] font-semibold uppercase tracking-wider bg-cyan-500/10 text-[#22D3EE] border border-cyan-500/20">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[8px] text-[10px] font-semibold uppercase tracking-wider bg-cyan-500/10 text-[#0E7490] dark:text-[#43D9E9] border border-cyan-500/20">
                   <ShieldCheck className="w-3 h-3" /> Privacy-First (Geometric Only)
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-[#8493A8]">
+              <p className="text-xs text-slate-600 dark:text-[#A0AEC0]">
                 Collect labeled 21-point hand landmark sequences for training machine learning models on Ethiopian Sign Language.
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 rounded-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#19263A] transition-colors cursor-pointer"
+            aria-label="Close Dataset Collector"
+            className="p-2 rounded-[10px] text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#19263A] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
           >
             <X className="w-5 h-5" />
           </button>
@@ -242,7 +250,7 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
           
           {toastMsg && (
             <div className="p-3.5 rounded-[10px] bg-emerald-500/15 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
               <span>{toastMsg}</span>
             </div>
           )}
@@ -254,17 +262,17 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
               id="consent-check"
               checked={hasConsent}
               onChange={(e) => setHasConsent(e.target.checked)}
-              className="mt-0.5 w-4 h-4 rounded text-[#22D3EE] focus:ring-[#22D3EE] cursor-pointer"
+              className="mt-0.5 w-4 h-4 rounded accent-[#0E7490] dark:accent-[#43D9E9] focus:ring-[#0E7490] dark:focus:ring-[#43D9E9] cursor-pointer"
             />
             <label htmlFor="consent-check" className="text-slate-800 dark:text-amber-200 leading-relaxed cursor-pointer select-none">
-              <strong>Informed Consent Declaration:</strong> I consent to recording anonymized 21-point 3D geometric hand coordinate coordinates and metadata strictly for educational evaluation and training of the EjjiLink AI sign language models. No facial biometric images or raw video frames are ever recorded or uploaded.
+              <strong>Informed Consent Declaration:</strong> I consent to recording anonymized 21-point 3D geometric hand coordinates and metadata strictly for educational evaluation and training of the EjjiLink AI sign language models. No facial biometric images or raw video frames are ever recorded or uploaded.
             </label>
           </div>
 
           {/* Recorder Controls */}
           <div className="p-5 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-4">
             <h4 className="font-bold text-slate-900 dark:text-[#F8FAFC] text-sm flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#22D3EE]" />
+              <Sparkles className="w-4 h-4 text-[#0E7490] dark:text-[#43D9E9]" />
               Recording Configuration
             </h4>
 
@@ -347,8 +355,8 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
-              <div className="flex items-center gap-2 text-slate-500 dark:text-[#8493A8]">
-                <span className={`w-2.5 h-2.5 rounded-full ${currentLandmarks.length === 21 ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+              <div className="flex items-center gap-2 text-slate-600 dark:text-[#A0AEC0]">
+                <span className={`w-2.5 h-2.5 rounded-full ${currentLandmarks.length === 21 ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
                 <span>
                   {currentLandmarks.length === 21
                     ? `Live Hand Detected (${currentHandedness} Hand · 21 Landmarks)`
@@ -357,9 +365,10 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
               </div>
 
               <button
+                type="button"
                 onClick={handleCaptureSample}
                 disabled={!hasConsent || currentLandmarks.length < 21}
-                className="px-5 py-2.5 rounded-[10px] bg-[#22D3EE] hover:bg-[#06b6d4] disabled:opacity-50 text-[#080D18] font-bold flex items-center gap-2 shadow-sm cursor-pointer transition-all"
+                className="px-5 py-2.5 rounded-[10px] bg-[#0E7490] hover:bg-[#155E75] text-white dark:bg-[#43D9E9] dark:hover:bg-[#67E8F9] dark:text-[#080D18] disabled:bg-slate-200 disabled:text-slate-500 dark:disabled:bg-[#172438] dark:disabled:text-[#A0AEC0] font-bold flex items-center gap-2 shadow-sm cursor-pointer disabled:cursor-not-allowed transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
               >
                 <Play className="w-3.5 h-3.5" />
                 <span>Capture Labeled Frame</span>
@@ -371,29 +380,32 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="font-bold text-slate-800 dark:text-[#F8FAFC] flex items-center gap-2">
-                <Layers className="w-4 h-4 text-[#22D3EE]" />
+                <Layers className="w-4 h-4 text-[#0E7490] dark:text-[#43D9E9]" />
                 <span>Collected Samples ({samples.length})</span>
               </span>
 
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={handleExportJSON}
                   disabled={samples.length === 0}
-                  className="px-3 py-1.5 rounded-[10px] bg-slate-100 hover:bg-slate-200 dark:bg-[#19263A] dark:hover:bg-[#1f2f47] disabled:opacity-50 text-slate-700 dark:text-[#B6C2D2] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border border-slate-200 dark:border-[rgba(148,163,184,0.15)]"
+                  className="px-3 py-1.5 rounded-[10px] bg-slate-100 hover:bg-slate-200 dark:bg-[#19263A] dark:hover:bg-[#1f2f47] disabled:text-slate-500 dark:disabled:text-[#A0AEC0] disabled:cursor-not-allowed text-slate-700 dark:text-[#B6C2D2] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border border-slate-200 dark:border-[rgba(148,163,184,0.15)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
                 >
-                  <Download className="w-3.5 h-3.5 text-[#22D3EE]" /> Export JSON
+                  <Download className="w-3.5 h-3.5 text-[#0E7490] dark:text-[#43D9E9]" /> Export JSON
                 </button>
 
-                <label className="px-3 py-1.5 rounded-[10px] bg-slate-100 hover:bg-slate-200 dark:bg-[#19263A] dark:hover:bg-[#1f2f47] text-slate-700 dark:text-[#B6C2D2] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border border-slate-200 dark:border-[rgba(148,163,184,0.15)]">
-                  <Upload className="w-3.5 h-3.5 text-emerald-400" /> Import JSON
-                  <input type="file" accept=".json" onChange={handleImportJSON} className="hidden" />
+                <label className="px-3 py-1.5 rounded-[10px] bg-slate-100 hover:bg-slate-200 dark:bg-[#19263A] dark:hover:bg-[#1f2f47] text-slate-700 dark:text-[#B6C2D2] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border border-slate-200 dark:border-[rgba(148,163,184,0.15)] focus-within:ring-2 focus-within:ring-[#0E7490] dark:focus-within:ring-[#43D9E9]">
+                  <Upload className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" /> Import JSON
+                  <input type="file" accept=".json" onChange={handleImportJSON} className="sr-only" />
                 </label>
 
                 {samples.length > 0 && (
                   <button
+                    type="button"
                     onClick={handleClearAll}
-                    className="p-1.5 rounded-[8px] text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
+                    className="p-1.5 rounded-[8px] text-rose-700 dark:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
                     title="Clear All Samples"
+                    aria-label="Clear All Samples"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -404,7 +416,7 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
             {samples.length > 0 ? (
               <div className="border border-slate-200 dark:border-[rgba(148,163,184,0.12)] rounded-[14px] overflow-hidden max-h-56 overflow-y-auto">
                 <table className="w-full text-left border-collapse">
-                  <thead className="bg-slate-100 dark:bg-[#080D18] text-slate-600 dark:text-[#8493A8] font-semibold border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
+                  <thead className="bg-slate-100 dark:bg-[#080D18] text-slate-600 dark:text-[#A0AEC0] font-semibold border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
                     <tr>
                       <th className="py-2.5 px-3">Sign</th>
                       <th className="py-2.5 px-3">Signer</th>
@@ -420,22 +432,24 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
                         <td className="py-2 px-3 font-semibold text-slate-900 dark:text-[#F8FAFC] uppercase font-sans">
                           {s.label}
                         </td>
-                        <td className="py-2 px-3 text-slate-600 dark:text-[#8493A8] text-[11px]">
+                        <td className="py-2 px-3 text-slate-600 dark:text-[#A0AEC0] text-[11px]">
                           {s.signerId}
                         </td>
-                        <td className="py-2 px-3 text-slate-600 dark:text-[#8493A8] font-sans">
+                        <td className="py-2 px-3 text-slate-600 dark:text-[#A0AEC0] font-sans">
                           {s.handedness}
                         </td>
-                        <td className="py-2 px-3 text-emerald-600 dark:text-emerald-400 font-sans">
+                        <td className="py-2 px-3 text-emerald-700 dark:text-emerald-400 font-sans">
                           {s.signLanguage}
                         </td>
-                        <td className="py-2 px-3 text-slate-400 dark:text-[#8493A8] text-[11px]">
+                        <td className="py-2 px-3 text-slate-600 dark:text-[#A0AEC0] text-[11px]">
                           {new Date(s.timestamp).toLocaleTimeString()}
                         </td>
                         <td className="py-2 px-3 text-right">
                           <button
+                            type="button"
                             onClick={() => handleDeleteSample(s.id)}
-                            className="p-1 rounded text-red-500 hover:bg-red-500/10 transition-colors"
+                            aria-label={`Delete ${s.label} sample`}
+                            className="p-1 rounded text-rose-700 dark:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -446,8 +460,8 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
                 </table>
               </div>
             ) : (
-              <div className="p-8 text-center bg-slate-50 dark:bg-[#121C2D]/60 rounded-[14px] border border-dashed border-slate-300 dark:border-[rgba(148,163,184,0.15)] text-slate-400 dark:text-[#8493A8]">
-                <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <div className="p-8 text-center bg-slate-50 dark:bg-[#121C2D]/60 rounded-[14px] border border-dashed border-slate-300 dark:border-[rgba(148,163,184,0.15)] text-slate-600 dark:text-[#A0AEC0]">
+                <FileText className="w-8 h-8 mx-auto mb-2 text-slate-500 dark:text-[#A0AEC0]" />
                 <p>No dataset samples captured yet. Accept consent and click "Capture Labeled Frame" while gesturing.</p>
               </div>
             )}
@@ -455,11 +469,12 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 sm:p-5 border-t border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex items-center justify-between bg-slate-50 dark:bg-[#080D18] text-xs text-slate-500 dark:text-[#8493A8]">
+        <div className="p-4 sm:p-5 border-t border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex items-center justify-between bg-slate-50 dark:bg-[#080D18] text-xs text-slate-600 dark:text-[#A0AEC0]">
           <span>Compliant with Section 4 ML training data specifications.</span>
           <button
+            type="button"
             onClick={onClose}
-            className="px-5 py-2 rounded-[10px] bg-slate-900 dark:bg-[#19263A] hover:bg-slate-800 dark:hover:bg-[#1f2f47] text-white font-bold cursor-pointer border border-slate-200 dark:border-[rgba(148,163,184,0.15)] transition-colors"
+            className="px-5 py-2 rounded-[10px] bg-slate-900 dark:bg-[#19263A] hover:bg-slate-800 dark:hover:bg-[#1f2f47] text-white font-bold cursor-pointer border border-slate-200 dark:border-[rgba(148,163,184,0.15)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
           >
             Done
           </button>

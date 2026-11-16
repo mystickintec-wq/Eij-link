@@ -6,11 +6,15 @@
 
 export interface VoiceCommandResult {
   action: 
+    | 'navigate_overview'
+    | 'navigate_live_recognition'
     | 'navigate_studio'
     | 'navigate_assistant'
     | 'navigate_translate'
     | 'navigate_captions'
     | 'navigate_documents'
+    | 'navigate_hand_studio'
+    | 'navigate_vocabulary'
     | 'open_settings'
     | 'open_vault'
     | 'open_lab'
@@ -164,16 +168,33 @@ class VoiceNavigationService {
 
       recognition.onerror = (event: any) => {
         if (event.error === 'no-speech') {
-          // Normal when silent, ignore
+          // Normal when user is silent between commands
           return;
         }
-        if (event.error === 'not-allowed') {
+        if (event.error === 'aborted') {
+          return;
+        }
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
           this.status = 'permission_denied';
-          this.onStatusCallback?.('permission_denied', 'Microphone access blocked.');
-          this.stop();
+          this.onStatusCallback?.('permission_denied', 'Microphone permission denied. Allow mic access in browser settings.');
+          this.stop({ silentStatus: true });
           return;
         }
-        console.warn('Speech recognition warning:', event.error);
+        if (event.error === 'audio-capture') {
+          this.status = 'error';
+          this.onStatusCallback?.('error', 'No active microphone detected. Connect a microphone and try again.');
+          this.stop({ silentStatus: true });
+          return;
+        }
+        if (event.error === 'network') {
+          this.status = 'error';
+          this.onStatusCallback?.('error', 'Speech recognition service unavailable offline or blocked.');
+          this.stop({ silentStatus: true });
+          return;
+        }
+        this.status = 'error';
+        this.onStatusCallback?.('error', `Voice recognition error (${event.error || 'unknown'}).`);
+        this.stop({ silentStatus: true });
       };
 
       recognition.onend = () => {
@@ -182,9 +203,9 @@ class VoiceNavigationService {
           try {
             this.recognition.start();
           } catch (e) {
-            // ignore
+            // ignore restart race
           }
-        } else {
+        } else if (this.status === 'listening' || this.status === 'processing') {
           this.status = 'idle';
           this.onStatusCallback?.('idle', 'Voice navigation paused.');
         }
@@ -196,7 +217,7 @@ class VoiceNavigationService {
       console.error('Failed to start speech recognition:', initErr);
       this.status = 'error';
       this.onStatusCallback?.('error', 'Could not initialize speech recognition.');
-      this.stop();
+      this.stop({ silentStatus: true });
       return false;
     }
   }
@@ -225,15 +246,46 @@ class VoiceNavigationService {
    * Deterministic Spoken Command Parsing
    */
   private processCommand(rawText: string) {
+    this.status = 'processing';
+    this.onStatusCallback?.('processing', `Matching "${rawText}"...`);
+
     const text = rawText.toLowerCase().trim();
     let result: VoiceCommandResult;
 
-    if (text.includes('studio') || text.includes('sign') || text.includes('hand') || text.includes('gesture')) {
+    if (text.includes('overview') || text.includes('dashboard')) {
+      result = {
+        action: 'navigate_overview',
+        rawTranscript: rawText,
+        confidence: 0.95,
+        feedbackText: 'Opening Workspace Overview',
+      };
+    } else if (text.includes('live recognition') || text.includes('camera')) {
+      result = {
+        action: 'navigate_live_recognition',
+        rawTranscript: rawText,
+        confidence: 0.95,
+        feedbackText: 'Opening Live Recognition Studio',
+      };
+    } else if (text.includes('3d') || text.includes('hand studio')) {
+      result = {
+        action: 'navigate_hand_studio',
+        rawTranscript: rawText,
+        confidence: 0.95,
+        feedbackText: 'Opening 3D Hand Studio',
+      };
+    } else if (text.includes('vocabulary') || text.includes('dictionary') || text.includes('learn')) {
+      result = {
+        action: 'navigate_vocabulary',
+        rawTranscript: rawText,
+        confidence: 0.95,
+        feedbackText: 'Opening EthSL Vocabulary',
+      };
+    } else if (text.includes('studio') || text.includes('sign') || text.includes('hand') || text.includes('gesture')) {
       result = {
         action: 'navigate_studio',
         rawTranscript: rawText,
         confidence: 0.95,
-        feedbackText: 'Opening Two-Way Sign Language Studio',
+        feedbackText: 'Opening Two-Way Communication',
       };
     } else if (text.includes('assistant') || text.includes('simplify') || text.includes('reply') || text.includes('replies')) {
       result = {
@@ -329,14 +381,19 @@ class VoiceNavigationService {
     }
 
     this.onCommandCallback?.(result);
+    if (this.isListening) {
+      this.status = 'listening';
+    }
   }
 
   /**
    * Stop voice navigation and release microphone resources
    */
-  public stop() {
+  public stop(options?: { silentStatus?: boolean }) {
     this.isListening = false;
-    this.status = 'idle';
+    if (!options?.silentStatus) {
+      this.status = 'idle';
+    }
 
     if (this.animFrameId) {
       cancelAnimationFrame(this.animFrameId);
@@ -368,7 +425,9 @@ class VoiceNavigationService {
 
     this.analyser = null;
     this.onVolumeCallback?.(0);
-    this.onStatusCallback?.('idle', 'Voice navigation turned off.');
+    if (!options?.silentStatus) {
+      this.onStatusCallback?.('idle', 'Voice navigation turned off.');
+    }
   }
 }
 

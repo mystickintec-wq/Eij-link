@@ -43,6 +43,15 @@ import {
   Maximize2,
   Minimize2
 } from 'lucide-react';
+import {
+  Alert,
+  Button,
+  ErrorState,
+  LoadingState,
+  Modal,
+  StatusBadge,
+  useToast,
+} from './ui';
 
 export interface ThreeDHandViewerProps {
   activeGestureKey: GestureKey | 'neutral';
@@ -287,6 +296,8 @@ export const ThreeDHandViewer: React.FC<ThreeDHandViewerProps> = ({
   const [isPlaying, setIsPlaying] = useState(true);
   const [showReferenceModal, setShowReferenceModal] = useState(false);
   const [selectedScenarioFilter, setSelectedScenarioFilter] = useState<'all' | 'classroom' | 'service' | 'daily'>('all');
+  const [webglError, setWebglError] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   // Custom Blender Model State
   const [customModelLoaded, setCustomModelLoaded] = useState(false);
@@ -956,11 +967,19 @@ export const ThreeDHandViewer: React.FC<ThreeDHandViewerProps> = ({
     camera.lookAt(0, 0.85, 0);
     cameraRef.current = camera;
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: !isSoftwareGl,
-      powerPreference: 'high-performance',
-      alpha: false,
-    });
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: !isSoftwareGl,
+        powerPreference: 'high-performance',
+        alpha: false,
+      });
+    } catch (err) {
+      console.warn('WebGLRenderer initialization failed:', err);
+      setWebglError('3D WebGL rendering could not be initialized on this device or browser context.');
+      return;
+    }
+
     renderer.setSize(width, height);
     renderer.setPixelRatio(isSoftwareGl ? 1 : Math.min(window.devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -968,6 +987,16 @@ export const ThreeDHandViewer: React.FC<ThreeDHandViewerProps> = ({
     renderer.toneMappingExposure = 1.15;
     renderer.shadowMap.enabled = !isSoftwareGl;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const handleContextLost = (e: Event) => {
+      e.preventDefault();
+      setWebglError('WebGL 3D context was interrupted. Restore graphics context or switch 2D fallback.');
+    };
+    const handleContextRestored = () => {
+      setWebglError(null);
+    };
+    renderer.domElement.addEventListener('webglcontextlost', handleContextLost);
+    renderer.domElement.addEventListener('webglcontextrestored', handleContextRestored);
 
     container.appendChild(renderer.domElement);
 
@@ -2014,6 +2043,8 @@ export const ThreeDHandViewer: React.FC<ThreeDHandViewerProps> = ({
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
+      renderer.domElement.removeEventListener('webglcontextlost', handleContextLost);
+      renderer.domElement.removeEventListener('webglcontextrestored', handleContextRestored);
       container.removeEventListener('mousedown', onPointerDown);
       container.removeEventListener('mousemove', onPointerMove);
       window.removeEventListener('mouseup', onPointerUp);
@@ -2029,142 +2060,104 @@ export const ThreeDHandViewer: React.FC<ThreeDHandViewerProps> = ({
   }, []);
 
   return (
-    <div className="relative w-full h-[520px] md:h-[580px] rounded-3xl overflow-hidden bg-slate-950 border border-gray-200 dark:border-emerald-500/30 shadow-2xl">
-      {/* 3D WebGL Canvas Container */}
-      <div
-        ref={mountRef}
-        className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing select-none"
-        title="Click and drag to rotate the 3D hand"
-      />
-
-      {/* Hidden File Picker for Blender GLB/GLTF Upload */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileUpload}
-        accept=".glb,.gltf"
-        className="hidden"
-      />
-
-      {/* Loading Overlay */}
-      {customModelLoading && (
-        <div className="absolute inset-0 z-40 bg-slate-950/75 backdrop-blur-xs flex flex-col items-center justify-center gap-3 text-cyan-300">
-          <div className="w-10 h-10 border-3 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-          <div className="text-center">
-            <p className="text-sm font-bold font-heading text-white">Importing Custom Blender 3D Model</p>
-            <p className="text-xs text-cyan-400/80">Parsing mesh geometry, materials, and armature transforms...</p>
-          </div>
-        </div>
-      )}
-
-      {/* Error Banner */}
-      {customModelError && (
-        <div className="absolute top-18 left-1/2 -translate-x-1/2 z-30 max-w-lg w-[92%] p-3.5 rounded-2xl bg-rose-950/95 border border-rose-500/60 text-rose-100 text-xs backdrop-blur-md flex items-center justify-between gap-3 shadow-2xl animate-in fade-in slide-in-from-top-2">
-          <div className="flex items-center gap-2.5">
-            <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
-            <p className="leading-snug">{customModelError}</p>
-          </div>
-          <button
-            onClick={() => setCustomModelError(null)}
-            className="p-1 rounded-lg hover:bg-rose-900/60 text-rose-300 hover:text-white transition-colors cursor-pointer shrink-0"
-            title="Dismiss error"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {/* Top Header Badge & Mode Navigation Tabs */}
-      <div className="absolute top-4 left-4 right-4 z-10 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
-        {/* Left: Branding Badge & Live Tracking Status */}
-        <div className="flex items-center gap-2 pointer-events-auto">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/90 dark:bg-slate-900/90 border border-gray-200 dark:border-emerald-500/40 text-xs font-semibold backdrop-blur-md shadow-xs">
-            <Sparkles className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
-            <span className="text-slate-900 dark:text-white font-heading">
-              {isCustomModelActive ? 'Custom Blender Model' : 'Anatomical 3D Rigged Hand'}
-            </span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-mono text-[11px]">
-              {isCustomModelActive
-                ? materialMode === 'armature'
-                  ? '• 🦴 Blender Armature Rig Active'
-                  : '• Solid 3D Geometry'
-                : '• 🦴 Blender Rig Sync'}
+    <div className="flex flex-col rounded-[16px] overflow-hidden border border-slate-200 dark:border-[#253448] bg-white dark:bg-[#101C2C] shadow-sm">
+      {/* Structured Studio Control Toolbar (Docked cleanly above 3D Canvas) */}
+      <div className="px-4 py-3 bg-slate-50 dark:bg-[#0D1726] border-b border-slate-200 dark:border-[#253448] flex flex-wrap items-center justify-between gap-3">
+        {/* Left: Rig Status & Mode Switch */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-[#0E7490] dark:text-[#43D9E9]" aria-hidden="true" />
+            <span className="font-heading text-xs sm:text-sm font-bold text-slate-900 dark:text-[#F4F7FB]">
+              {isCustomModelActive ? customModelName || 'Custom Blender Model' : 'Anatomical 3D Rig'}
             </span>
           </div>
+
+          <StatusBadge tone={isCustomModelActive ? 'info' : 'success'}>
+            {isCustomModelActive
+              ? materialMode === 'armature'
+                ? 'Blender Armature Active'
+                : 'Custom GLB'
+              : '60 FPS PBR Rig'}
+          </StatusBadge>
 
           {viewerMode === 'live' && (
-            <div className={`px-2.5 py-1 rounded-full text-[11px] font-bold border backdrop-blur-md flex items-center gap-1.5 ${
-              liveLandmarks && liveLandmarks.length === 21
-                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/40'
-                : 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/40'
-            }`}>
-              <span className={`w-2 h-2 rounded-full ${
-                liveLandmarks && liveLandmarks.length === 21 ? 'bg-emerald-500 animate-ping' : 'bg-amber-500'
-              }`} />
-              <span>
-                {liveLandmarks && liveLandmarks.length === 21
-                  ? `Live: 21 Landmarks (${handedness} Hand)`
-                  : 'Live Standby: Waiting for Hand'}
-              </span>
-            </div>
+            <StatusBadge tone={liveLandmarks && liveLandmarks.length === 21 ? 'success' : 'warning'}>
+              {liveLandmarks && liveLandmarks.length === 21
+                ? `Live: 21 Landmarks (${handedness})`
+                : 'Live Standby'}
+            </StatusBadge>
           )}
         </div>
 
-        {/* Center: Interactive Mode Tabs */}
+        {/* Center: Mode Navigation Tabs */}
         {showModeTabs && (
-          <div className="flex items-center gap-1 p-1 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-gray-200 dark:border-emerald-500/30 backdrop-blur-md pointer-events-auto shadow-md">
+          <div
+            role="tablist"
+            aria-label="3D visualization mode"
+            className="flex items-center gap-1 p-1 rounded-[10px] bg-white dark:bg-[#080D18] border border-slate-200 dark:border-[#253448]"
+          >
             <button
+              type="button"
+              role="tab"
+              aria-selected={viewerMode === 'preset'}
               onClick={() => {
                 setViewerMode('preset');
                 setIsPlaying(true);
               }}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`h-8 px-3 rounded-[7px] text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                 viewerMode === 'preset'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-gray-300 hover:text-slate-950 dark:hover:text-white'
+                  ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18]'
+                  : 'text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB]'
               }`}
             >
-              <span>🖐️</span>
               <span>12 Poses</span>
             </button>
 
             <button
+              type="button"
+              role="tab"
+              aria-selected={viewerMode === 'sequence'}
               onClick={() => {
                 setViewerMode('sequence');
                 setIsPlaying(true);
               }}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`h-8 px-3 rounded-[7px] text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                 viewerMode === 'sequence'
-                  ? 'bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-gray-300 hover:text-slate-950 dark:hover:text-white'
+                  ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18]'
+                  : 'text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB]'
               }`}
             >
-              <ListChecks className="w-3.5 h-3.5" />
+              <ListChecks className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Sequences ({SIGN_SEQUENCES.length})</span>
             </button>
 
             <button
+              type="button"
+              role="tab"
+              aria-selected={viewerMode === 'live'}
               onClick={() => setViewerMode('live')}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`h-8 px-3 rounded-[7px] text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                 viewerMode === 'live'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-gray-300 hover:text-slate-950 dark:hover:text-white'
+                  ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18]'
+                  : 'text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB]'
               }`}
             >
-              <Camera className="w-3.5 h-3.5" />
+              <Camera className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Live Mirror</span>
-              {liveLandmarks && liveLandmarks.length === 21 && (
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              )}
             </button>
           </div>
         )}
 
-        {/* Right Action Controls: Blender Import, Guide & Viewers */}
-        <div className="flex flex-wrap items-center gap-1.5 pointer-events-auto">
-          {/* Avatar Mode: Whole 2 Arms vs Single Hand */}
-          <div className="flex items-center p-1 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-cyan-500/40 backdrop-blur-md shadow-md text-xs">
+        {/* Right: Avatar Figure Switch + Blender Tools + Cinema Toggle */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {/* Dual Arm vs Single Hand */}
+          <div
+            role="group"
+            aria-label="3D Figure Mode"
+            className="flex items-center p-1 rounded-[10px] bg-white dark:bg-[#080D18] border border-slate-200 dark:border-[#253448]"
+          >
             <button
+              type="button"
               onClick={() => {
                 setIsDualArmMode(true);
                 isDualArmModeRef.current = true;
@@ -2175,18 +2168,19 @@ export const ThreeDHandViewer: React.FC<ThreeDHandViewerProps> = ({
                   cameraRef.current.lookAt(0, 0.75, 0);
                 }
               }}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              aria-pressed={isDualArmMode}
+              className={`h-8 px-2.5 rounded-[7px] text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                 isDualArmMode
-                  ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-gray-300 hover:text-slate-950 dark:hover:text-white'
+                  ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18]'
+                  : 'text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB]'
               }`}
-              title="Whole 2 Arms Figure (Adjustable for picture movements)"
+              title="Whole 2 Arms Figure"
             >
-              <span>👐</span>
-              <span>Whole 2 Arms</span>
+              2 Arms
             </button>
 
             <button
+              type="button"
               onClick={() => {
                 setIsDualArmMode(false);
                 isDualArmModeRef.current = false;
@@ -2197,743 +2191,624 @@ export const ThreeDHandViewer: React.FC<ThreeDHandViewerProps> = ({
                   cameraRef.current.lookAt(0, 0.85, 0);
                 }
               }}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              aria-pressed={!isDualArmMode}
+              className={`h-8 px-2.5 rounded-[7px] text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                 !isDualArmMode
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-gray-300 hover:text-slate-950 dark:hover:text-white'
+                  ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18]'
+                  : 'text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB]'
               }`}
               title="Single Hand Focus Mode"
             >
-              <span>🖐️</span>
-              <span>Single Hand</span>
+              1 Hand
             </button>
           </div>
 
-          {/* Model Switcher: Original Rigged Hand vs Custom Blender Model */}
-          <div className="flex items-center p-1 rounded-2xl bg-white/95 dark:bg-slate-900/95 border border-gray-200 dark:border-emerald-500/40 backdrop-blur-md shadow-md text-xs">
-            <button
-              onClick={() => toggleCustomModel(false)}
-              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                !isCustomModelActive
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-slate-600 dark:text-gray-300 hover:text-slate-950 dark:hover:text-white'
-              }`}
-              title="Switch to Original Studio-Rigged Hand (Flawless anatomical movement)"
-            >
-              <span>🖐️</span>
-              <span>Original Model</span>
-            </button>
-
-            {customModelLoaded && (
+          {customModelLoaded && (
+            <div className="flex items-center p-1 rounded-[10px] bg-white dark:bg-[#080D18] border border-slate-200 dark:border-[#253448]">
               <button
+                type="button"
+                onClick={() => toggleCustomModel(false)}
+                className={`h-8 px-2.5 rounded-[7px] text-xs font-semibold cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                  !isCustomModelActive
+                    ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18]'
+                    : 'text-slate-600 dark:text-[#A0AEC0]'
+                }`}
+              >
+                Studio
+              </button>
+              <button
+                type="button"
                 onClick={() => toggleCustomModel(true)}
-                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`h-8 px-2.5 rounded-[7px] text-xs font-semibold cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                   isCustomModelActive
-                    ? 'bg-cyan-600 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-gray-300 hover:text-slate-950 dark:hover:text-white'
-                }`}
-                title="Switch to Your Custom Blender 3D Model"
-              >
-                <FileCode className="w-3.5 h-3.5" />
-                <span>Custom Model</span>
-              </button>
-            )}
-          </div>
-
-          {/* Import Blender Button */}
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 backdrop-blur-md shadow-md cursor-pointer border border-cyan-400/40"
-            title="Import custom Blender 3D model (.glb / .gltf) directly"
-          >
-            <Upload className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Import Blender (.glb)</span>
-            <span className="sm:hidden">Import</span>
-          </button>
-
-          {/* Blender Export Help Guide */}
-          <button
-            onClick={() => setShowBlenderGuideModal(true)}
-            className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/90 dark:bg-slate-900/90 hover:bg-gray-100 dark:hover:bg-slate-800 text-xs font-semibold text-cyan-600 dark:text-cyan-400 border border-cyan-300 dark:border-cyan-500/40 transition-all flex items-center gap-1.5 backdrop-blur-md shadow-md cursor-pointer"
-            title="How to export your Blender 3D hand model to .glb"
-          >
-            <HelpCircle className="w-3.5 h-3.5 text-cyan-500 dark:text-cyan-400" />
-            <span className="hidden md:inline">Blender Guide</span>
-          </button>
-
-          <button
-            onClick={() => setShowReferenceModal(true)}
-            className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/90 dark:bg-slate-900/90 hover:bg-gray-100 dark:hover:bg-slate-800 text-xs font-semibold text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 transition-all flex items-center gap-1.5 backdrop-blur-md shadow-md cursor-pointer"
-            title="Compare with Blender & Quad Topology Reference Photos"
-          >
-            <ImageIcon className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
-            <span className="hidden lg:inline">References</span>
-          </button>
-
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/90 dark:bg-slate-900/90 hover:bg-gray-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 transition-colors flex items-center gap-1.5 backdrop-blur-md cursor-pointer"
-            title="Toggle Control Dock"
-          >
-            {isCollapsed ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-            <span className="hidden sm:inline">{isCollapsed ? 'Show Dock' : 'Cinema'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Whole 2 Arms Picture Movement & Joint Angles Adjuster */}
-      {isDualArmMode && (
-        <DualArmPoseAdjuster
-          activePresetId={activePicturePresetId}
-          onSelectPreset={handleSelectPicturePreset}
-          leftArmJoints={leftArmJoints}
-          rightArmJoints={rightArmJoints}
-          onUpdateJoints={handleUpdateJoints}
-          onResetJoints={handleResetJoints}
-          isMotionPlaying={isMotionPlaying}
-          onToggleMotion={() => setIsMotionPlaying(!isMotionPlaying)}
-          motionSpeed={motionSpeed}
-          onChangeSpeed={(spd) => setMotionSpeed(spd)}
-          selectedArmTarget={selectedArmTarget}
-          onSelectArmTarget={(target) => setSelectedArmTarget(target)}
-          isOpen={isArmAdjusterOpen}
-          onToggleOpen={() => setIsArmAdjusterOpen(!isArmAdjusterOpen)}
-        />
-      )}
-
-      {/* Collapsible Sleek Bottom Control Dock */}
-      <div
-        className={`absolute bottom-4 left-1/2 -translate-x-1/2 z-20 w-[96%] max-w-[940px] transition-all duration-300 ${
-          isCollapsed ? 'translate-y-36 opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
-        }`}
-      >
-        <div className="p-3.5 sm:p-4 rounded-3xl bg-white/95 dark:bg-slate-900/95 border border-gray-200 dark:border-emerald-500/30 shadow-2xl backdrop-blur-md flex flex-col gap-3">
-          {/* ========================================================= */}
-          {/* TAB 1: PRESET GESTURES EXPLORER */}
-          {/* ========================================================= */}
-          {viewerMode === 'preset' && (
-            <div className="flex flex-wrap items-center justify-center gap-1.5">
-              <button
-                onClick={() => onSelectGesture?.('neutral')}
-                className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-                  activeGestureKey === 'neutral'
-                    ? 'bg-gradient-to-r from-emerald-600 to-amber-500 text-white shadow-md'
-                    : 'bg-gray-100 dark:bg-slate-800/90 text-slate-700 dark:text-gray-300 hover:text-slate-950 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-slate-700'
+                    ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18]'
+                    : 'text-slate-600 dark:text-[#A0AEC0]'
                 }`}
               >
-                <span>🖐️</span>
-                <span>Neutral Pose</span>
+                Custom GLB
               </button>
-
-              {Object.keys(GESTURE_DEFINITIONS).map((key) => {
-                const def = GESTURE_DEFINITIONS[key];
-                const isSelected = activeGestureKey === key;
-                return (
-                  <button
-                    key={key}
-                    onClick={() => onSelectGesture?.(key as GestureKey)}
-                    className={`px-2.5 py-1 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-                      isSelected
-                        ? 'bg-gradient-to-r from-emerald-600 to-amber-500 text-white shadow-md'
-                        : 'bg-gray-100 dark:bg-slate-800/90 text-slate-700 dark:text-gray-300 hover:text-slate-950 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    <span>{def.emoji}</span>
-                    <span>{def.labelEn}</span>
-                    {def.isNew && (
-                      <span className="text-[9px] px-1 py-0.2 rounded bg-amber-400 text-slate-950 font-black">
-                        NEW
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
             </div>
           )}
 
-          {/* ========================================================= */}
-          {/* TAB 2: SENTENCE SEQUENCES & DEMONSTRATION SCENARIOS */}
-          {/* ========================================================= */}
-          {viewerMode === 'sequence' && selectedSequence && (
-            <div className="space-y-3">
-              {/* Scenario Category Filter Tabs */}
-              <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-800 pb-2">
-                <div className="flex items-center gap-1.5 text-xs">
-                  <span className="text-slate-500 dark:text-gray-400 font-bold uppercase text-[10px]">Scenarios:</span>
-                  {(['all', 'classroom', 'service', 'daily'] as const).map((sc) => (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            leftIcon={<Upload className="w-3.5 h-3.5 text-[#0E7490] dark:text-[#43D9E9]" />}
+            title="Import custom Blender 3D model (.glb / .gltf)"
+          >
+            <span className="hidden sm:inline">Import .glb</span>
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowBlenderGuideModal(true)}
+            leftIcon={<HelpCircle className="w-3.5 h-3.5" />}
+            title="How to export your Blender 3D hand model to .glb"
+          >
+            <span className="hidden md:inline">Guide</span>
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowReferenceModal(true)}
+            leftIcon={<ImageIcon className="w-3.5 h-3.5" />}
+            title="Compare with Blender & Quad Topology Reference Photos"
+          >
+            <span className="hidden xl:inline">References</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            leftIcon={isCollapsed ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+            title="Toggle bottom control dock"
+          >
+            <span className="hidden sm:inline">{isCollapsed ? 'Show Dock' : 'Cinema'}</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* 3D Canvas Stage */}
+      <div className="relative w-full h-[500px] md:h-[560px] overflow-hidden bg-[#080D18]">
+        {/* 3D WebGL Canvas Container */}
+        <div
+          ref={mountRef}
+          className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing select-none"
+          aria-label="Interactive 3D anatomical hand and arm viewport. Drag to orbit."
+          title="Click and drag to rotate the 3D hand"
+        />
+
+        {/* Hidden File Picker for Blender GLB/GLTF Upload */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileUpload}
+          accept=".glb,.gltf"
+          className="hidden"
+        />
+
+        {/* WebGL Context Lost / Error Fallback */}
+        {webglError && (
+          <div className="absolute inset-0 z-40 bg-[#080D18]/92 backdrop-blur-md flex items-center justify-center p-6">
+            <div className="max-w-md w-full">
+              <ErrorState
+                title="3D WebGL Renderer Unavailable"
+                message={webglError}
+                onRetry={() => setWebglError(null)}
+                retryLabel="Dismiss Warning"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Custom Model Loading Overlay */}
+        {customModelLoading && (
+          <div className="absolute inset-0 z-40 bg-[#080D18]/80 backdrop-blur-xs flex items-center justify-center p-6">
+            <LoadingState
+              title="Importing Custom Blender 3D Model"
+              description="Parsing mesh geometry, PBR materials, and armature bone transforms..."
+              className="max-w-sm w-full"
+            />
+          </div>
+        )}
+
+        {/* Custom Model Upload Error Banner */}
+        {customModelError && (
+          <div className="absolute top-3 left-3 z-30 max-w-md w-[calc(100%-1.5rem)]">
+            <Alert
+              variant="error"
+              title="Model Import Failed"
+              onDismiss={() => setCustomModelError(null)}
+            >
+              {customModelError}
+            </Alert>
+          </div>
+        )}
+
+        {/* Whole 2 Arms Picture Movement & Joint Angles Adjuster */}
+        {isDualArmMode && (
+          <DualArmPoseAdjuster
+            activePresetId={activePicturePresetId}
+            onSelectPreset={handleSelectPicturePreset}
+            leftArmJoints={leftArmJoints}
+            rightArmJoints={rightArmJoints}
+            onUpdateJoints={handleUpdateJoints}
+            onResetJoints={handleResetJoints}
+            headJoints={headJoints}
+            onUpdateHead={handleUpdateHead}
+            detectedFace={detectedFace}
+            isFaceTrackingActive={isFaceTrackingActive}
+            onToggleFaceTracking={handleToggleFaceTracking}
+            isMotionPlaying={isMotionPlaying}
+            onToggleMotion={() => setIsMotionPlaying(!isMotionPlaying)}
+            motionSpeed={motionSpeed}
+            onChangeSpeed={(spd) => setMotionSpeed(spd)}
+            selectedArmTarget={selectedArmTarget}
+            onSelectArmTarget={(target) => setSelectedArmTarget(target)}
+            isOpen={isArmAdjusterOpen}
+            onToggleOpen={() => setIsArmAdjusterOpen(!isArmAdjusterOpen)}
+          />
+        )}
+
+        {/* Collapsible Bottom Control Dock */}
+        <div
+          className={`absolute bottom-3 left-1/2 -translate-x-1/2 z-20 w-[96%] max-w-[940px] transition-all duration-200 ${
+            isCollapsed ? 'translate-y-36 opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
+          }`}
+        >
+          <div className="p-3.5 sm:p-4 rounded-[16px] bg-white dark:bg-[#101C2C]/96 border border-slate-200 dark:border-[#253448] shadow-2xl backdrop-blur-md flex flex-col gap-3">
+            {/* TAB 1: PRESET GESTURES EXPLORER */}
+            {viewerMode === 'preset' && (
+              <div className="flex flex-wrap items-center justify-center gap-1.5" role="group" aria-label="3D Hand Pose Presets">
+                <button
+                  type="button"
+                  onClick={() => onSelectGesture?.('neutral')}
+                  aria-pressed={activeGestureKey === 'neutral'}
+                  className={`h-8 px-3 rounded-[8px] text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                    activeGestureKey === 'neutral'
+                      ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18]'
+                      : 'bg-slate-100 dark:bg-[#172438] text-slate-700 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB]'
+                  }`}
+                >
+                  <span>Neutral Pose</span>
+                </button>
+
+                {Object.keys(GESTURE_DEFINITIONS).map((key) => {
+                  const def = GESTURE_DEFINITIONS[key];
+                  const isSelected = activeGestureKey === key;
+                  return (
                     <button
-                      key={sc}
-                      onClick={() => setSelectedScenarioFilter(sc)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold capitalize cursor-pointer transition-colors ${
-                        selectedScenarioFilter === sc
-                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40'
-                          : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
+                      key={key}
+                      type="button"
+                      onClick={() => onSelectGesture?.(key as GestureKey)}
+                      aria-pressed={isSelected}
+                      className={`h-8 px-2.5 rounded-[8px] text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                        isSelected
+                          ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18]'
+                          : 'bg-slate-100 dark:bg-[#172438] text-slate-700 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB]'
                       }`}
                     >
-                      {sc === 'all' ? 'All Phrases' : sc}
+                      <span aria-hidden="true">{def.emoji}</span>
+                      <span>{def.labelEn}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* TAB 2: SENTENCE SEQUENCES */}
+            {viewerMode === 'sequence' && selectedSequence && (
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-[#253448] pb-2">
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <span className="text-slate-600 dark:text-[#A0AEC0] font-semibold uppercase text-[11px]">Scenarios:</span>
+                    {(['all', 'classroom', 'service', 'daily'] as const).map((sc) => (
+                      <button
+                        key={sc}
+                        type="button"
+                        onClick={() => setSelectedScenarioFilter(sc)}
+                        className={`px-2.5 py-1 rounded-[8px] text-xs font-semibold capitalize cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                          selectedScenarioFilter === sc
+                            ? 'bg-[#0E7490]/15 dark:bg-[#43D9E9]/15 text-[#0E7490] dark:text-[#43D9E9] border border-[#0E7490]/30 dark:border-[#43D9E9]/40'
+                            : 'text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB]'
+                        }`}
+                      >
+                        {sc === 'all' ? 'All Phrases' : sc}
+                      </button>
+                    ))}
+                  </div>
+
+                  <StatusBadge tone="info">{selectedSequence.scenarioLabelEn}</StatusBadge>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-1.5 max-h-24 overflow-y-auto">
+                  {SIGN_SEQUENCES.filter((s) => selectedScenarioFilter === 'all' || s.scenario === selectedScenarioFilter).map((seq) => {
+                    const isSelected = selectedSequence.id === seq.id;
+                    return (
+                      <button
+                        key={seq.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedSequence(seq);
+                          setCurrentStepIndex(0);
+                          stepTimerRef.current = 0;
+                          setIsPlaying(true);
+                        }}
+                        className={`h-8 px-3 rounded-[8px] text-xs font-medium border transition-colors flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                          isSelected
+                            ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18] border-transparent font-semibold'
+                            : 'bg-slate-100 dark:bg-[#172438] text-slate-700 dark:text-[#F4F7FB] border-slate-200 dark:border-[#253448]'
+                        }`}
+                      >
+                        <span aria-hidden="true">{seq.steps[0]?.emoji || '🎬'}</span>
+                        <span>{seq.titleEn}</span>
+                        <span
+                          className={`text-[11px] font-ethiopic ${
+                            isSelected ? 'text-white dark:text-[#080D18]' : 'text-slate-600 dark:text-[#A0AEC0]'
+                          }`}
+                        >
+                          ({seq.titleAm})
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {selectedSequence.steps[currentStepIndex] && (
+                  <div className="p-3 rounded-[12px] bg-slate-50 dark:bg-[#080D18] border border-slate-200 dark:border-[#253448] flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-2xl shrink-0" aria-hidden="true">{selectedSequence.steps[currentStepIndex].emoji}</span>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-heading font-bold text-slate-900 dark:text-[#F4F7FB] text-sm">
+                            {selectedSequence.steps[currentStepIndex].glossEn}
+                          </span>
+                          <span className="text-[#0E7490] dark:text-[#43D9E9] font-semibold font-ethiopic text-xs">
+                            {selectedSequence.steps[currentStepIndex].glossAm}
+                          </span>
+                          <StatusBadge tone="success">
+                            Step {currentStepIndex + 1} / {selectedSequence.steps.length}
+                          </StatusBadge>
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-[#A0AEC0] mt-0.5 truncate">
+                          {selectedSequence.steps[currentStepIndex].description}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleSpeakCurrentStep(selectedSequence.steps[currentStepIndex])}
+                        aria-label="Speak current step"
+                        leftIcon={<Volume2 className="w-3.5 h-3.5 text-[#0E7490] dark:text-[#43D9E9]" />}
+                      />
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handlePrevStep}
+                        disabled={currentStepIndex === 0}
+                        aria-label="Previous step"
+                        leftIcon={<StepBack className="w-3.5 h-3.5" />}
+                      />
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => setIsPlaying(!isPlaying)}
+                        leftIcon={isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                      >
+                        {isPlaying ? 'Pause' : 'Play'}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleNextStep}
+                        disabled={currentStepIndex === selectedSequence.steps.length - 1}
+                        aria-label="Next step"
+                        leftIcon={<StepForward className="w-3.5 h-3.5" />}
+                      />
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleReplaySequence}
+                        aria-label="Replay sequence"
+                        leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-1 w-full pt-0.5">
+                  {selectedSequence.steps.map((st, i) => (
+                    <button
+                      key={st.id}
+                      type="button"
+                      onClick={() => {
+                        setCurrentStepIndex(i);
+                        stepTimerRef.current = 0;
+                      }}
+                      aria-label={`Jump to step ${i + 1}: ${st.glossEn}`}
+                      className={`h-1.5 rounded-full flex-1 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                        i === currentStepIndex
+                          ? 'bg-[#0E7490] dark:bg-[#43D9E9]'
+                          : i < currentStepIndex
+                          ? 'bg-emerald-600 dark:bg-emerald-500'
+                          : 'bg-slate-200 dark:bg-[#253448]'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: LIVE CAMERA MIRRORING STATUS */}
+            {viewerMode === 'live' && (
+              <div className="p-3 rounded-[12px] bg-slate-50 dark:bg-[#080D18] border border-slate-200 dark:border-[#253448] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 border ${
+                    liveLandmarks && liveLandmarks.length === 21
+                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-400'
+                      : 'bg-amber-500/15 border-amber-500/40 text-amber-700 dark:text-amber-400'
+                  }`}>
+                    <Activity className="w-4 h-4" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <div className="font-heading font-bold text-slate-900 dark:text-[#F4F7FB]">
+                      {liveLandmarks && liveLandmarks.length === 21
+                        ? 'Live Kinematic Landmark Mirror Active'
+                        : 'Live Mirror Standby (No Hand in Frame)'}
+                    </div>
+                    <p className="text-slate-600 dark:text-[#A0AEC0] text-[11px] mt-0.5">
+                      {liveLandmarks && liveLandmarks.length === 21
+                        ? 'Streaming 21 MediaPipe coordinates directly into articulated finger bones.'
+                        : 'Start camera in Live Recognition to mirror hand and face movements.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <StatusBadge tone="neutral">{handedness} Hand</StatusBadge>
+                  <StatusBadge tone={liveLandmarks && liveLandmarks.length === 21 ? 'success' : 'neutral'}>
+                    {liveLandmarks ? `${liveLandmarks.length} Points` : '0 Points'}
+                  </StatusBadge>
+                </div>
+              </div>
+            )}
+
+            {/* Bottom Row: Shading Mode + Speed + Playback Controls */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200 dark:border-[#253448]">
+              <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="3D Material Shading">
+                <span className="text-[11px] font-semibold text-slate-600 dark:text-[#A0AEC0] mr-1">Shading:</span>
+
+                {[
+                  { id: 'clay' as const, label: 'Anatomical Clay' },
+                  { id: 'wireframe' as const, label: 'Quad Topology' },
+                  { id: 'armature' as const, label: 'Blender Rig', icon: <Bone className="w-3 h-3" aria-hidden="true" /> },
+                ].map((modeOption) => (
+                  <button
+                    key={modeOption.id}
+                    type="button"
+                    onClick={() => setMaterialMode(modeOption.id)}
+                    aria-pressed={materialMode === modeOption.id}
+                    className={`h-8 px-2.5 rounded-[8px] text-xs font-medium border transition-colors flex items-center gap-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                      materialMode === modeOption.id
+                        ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18] border-[#0E7490] dark:border-[#43D9E9] font-semibold'
+                        : 'bg-slate-100 dark:bg-[#172438] text-slate-700 dark:text-[#A0AEC0] border-slate-200 dark:border-[#253448] hover:text-slate-900 dark:hover:text-[#F4F7FB]'
+                    }`}
+                  >
+                    {modeOption.icon}
+                    <span>{modeOption.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#080D18] p-1 rounded-[8px] border border-slate-200 dark:border-[#253448]">
+                  {[0.5, 1.0, 1.5].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setPlaybackSpeed(s)}
+                      className={`px-2 py-0.5 rounded-[6px] text-[11px] font-mono font-semibold cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                        playbackSpeed === s
+                          ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18]'
+                          : 'text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB]'
+                      }`}
+                    >
+                      {s}x
                     </button>
                   ))}
                 </div>
 
-                <div className="flex items-center gap-1.5 text-[11px] font-mono font-bold text-amber-600 dark:text-amber-400">
-                  <span>{selectedSequence.scenarioLabelEn}</span>
-                </div>
+                <Button
+                  variant={isPlaying ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={() => setIsPlaying(!isPlaying)}
+                  aria-label={isPlaying ? 'Pause transition' : 'Play transition'}
+                  leftIcon={isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                />
+
+                <Button
+                  variant={autoRotate ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={() => setAutoRotate(!autoRotate)}
+                  aria-label="Toggle auto rotate"
+                  leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+                />
+
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleResetView}
+                  leftIcon={<RotateCcw className="w-3 h-3" />}
+                >
+                  Reset View
+                </Button>
               </div>
-
-              {/* Sequence Selector Buttons */}
-              <div className="flex flex-wrap items-center gap-1.5 max-h-24 overflow-y-auto">
-                {SIGN_SEQUENCES.filter((s) => selectedScenarioFilter === 'all' || s.scenario === selectedScenarioFilter).map((seq) => (
-                  <button
-                    key={seq.id}
-                    onClick={() => {
-                      setSelectedSequence(seq);
-                      setCurrentStepIndex(0);
-                      stepTimerRef.current = 0;
-                      setIsPlaying(true);
-                    }}
-                    className={`px-3 py-1 rounded-xl text-xs font-medium border transition-all flex items-center gap-1.5 cursor-pointer ${
-                      selectedSequence.id === seq.id
-                        ? 'bg-gradient-to-r from-amber-600 to-amber-500 text-white border-amber-500 shadow-sm'
-                        : 'bg-gray-100 dark:bg-slate-800 text-slate-700 dark:text-gray-300 border-gray-200 dark:border-slate-700 hover:border-amber-500/40'
-                    }`}
-                  >
-                    <span>{seq.steps[0]?.emoji || '🎬'}</span>
-                    <span className="font-semibold">{seq.titleEn}</span>
-                    <span className="text-[10px] font-ethiopic opacity-80">({seq.titleAm})</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Active Step Timeline HUD */}
-              {selectedSequence.steps[currentStepIndex] && (
-                <div className="p-3 rounded-2xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="text-3xl">{selectedSequence.steps[currentStepIndex].emoji}</span>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-extrabold text-slate-900 dark:text-white text-sm font-heading">
-                          {selectedSequence.steps[currentStepIndex].glossEn}
-                        </span>
-                        <span className="text-amber-600 dark:text-amber-400 font-bold font-ethiopic text-xs">
-                          {selectedSequence.steps[currentStepIndex].glossAm}
-                        </span>
-                        <span className="text-gray-500 text-[11px]">
-                          ("{selectedSequence.steps[currentStepIndex].phoneticAm}")
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 font-mono text-[10px] font-bold">
-                          Step {currentStepIndex + 1} of {selectedSequence.steps.length}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-600 dark:text-gray-400 mt-0.5">
-                        {selectedSequence.steps[currentStepIndex].description}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Step Control Buttons */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      onClick={() => handleSpeakCurrentStep(selectedSequence.steps[currentStepIndex])}
-                      className="p-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-slate-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 transition-colors cursor-pointer"
-                      title="Speak Current Gloss Audio"
-                    >
-                      <Volume2 className="w-3.5 h-3.5 text-emerald-500" />
-                    </button>
-
-                    <button
-                      onClick={handlePrevStep}
-                      disabled={currentStepIndex === 0}
-                      className="p-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-slate-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 disabled:opacity-40 transition-colors cursor-pointer"
-                      title="Previous Step"
-                    >
-                      <StepBack className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      onClick={() => setIsPlaying(!isPlaying)}
-                      className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold flex items-center gap-1 cursor-pointer shadow-sm transition-colors"
-                      title={isPlaying ? 'Pause Sequence' : 'Play Sequence'}
-                    >
-                      {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                      <span>{isPlaying ? 'Pause' : 'Play'}</span>
-                    </button>
-
-                    <button
-                      onClick={handleNextStep}
-                      disabled={currentStepIndex === selectedSequence.steps.length - 1}
-                      className="p-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-slate-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 disabled:opacity-40 transition-colors cursor-pointer"
-                      title="Next Step"
-                    >
-                      <StepForward className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      onClick={handleReplaySequence}
-                      className="p-1.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 text-slate-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 transition-colors cursor-pointer"
-                      title="Replay Full Sequence from Start"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5 text-amber-500" />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Progress Timeline Segments */}
-              <div className="flex items-center gap-1 w-full pt-1">
-                {selectedSequence.steps.map((st, i) => (
-                  <div
-                    key={st.id}
-                    onClick={() => {
-                      setCurrentStepIndex(i);
-                      stepTimerRef.current = 0;
-                    }}
-                    className={`h-1.5 rounded-full flex-1 transition-all cursor-pointer ${
-                      i === currentStepIndex
-                        ? 'bg-amber-500 ring-2 ring-amber-400/50'
-                        : i < currentStepIndex
-                        ? 'bg-emerald-500'
-                        : 'bg-gray-200 dark:bg-slate-800'
-                    }`}
-                    title={`Step ${i + 1}: ${st.glossEn}`}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ========================================================= */}
-          {/* TAB 3: LIVE CAMERA MIRRORING STATUS */}
-          {/* ========================================================= */}
-          {viewerMode === 'live' && (
-            <div className="p-3 rounded-2xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
-                  liveLandmarks && liveLandmarks.length === 21
-                    ? 'bg-emerald-100 dark:bg-emerald-500/20 border-emerald-400 dark:border-emerald-500/40 text-emerald-600'
-                    : 'bg-amber-100 dark:bg-amber-500/20 border-amber-400 dark:border-amber-500/40 text-amber-600'
-                }`}>
-                  <Activity className={`w-4 h-4 ${liveLandmarks && liveLandmarks.length === 21 ? 'animate-pulse' : ''}`} />
-                </div>
-                <div>
-                  <div className="font-bold text-slate-900 dark:text-white font-heading">
-                    {liveLandmarks && liveLandmarks.length === 21
-                      ? '● Live Kinematic Landmark Mirror Active'
-                      : '○ Live Mirror Standby (No Hand in Frame)'}
-                  </div>
-                  <p className="text-slate-500 dark:text-gray-400 text-[11px] mt-0.5">
-                    {liveLandmarks && liveLandmarks.length === 21
-                      ? `Streaming 21 MediaPipe coordinates directly into 15 anatomical finger bones and wrist pitch/yaw.`
-                      : `3D hand is in neutral anatomical rest pose. Start camera in Mode A to mirror your movements live.`}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="px-3 py-1 rounded-xl bg-gray-100 dark:bg-slate-800 font-mono text-[11px] font-bold text-slate-700 dark:text-gray-300">
-                  {handedness} Hand
-                </span>
-                <span className="px-3 py-1 rounded-xl bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 font-mono text-[11px] font-bold">
-                  {liveLandmarks ? `${liveLandmarks.length} Points` : '0 Points'}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Bottom Row: Shading Mode + Speed + Playback Toggles */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-200 dark:border-slate-800/80">
-            {/* Material Shading Modes (Clay, Quad Wireframe, Blender Armature, Cyber) */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold text-slate-500 dark:text-gray-400 mr-1">Shading:</span>
-
-              <button
-                onClick={() => setMaterialMode('clay')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
-                  materialMode === 'clay'
-                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border-emerald-400 dark:border-emerald-500/50'
-                    : 'bg-gray-100 dark:bg-slate-800 text-slate-700 dark:text-gray-400 border-gray-200 dark:border-slate-700 hover:text-slate-950 dark:hover:text-gray-200'
-                }`}
-                title="Studio Anatomical Clay (Matches Screenshot 1 & 2)"
-              >
-                Anatomical Clay
-              </button>
-
-              <button
-                onClick={() => setMaterialMode('wireframe')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
-                  materialMode === 'wireframe'
-                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border-amber-400 dark:border-amber-500/50'
-                    : 'bg-gray-100 dark:bg-slate-800 text-slate-700 dark:text-gray-400 border-gray-200 dark:border-slate-700 hover:text-slate-950 dark:hover:text-gray-200'
-                }`}
-                title="Quad Wireframe Topology (Matches Screenshot 1)"
-              >
-                Quad Topology
-              </button>
-
-              <button
-                onClick={() => setMaterialMode('armature')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors flex items-center gap-1 cursor-pointer ${
-                  materialMode === 'armature'
-                    ? 'bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-300 border-sky-400 dark:border-sky-500/50'
-                    : 'bg-gray-100 dark:bg-slate-800 text-slate-700 dark:text-gray-400 border-gray-200 dark:border-slate-700 hover:text-slate-950 dark:hover:text-gray-200'
-                }`}
-                title="Blender Skeletal Armature Rig (Matches Screenshot 2)"
-              >
-                <Bone className="w-3 h-3" />
-                <span>Blender Rig</span>
-              </button>
-            </div>
-
-            {/* Playback Controls (Play/Pause, Speed 0.5x, 1x, 1.5x) */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-950 p-1 rounded-xl border border-gray-200 dark:border-slate-800">
-                {[0.5, 1.0, 1.5].map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setPlaybackSpeed(s)}
-                    className={`px-2 py-0.5 rounded-lg text-[10px] font-bold cursor-pointer ${
-                      playbackSpeed === s
-                        ? 'bg-emerald-600 text-white'
-                        : 'text-slate-600 dark:text-gray-400 hover:text-slate-950 dark:hover:text-white'
-                    }`}
-                  >
-                    {s}x
-                  </button>
-                ))}
-              </div>
-
-              <button
-                onClick={() => setIsPlaying(!isPlaying)}
-                className={`p-1.5 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${
-                  isPlaying
-                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/50'
-                    : 'bg-gray-100 dark:bg-slate-800 text-slate-700 dark:text-gray-400 border-gray-200 dark:border-slate-700'
-                }`}
-                title="Play/Pause Kinematic Transition"
-              >
-                {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-              </button>
-
-              <button
-                onClick={() => setAutoRotate(!autoRotate)}
-                className={`p-1.5 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${
-                  autoRotate
-                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border-amber-300 dark:border-amber-500/50'
-                    : 'bg-gray-100 dark:bg-slate-800 text-slate-700 dark:text-gray-400 border-gray-200 dark:border-slate-700'
-                }`}
-                title="Toggle Auto Spin"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-              </button>
-
-              <button
-                onClick={handleResetView}
-                className="px-2 py-1 rounded-xl text-xs font-semibold border bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-gray-300 border-gray-200 dark:border-slate-700 transition-colors cursor-pointer flex items-center gap-1"
-                title="Reset Camera Angle & View"
-              >
-                <RotateCcw className="w-3 h-3 text-amber-500" />
-                <span>Reset View</span>
-              </button>
             </div>
           </div>
         </div>
       </div>
 
       {/* Reference Photographs Comparison Modal */}
-      {showReferenceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-amber-500/40 rounded-3xl max-w-4xl w-full max-h-[92vh] overflow-y-auto shadow-2xl p-6 space-y-6">
-            <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-800 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-500/40 flex items-center justify-center text-amber-600 dark:text-amber-400">
-                  <ImageIcon className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white font-heading">
-                    Official Reference Images for 3D Hand Model & Rig
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-gray-400">
-                    Uploaded reference photographs used to engineer the 3D anatomical hand mesh & skeletal bone hierarchy.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowReferenceModal(false)}
-                className="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-gray-300 text-xs font-bold transition-colors cursor-pointer"
-              >
-                Close
-              </button>
+      <Modal
+        isOpen={showReferenceModal}
+        onClose={() => setShowReferenceModal(false)}
+        title="3D Hand Model & Armature References"
+        description="Anatomical topology and skeletal bone hierarchy reference guides."
+        icon={<ImageIcon className="w-5 h-5" />}
+        maxWidthClass="max-w-4xl"
+        footer={
+          <>
+            <span className="text-xs text-slate-600 dark:text-[#A0AEC0]">
+              Both reference standards are active in the Three.js model.
+            </span>
+            <Button variant="primary" size="sm" onClick={() => setShowReferenceModal(false)}>
+              Back to 3D Studio
+            </Button>
+          </>
+        }
+      >
+        <div className="grid md:grid-cols-2 gap-5">
+          <div className="bg-slate-50 dark:bg-[#080D18] rounded-[14px] p-4 border border-slate-200 dark:border-[#253448] space-y-3">
+            <div className="flex items-center justify-between">
+              <StatusBadge tone="success">Reference #1: Quad Topology</StatusBadge>
+              <span className="text-xs text-slate-600 dark:text-[#A0AEC0]">Palmar &amp; Dorsal</span>
             </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Reference 1: Quad Mesh Topology */}
-              <div className="bg-gray-50 dark:bg-slate-950 rounded-2xl p-4 border border-gray-200 dark:border-slate-800 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider font-heading">
-                    Reference #1: Quad Topology
-                  </span>
-                  <span className="text-[11px] text-slate-500 dark:text-gray-400">Palmar & Dorsal Views</span>
-                </div>
-                <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-slate-800 bg-black aspect-square flex items-center justify-center">
-                  <img
-                    src="/assets/aistudio/Screenshot_2026-10-22_175411_ae73bd1e.png"
-                    alt="Hand Quad Topology Reference"
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                <p className="text-xs text-slate-700 dark:text-gray-300 leading-relaxed">
-                  Demonstrates the anatomical hand shape, natural phalanx ratios, and quad wireframe edge loop flow. Mirrored in the 3D viewer's <strong>"Quad Topology"</strong> mode.
-                </p>
-              </div>
-
-              {/* Reference 2: Blender Skeletal Armature Rig */}
-              <div className="bg-gray-50 dark:bg-slate-950 rounded-2xl p-4 border border-gray-200 dark:border-slate-800 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider font-heading">
-                    Reference #2: Blender Armature Rig
-                  </span>
-                  <span className="text-[11px] text-slate-500 dark:text-gray-400">Bone 0 – 21 Hierarchy</span>
-                </div>
-                <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-slate-800 bg-black aspect-square flex items-center justify-center">
-                  <img
-                    src="/assets/aistudio/Screenshot_2026-10-22_175423_a9cf9e69.png"
-                    alt="Blender Armature Hand Rig Reference"
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                <p className="text-xs text-slate-700 dark:text-gray-300 leading-relaxed">
-                  Shows the octahedral skeletal bone hierarchy (Wrist 0, Thumb 1-3, Index 5-8, Middle 9-13, Ring 14-17, Pinky 18-21). Mirrored in the 3D viewer's <strong>"Blender Rig"</strong> mode.
-                </p>
-              </div>
+            <div className="rounded-[10px] overflow-hidden border border-slate-200 dark:border-[#253448] bg-black aspect-square flex items-center justify-center">
+              <img
+                src="/assets/aistudio/Screenshot_2026-10-22_175411_ae73bd1e.png"
+                alt="Hand Quad Topology Reference"
+                className="w-full h-full object-contain"
+              />
             </div>
+            <p className="text-xs text-slate-600 dark:text-[#A0AEC0] leading-relaxed">
+              Demonstrates the anatomical hand shape, phalanx ratios, and quad wireframe edge loop flow mirrored in <strong>Quad Topology</strong> shading.
+            </p>
+          </div>
 
-            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-500/30 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
-              <span>Both reference standards are actively integrated into the Three.js model above.</span>
-              <button
-                onClick={() => setShowReferenceModal(false)}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer shadow-xs"
-              >
-                Back to 3D Viewer
-              </button>
+          <div className="bg-slate-50 dark:bg-[#080D18] rounded-[14px] p-4 border border-slate-200 dark:border-[#253448] space-y-3">
+            <div className="flex items-center justify-between">
+              <StatusBadge tone="info">Reference #2: Blender Rig</StatusBadge>
+              <span className="text-xs text-slate-600 dark:text-[#A0AEC0]">Bone 0–21 Hierarchy</span>
             </div>
+            <div className="rounded-[10px] overflow-hidden border border-slate-200 dark:border-[#253448] bg-black aspect-square flex items-center justify-center">
+              <img
+                src="/assets/aistudio/Screenshot_2026-10-22_175423_a9cf9e69.png"
+                alt="Blender Armature Hand Rig Reference"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <p className="text-xs text-slate-600 dark:text-[#A0AEC0] leading-relaxed">
+              Shows the octahedral skeletal bone hierarchy (Wrist 0, Thumb 1–3, Index 5–8, Middle 9–13, Ring 14–17, Pinky 18–21) used in <strong>Blender Rig</strong> shading.
+            </p>
           </div>
         </div>
-      )}
+      </Modal>
+
       {/* Blender Export & Integration Guide Modal */}
-      {showBlenderGuideModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
-          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-cyan-500/40 rounded-3xl max-w-3xl w-full max-h-[92vh] overflow-y-auto shadow-2xl p-6 space-y-6">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-800 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-cyan-100 dark:bg-cyan-500/20 border border-cyan-300 dark:border-cyan-500/40 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
-                  <FileCode className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white font-heading">
-                    How to Add Your Custom Blender 3D Model
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-gray-400">
-                    Export your custom Blender hand file as glTF 2.0 (.glb) for the Three.js WebGL engine.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowBlenderGuideModal(false)}
-                className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-gray-300 transition-colors cursor-pointer"
-                title="Close Guide"
+      <Modal
+        isOpen={showBlenderGuideModal}
+        onClose={() => setShowBlenderGuideModal(false)}
+        title="Custom Blender 3D Model Export Guide"
+        description="Export your rigged Blender hand file as glTF 2.0 (.glb) for the Three.js WebGL engine."
+        icon={<FileCode className="w-5 h-5" />}
+        maxWidthClass="max-w-3xl"
+        footer={
+          <>
+            <span className="text-xs text-slate-600 dark:text-[#A0AEC0]">
+              Ready with your exported <code>.glb</code> file?
+            </span>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setShowBlenderGuideModal(false)}>
+                Close
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<Upload className="w-3.5 h-3.5" />}
+                onClick={() => {
+                  setShowBlenderGuideModal(false);
+                  fileInputRef.current?.click();
+                }}
               >
-                <X className="w-5 h-5" />
-              </button>
+                Choose .glb File
+              </Button>
             </div>
+          </>
+        }
+      >
+        <Alert variant="info" title="Why export from .blend to .glb?">
+          Web browsers cannot read proprietary <code>.blend</code> files directly. Three.js uses <strong>glTF 2.0 Binary (.glb)</strong> to package geometry, PBR materials, and skeletal rigs into one web-ready file.
+        </Alert>
 
-            {/* Why GLB Explanation Callout */}
-            <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-start gap-3 text-xs text-cyan-800 dark:text-cyan-200">
-              <div className="w-7 h-7 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0 mt-0.5">
-                <Sparkles className="w-4 h-4" />
-              </div>
-              <div>
-                <strong className="block text-cyan-900 dark:text-cyan-100 font-heading mb-0.5">
-                  Why export from .blend to .glb?
-                </strong>
-                <span>
-                  Web browsers cannot read raw proprietary <code>.blend</code> binary project files directly. Three.js uses <strong>glTF 2.0 Binary (<code>.glb</code>)</strong>, which is the universal open standard that packages 3D polygonal geometry, PBR materials, textures, and skeletal bone rigs into a single fast-loading web file.
-                </span>
-              </div>
-            </div>
-
-            {/* Step-by-Step Blender Export Instructions */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-heading flex items-center gap-2">
-                <span>Blender Export Steps (Blender 3.x / 4.x)</span>
-              </h4>
-
-              <div className="grid gap-3">
-                {/* Step 1 */}
-                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 flex items-start gap-3.5">
-                  <div className="w-7 h-7 rounded-full bg-cyan-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                    1
-                  </div>
-                  <div className="space-y-1 text-xs text-slate-700 dark:text-gray-300">
-                    <p className="font-bold text-slate-900 dark:text-white font-heading">
-                      Select Your Hand & Armature in Blender
-                    </p>
-                    <p className="text-slate-500 dark:text-gray-400">
-                      In Blender's <strong>Object Mode</strong>, click your hand mesh and skeletal armature rig to select them (or press <kbd className="px-1.5 py-0.5 rounded bg-gray-200 dark:bg-slate-800 text-[11px] font-mono">A</kbd> to select all).
-                    </p>
-                  </div>
-                </div>
-
-                {/* Step 2 */}
-                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 flex items-start gap-3.5">
-                  <div className="w-7 h-7 rounded-full bg-cyan-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                    2
-                  </div>
-                  <div className="space-y-1 text-xs text-slate-700 dark:text-gray-300">
-                    <p className="font-bold text-slate-900 dark:text-white font-heading">
-                      Open the glTF 2.0 Export Menu
-                    </p>
-                    <p className="text-slate-500 dark:text-gray-400">
-                      In Blender's top toolbar, click <strong className="text-slate-900 dark:text-white">File → Export → glTF 2.0 (.glb/.gltf)</strong>.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Step 3: Exact Export Settings */}
-                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 flex items-start gap-3.5">
-                  <div className="w-7 h-7 rounded-full bg-cyan-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                    3
-                  </div>
-                  <div className="space-y-2 text-xs text-slate-700 dark:text-gray-300 w-full">
-                    <p className="font-bold text-slate-900 dark:text-white font-heading">
-                      Recommended Export Settings (Right Sidebar)
-                    </p>
-                    <div className="grid sm:grid-cols-2 gap-2 text-[11px] font-mono">
-                      <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 space-y-1">
-                        <span className="font-bold text-cyan-600 dark:text-cyan-400">Format & Include:</span>
-                        <p className="text-slate-600 dark:text-gray-400">• Format: <strong>glTF Binary (.glb)</strong></p>
-                        <p className="text-slate-600 dark:text-gray-400">• Include: <strong>Selected Objects</strong></p>
-                      </div>
-                      <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 space-y-1">
-                        <span className="font-bold text-cyan-600 dark:text-cyan-400">Transform & Geometry:</span>
-                        <p className="text-slate-600 dark:text-gray-400">• Transform: <strong>+Y Up</strong> (Checked)</p>
-                        <p className="text-slate-600 dark:text-gray-400">• Geometry: <strong>Apply Modifiers</strong></p>
-                        <p className="text-slate-600 dark:text-gray-400">• Armature: <strong>Deformation Bones Only</strong></p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Step 4: Loading into EjjiLink AI */}
-                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 flex items-start gap-3.5">
-                  <div className="w-7 h-7 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                    4
-                  </div>
-                  <div className="space-y-2 text-xs text-slate-700 dark:text-gray-300 w-full">
-                    <p className="font-bold text-slate-900 dark:text-white font-heading">
-                      Two Ways to Load It into the App:
-                    </p>
-                    <div className="grid sm:grid-cols-2 gap-3 text-xs">
-                      <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/30 space-y-1.5">
-                        <span className="font-bold text-cyan-400 font-heading">Method A: Instant Browser Upload</span>
-                        <p className="text-slate-400 text-[11px]">
-                          Click <strong>"Import Blender (.glb)"</strong> in the viewer to test your model right now from your computer without restarting anything.
-                        </p>
-                      </div>
-                      <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 space-y-1.5">
-                        <span className="font-bold text-emerald-400 font-heading">Method B: Permanent Folder</span>
-                        <p className="text-slate-400 text-[11px]">
-                          Save or copy your file to:
-                          <code className="block mt-1 p-1 bg-black/60 rounded text-amber-300 text-[10px] font-mono select-all">
-                            public/models/hand.glb
-                          </code>
-                          The app will automatically load it on startup every time!
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* NEW: 1-Click Blender Auto-Rigging Python Script */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-cyan-950/30 border border-cyan-500/40 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
-                    <Bone className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h5 className="text-sm font-bold text-white font-heading">
-                      1-Click Blender Auto-Rigging Script (Python)
-                    </h5>
-                    <p className="text-xs text-cyan-300/80">
-                      Instantly adds the 21 octahedral bones &amp; parents with Automatic Weights inside Blender
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(BLENDER_AUTO_RIG_SCRIPT);
-                    setCopiedScript(true);
-                    setTimeout(() => setCopiedScript(false), 2500);
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md ${
-                    copiedScript
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-cyan-600 hover:bg-cyan-500 text-white'
-                  }`}
-                  title="Copy Python auto-rigging script to clipboard"
-                >
-                  {copiedScript ? <Check className="w-3.5 h-3.5" /> : <FileCode className="w-3.5 h-3.5" />}
-                  <span>{copiedScript ? 'Copied to Clipboard!' : 'Copy Python Script'}</span>
-                </button>
-              </div>
-
-              <div className="text-xs text-slate-300 space-y-1.5 leading-relaxed">
-                <p>
-                  <strong>How to use in Blender:</strong>
-                </p>
-                <ol className="list-decimal list-inside space-y-1 text-slate-400 text-[11px]">
-                  <li>In Blender top tabs, click <strong>Scripting</strong> (or press <kbd className="px-1 py-0.5 rounded bg-black/60 font-mono text-[10px]">Shift+F11</kbd>).</li>
-                  <li>Click <strong>+ New</strong> in the text editor and paste this script.</li>
-                  <li>In the 3D Viewport, click your hand mesh in <strong>Object Mode</strong>.</li>
-                  <li>Click <strong>▶ Run Script</strong> (or press <kbd className="px-1 py-0.5 rounded bg-black/60 font-mono text-[10px]">Alt+P</kbd>).</li>
-                </ol>
-              </div>
-
-              <div className="relative rounded-xl overflow-hidden bg-black/80 border border-cyan-500/30 p-3 max-h-36 overflow-y-auto font-mono text-[11px] text-cyan-300 leading-tight select-all">
-                <pre>{BLENDER_AUTO_RIG_SCRIPT}</pre>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-4 rounded-2xl bg-gray-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
-              <span className="text-xs text-slate-500 dark:text-gray-400">
-                Ready with your exported <code>.glb</code> file?
+        <div className="space-y-3">
+          {[
+            {
+              step: 1,
+              title: 'Select Hand Mesh & Armature in Object Mode',
+              body: 'Select your hand mesh and skeletal armature rig (or press A in Blender Object Mode).',
+            },
+            {
+              step: 2,
+              title: 'Export via File → Export → glTF 2.0 (.glb/.gltf)',
+              body: 'Set Format to glTF Binary (.glb), Enable +Y Up, Apply Modifiers, and Deformation Bones Only.',
+            },
+            {
+              step: 3,
+              title: 'Load via Browser Upload or public/models/hand.glb',
+              body: 'Use "Import .glb" in the Studio toolbar to test immediately from your computer.',
+            },
+          ].map((s) => (
+            <div
+              key={s.step}
+              className="p-3.5 rounded-[12px] bg-slate-50 dark:bg-[#080D18] border border-slate-200 dark:border-[#253448] flex items-start gap-3"
+            >
+              <span className="w-6 h-6 rounded-full bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18] font-bold text-xs flex items-center justify-center shrink-0">
+                {s.step}
               </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowBlenderGuideModal(false)}
-                  className="px-4 py-2 rounded-xl bg-gray-200 dark:bg-slate-800 hover:bg-gray-300 dark:hover:bg-slate-700 text-slate-800 dark:text-gray-200 text-xs font-bold transition-colors cursor-pointer"
-                >
-                  Close
-                </button>
-                <button
-                  onClick={() => {
-                    setShowBlenderGuideModal(false);
-                    fileInputRef.current?.click();
-                  }}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold transition-all shadow-md cursor-pointer flex items-center gap-1.5"
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>Choose .glb File Now</span>
-                </button>
+              <div className="text-xs space-y-0.5">
+                <p className="font-semibold text-slate-900 dark:text-[#F4F7FB]">{s.title}</p>
+                <p className="text-slate-600 dark:text-[#A0AEC0]">{s.body}</p>
               </div>
             </div>
+          ))}
+        </div>
+
+        <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#080D18] border border-slate-200 dark:border-[#253448] space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h5 className="font-heading text-sm font-bold text-slate-900 dark:text-[#F4F7FB]">
+                1-Click Blender Auto-Rigging Python Script
+              </h5>
+              <p className="text-xs text-slate-600 dark:text-[#A0AEC0]">
+                Adds 21 octahedral bones &amp; parents with Automatic Weights inside Blender Scripting.
+              </p>
+            </div>
+            <Button
+              variant={copiedScript ? 'secondary' : 'primary'}
+              size="sm"
+              leftIcon={copiedScript ? <Check className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" /> : <FileCode className="w-3.5 h-3.5" />}
+              onClick={() => {
+                navigator.clipboard.writeText(BLENDER_AUTO_RIG_SCRIPT);
+                setCopiedScript(true);
+                showToast('Copied Blender auto-rigging Python script', 'success');
+                setTimeout(() => setCopiedScript(false), 2500);
+              }}
+            >
+              {copiedScript ? 'Copied' : 'Copy Python Script'}
+            </Button>
+          </div>
+          <div className="rounded-[10px] overflow-hidden bg-[#080D18] border border-[#253448] p-3 max-h-36 overflow-y-auto font-mono text-[11px] text-[#43D9E9] leading-tight select-all">
+            <pre>{BLENDER_AUTO_RIG_SCRIPT}</pre>
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 };

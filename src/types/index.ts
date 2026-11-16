@@ -230,13 +230,17 @@ export interface AppSettings {
 // Part 2: System Architecture & Modular App Types
 // -----------------------------------------------------------------------------
 
-export type ActiveModule = 
-  | 'studio'       // Sign Language Studio & 3D Hands
-  | 'assistant'    // AI Communication Assistant (Simplify, Suggest Replies)
-  | 'translate'    // Universal Multi-language Translator
-  | 'captions'     // Live Speech Captions & Transcribe
-  | 'documents'    // Document OCR Text Extractor
-  | 'settings';    // Accessibility & App Settings
+export type ActiveModule =
+  | 'overview'         // Workspace Overview & Initiative Introduction
+  | 'live-recognition' // Direct Live Camera Sign Recognition Studio
+  | 'studio'           // Two-Way Communication (Hands-to-Voice & Voice-to-Hands)
+  | 'captions'         // Live Speech Captions & Transcribe
+  | 'translate'        // Universal Multi-language Translator
+  | 'assistant'        // AI Communication Assistant (Simplify, Suggest Replies)
+  | 'documents'        // Document OCR Text Extractor
+  | 'hand-studio'      // Dedicated 3D Hand & Dual-Arm Kinematics Studio
+  | 'vocabulary'       // EthSL Curriculum & Gesture Vocabulary Library
+  | 'settings';        // Accessibility & App Settings
 
 export type AssistantMode = 'simplify' | 'suggest_replies' | 'clarify' | 'tone_adjust';
 export type AssistantTone = 'simple' | 'polite' | 'formal' | 'brief';

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   X, 
   ShieldCheck, 
@@ -30,44 +30,60 @@ type TabType = 'overview' | 'dataflow' | 'endpoints' | 'structure' | 'roadmap';
 export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md">
-      <div className="bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] rounded-[20px] max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="EjjiLink AI System Architecture"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-[#080D18]/80 backdrop-blur-md"
+    >
+      <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
+      <div className="relative z-10 bg-white dark:bg-[#101C2C] border border-slate-200 dark:border-[#253448] rounded-[20px] max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden ejji-animate-modal">
         
         {/* Modal Header */}
-        <div className="p-5 sm:p-6 border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex items-center justify-between gap-4 bg-slate-50 dark:bg-[#080D18]">
+        <div className="p-5 sm:p-6 border-b border-slate-200 dark:border-[#253448] flex items-center justify-between gap-4 bg-slate-50 dark:bg-[#080D18]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[10px] bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-[#22D3EE]">
+            <div className="w-10 h-10 rounded-[10px] bg-[#0E7490]/10 dark:bg-[#43D9E9]/15 border border-[#0E7490]/25 dark:border-[#43D9E9]/30 flex items-center justify-center text-[#0E7490] dark:text-[#43D9E9]">
               <Layers className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-[#F8FAFC]">
+                <h3 className="font-heading text-lg sm:text-xl font-bold text-slate-900 dark:text-[#F4F7FB]">
                   EjjiLink AI — System Architecture (Part 2)
                 </h3>
-                <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[8px] text-[10px] font-semibold uppercase tracking-wider bg-cyan-500/10 text-[#22D3EE] border border-cyan-500/20">
+                <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[8px] text-[10px] font-semibold uppercase tracking-wider bg-[#0E7490]/10 dark:bg-[#43D9E9]/12 text-[#0E7490] dark:text-[#43D9E9] border border-[#0E7490]/20 dark:border-[#43D9E9]/25">
                   <ShieldCheck className="w-3 h-3" /> Full-Stack Production Architecture
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-[#8493A8]">
+              <p className="text-xs text-slate-600 dark:text-[#A0AEC0]">
                 Modular design, server-side AI routing, Zero-Trust security boundary, and project roadmap.
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 rounded-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#19263A] transition-colors cursor-pointer"
-            aria-label="Close"
+            className="w-9 h-9 rounded-[10px] text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB] hover:bg-slate-200 dark:hover:bg-[#172438] flex items-center justify-center transition-[colors,transform] duration-150 active:scale-95 motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] cursor-pointer"
+            aria-label="Close Architecture Modal"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="px-6 py-2 bg-slate-50 dark:bg-[#080D18]/80 border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex items-center gap-2 overflow-x-auto text-xs font-semibold">
+        <div className="px-6 py-2 bg-slate-50 dark:bg-[#080D18]/80 border-b border-slate-200 dark:border-[#253448] flex items-center gap-2 overflow-x-auto text-xs font-semibold">
           {[
             { id: 'overview', label: '1. Architecture Overview', icon: Layers },
             { id: 'dataflow', label: '2. Request Data Flow', icon: ArrowRight },
@@ -80,11 +96,13 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setActiveTab(tab.id as TabType)}
-                className={`px-3 py-1.5 rounded-[10px] flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors ${
+                aria-pressed={isActive}
+                className={`px-3 py-1.5 rounded-[10px] flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-[colors,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                   isActive
-                    ? 'bg-[#22D3EE] text-[#080D18] font-bold shadow-xs'
-                    : 'text-slate-600 dark:text-[#8493A8] hover:text-slate-900 dark:hover:text-[#F8FAFC] hover:bg-slate-200 dark:hover:bg-[#19263A]'
+                    ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18] font-bold shadow-xs'
+                    : 'text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB] hover:bg-slate-200 dark:hover:bg-[#172438]'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -99,10 +117,10 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
 
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
-            <div className="space-y-6 animate-in fade-in duration-150">
+            <div className="space-y-6 ejji-animate-fade-up">
               {/* Architectural Rule Callout */}
               <div className="p-4 rounded-[14px] bg-cyan-500/10 border border-cyan-500/25 text-xs text-slate-800 dark:text-[#B6C2D2] leading-relaxed flex items-start gap-3">
-                <Lock className="w-4 h-4 text-[#22D3EE] shrink-0 mt-0.5" />
+                <Lock className="w-4 h-4 text-[#0E7490] dark:text-[#43D9E9] shrink-0 mt-0.5" />
                 <div>
                   <strong className="block mb-0.5 text-slate-900 dark:text-[#F8FAFC]">
                     Core Security Boundary:
@@ -115,62 +133,62 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3.5 text-xs">
                 {/* 1. Frontend */}
                 <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2">
-                  <div className="flex items-center gap-2 text-[#22D3EE] font-bold">
+                  <div className="flex items-center gap-2 text-[#0E7490] dark:text-[#43D9E9] font-bold">
                     <Cpu className="w-4 h-4" />
                     <span>1. Frontend UI Layer</span>
                   </div>
                   <p className="text-slate-600 dark:text-[#B6C2D2]">
                     Accessible Dashboard · Live Captions · Multilingual Translation · AI Assistant · Document OCR · Accessibility Preferences.
                   </p>
-                  <span className="text-[10px] text-slate-400 dark:text-[#8493A8] block font-mono">React 18 + Vite / Next.js target</span>
+                  <span className="text-[10px] text-slate-600 dark:text-[#A0AEC0] block font-mono">React 18 + Vite / Next.js target</span>
                 </div>
 
                 {/* 2. Backend API */}
                 <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2">
-                  <div className="flex items-center gap-2 text-[#60A5FA] font-bold">
+                  <div className="flex items-center gap-2 text-blue-700 dark:text-[#60A5FA] font-bold">
                     <Server className="w-4 h-4" />
                     <span>2. Backend API Layer</span>
                   </div>
                   <p className="text-slate-600 dark:text-[#B6C2D2]">
                     Input validation · In-memory rate limiting (60 req/min) · Error handling · MIME validation · Server-to-server AI routing.
                   </p>
-                  <span className="text-[10px] text-slate-400 dark:text-[#8493A8] block font-mono">Express on Node.js (:3000)</span>
+                  <span className="text-[10px] text-slate-600 dark:text-[#A0AEC0] block font-mono">Express on Node.js (:3000)</span>
                 </div>
 
                 {/* 3. AI Providers */}
                 <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2">
-                  <div className="flex items-center gap-2 text-[#8B5CF6] font-bold">
+                  <div className="flex items-center gap-2 text-[#4F46E5] dark:text-[#8585FF] font-bold">
                     <Sparkles className="w-4 h-4" />
                     <span>3. AI Providers (Gemini)</span>
                   </div>
                   <p className="text-slate-600 dark:text-[#B6C2D2]">
                     gemini-3.5-transcribe (Audio) · gemini-3.8-flash (Assistant, Translation, OCR) · Web Speech API (Local TTS).
                   </p>
-                  <span className="text-[10px] text-slate-400 dark:text-[#8493A8] block font-mono">@google/genai SDK</span>
+                  <span className="text-[10px] text-slate-600 dark:text-[#A0AEC0] block font-mono">@google/genai SDK</span>
                 </div>
 
                 {/* 4. Firebase */}
                 <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2">
-                  <div className="flex items-center gap-2 text-[#2DD4BF] font-bold">
+                  <div className="flex items-center gap-2 text-teal-700 dark:text-[#2DD4BF] font-bold">
                     <Database className="w-4 h-4" />
                     <span>4. Firebase Backend</span>
                   </div>
                   <p className="text-slate-600 dark:text-[#B6C2D2]">
                     Authentication (Google & Guest) · Cloud Firestore (Saved phrases, custom vocabulary) · Deployed Zero-Trust Rules.
                   </p>
-                  <span className="text-[10px] text-slate-400 dark:text-[#8493A8] block font-mono">europe-west2 Firestore DB</span>
+                  <span className="text-[10px] text-slate-600 dark:text-[#A0AEC0] block font-mono">europe-west2 Firestore DB</span>
                 </div>
 
                 {/* 5. Sign Language Module */}
                 <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2 sm:col-span-2 lg:col-span-2">
-                  <div className="flex items-center gap-2 text-[#22D3EE] font-bold">
+                  <div className="flex items-center gap-2 text-[#0E7490] dark:text-[#43D9E9] font-bold">
                     <CheckCircle2 className="w-4 h-4" />
                     <span>5. Sign-Language & 3D Kinematics Module</span>
                   </div>
                   <p className="text-slate-600 dark:text-[#B6C2D2]">
                     In-browser 21-landmark MediaPipe tracking · Geometric pose classification · Mathematical forward kinematics · Three.js 3D hand animation across 3 educational demonstration scenarios.
                   </p>
-                  <span className="text-[10px] text-slate-400 dark:text-[#8493A8] block font-mono">MediaPipe Tasks Vision + Three.js</span>
+                  <span className="text-[10px] text-slate-600 dark:text-[#A0AEC0] block font-mono">MediaPipe Tasks Vision + Three.js</span>
                 </div>
               </div>
             </div>
@@ -178,12 +196,12 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
 
           {/* TAB 2: DATA FLOW */}
           {activeTab === 'dataflow' && (
-            <div className="space-y-6 animate-in fade-in duration-150">
+            <div className="space-y-6 ejji-animate-fade-up">
               <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-1 text-xs">
                 <h4 className="font-bold text-slate-900 dark:text-[#F8FAFC]">
                   Standard Request Lifecycle (e.g. Text Simplification / Suggest Replies)
                 </h4>
-                <p className="text-slate-500 dark:text-[#8493A8]">
+                <p className="text-slate-600 dark:text-[#A0AEC0]">
                   Illustrates the end-to-end security boundary from the client browser to the protected server and back.
                 </p>
               </div>
@@ -239,14 +257,14 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
                     className="p-3.5 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex items-center justify-between gap-4 text-xs"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-full bg-slate-900 text-white dark:bg-[#19263A] dark:text-[#22D3EE] border border-slate-700 dark:border-[rgba(34,211,238,0.3)] flex items-center justify-center font-bold text-xs shrink-0">
+                      <div className="w-7 h-7 rounded-full bg-slate-900 text-white dark:bg-[#19263A] dark:text-[#43D9E9] border border-slate-700 dark:border-[rgba(67,217,233,0.3)] flex items-center justify-center font-bold text-xs shrink-0">
                         {item.step}
                       </div>
                       <div>
                         <span className="font-bold text-slate-900 dark:text-[#F8FAFC] block">
                           {item.title}
                         </span>
-                        <span className="text-slate-500 dark:text-[#8493A8] text-[11px]">
+                        <span className="text-slate-600 dark:text-[#A0AEC0] text-[11px]">
                           {item.detail}
                         </span>
                       </div>
@@ -262,7 +280,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
 
           {/* TAB 3: ENDPOINTS */}
           {activeTab === 'endpoints' && (
-            <div className="space-y-4 animate-in fade-in duration-150">
+            <div className="space-y-4 ejji-animate-fade-up">
               <div className="grid gap-3">
                 {[
                   {
@@ -296,14 +314,14 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <code className="font-mono font-bold text-[#22D3EE] bg-cyan-500/10 px-2 py-0.5 rounded-[6px]">
+                        <code className="font-mono font-bold text-[#0E7490] dark:text-[#43D9E9] bg-cyan-500/10 px-2 py-0.5 rounded-[6px]">
                           {ep.endpoint}
                         </code>
-                        <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-[6px] bg-purple-500/15 text-purple-600 dark:text-purple-400">
+                        <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-[6px] bg-purple-500/15 text-purple-700 dark:text-purple-400">
                           {ep.model}
                         </span>
                       </div>
-                      <span className="px-2 py-0.5 rounded-[6px] text-[10px] font-semibold uppercase bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                      <span className="px-2 py-0.5 rounded-[6px] text-[10px] font-semibold uppercase bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">
                         Live & Active
                       </span>
                     </div>
@@ -311,7 +329,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
                     <p className="text-slate-700 dark:text-[#B6C2D2]">
                       <strong>Responsibility:</strong> {ep.responsibility}
                     </p>
-                    <p className="text-slate-500 dark:text-[#8493A8] text-[11px]">
+                    <p className="text-slate-600 dark:text-[#A0AEC0] text-[11px]">
                       <strong>Security Controls:</strong> {ep.security}
                     </p>
                   </div>
@@ -322,7 +340,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
 
           {/* TAB 4: FOLDER STRUCTURE */}
           {activeTab === 'structure' && (
-            <div className="space-y-4 animate-in fade-in duration-150">
+            <div className="space-y-4 ejji-animate-fade-up">
               <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-xs text-slate-700 dark:text-[#B6C2D2] space-y-1">
                 <strong className="block text-slate-900 dark:text-[#F8FAFC]">
                   Target Next.js & React App Architecture
@@ -376,17 +394,17 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
 
           {/* TAB 5: ROADMAP */}
           {activeTab === 'roadmap' && (
-            <div className="space-y-4 animate-in fade-in duration-150">
+            <div className="space-y-4 ejji-animate-fade-up">
               <div className="p-4 rounded-[14px] bg-cyan-500/10 border border-cyan-500/20 text-xs flex items-center justify-between">
                 <div>
                   <strong className="text-slate-900 dark:text-[#F8FAFC] block">
                     First Release Status: 16/16 Milestone Tasks Ready
                   </strong>
-                  <span className="text-slate-500 dark:text-[#8493A8]">
+                  <span className="text-slate-600 dark:text-[#A0AEC0]">
                     Phase 1 (Foundation), Phase 2 (Core AI), Phase 3 (Reliability), and Phase 4 (Advanced Features).
                   </span>
                 </div>
-                <span className="px-3 py-1 rounded-[8px] text-xs font-bold bg-[#22D3EE] text-[#080D18]">
+                <span className="px-3 py-1 rounded-[8px] text-xs font-bold bg-[#0E7490] text-white dark:bg-[#43D9E9] dark:text-[#080D18]">
                   100% Ready
                 </span>
               </div>
@@ -402,10 +420,10 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
                     <h5 className="font-bold text-slate-900 dark:text-[#F8FAFC] text-xs">
                       {ph.phase}
                     </h5>
-                    <ul className="space-y-1 text-slate-600 dark:text-[#8493A8] text-[11px]">
+                    <ul className="space-y-1 text-slate-600 dark:text-[#A0AEC0] text-[11px]">
                       {ph.tasks.map((t, tIdx) => (
                         <li key={tIdx} className="flex items-center gap-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" />
                           <span>{t}</span>
                         </li>
                       ))}
@@ -418,15 +436,16 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 sm:p-5 border-t border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex flex-wrap items-center justify-between gap-3 bg-slate-50 dark:bg-[#080D18] text-xs text-slate-500 dark:text-[#8493A8]">
+        <div className="p-4 sm:p-5 border-t border-slate-200 dark:border-[#253448] flex flex-wrap items-center justify-between gap-3 bg-slate-50 dark:bg-[#080D18] text-xs text-slate-600 dark:text-[#A0AEC0]">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
             <span>EjjiLink AI · Phase 1 + 2 Complete Architecture</span>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="px-5 py-2 rounded-[10px] bg-slate-900 dark:bg-[#19263A] hover:bg-slate-800 dark:hover:bg-[#1f2f47] text-white font-bold text-xs border border-slate-200 dark:border-[rgba(148,163,184,0.15)] transition-colors cursor-pointer"
+            className="px-5 py-2 rounded-[10px] bg-slate-900 dark:bg-[#172438] hover:bg-slate-800 dark:hover:bg-[#1e2f4a] text-white font-semibold text-xs border border-slate-200 dark:border-[#253448] transition-[colors,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] cursor-pointer"
           >
             Close Architecture
           </button>

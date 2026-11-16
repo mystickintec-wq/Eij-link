@@ -3,29 +3,38 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  /* Design Tokens — Dark Futuristic Accessibility */
+  /* Design Tokens — Light & Dark Accessibility Shell */
   --bg-primary: #f8fafc;
   --bg-secondary: #f1f5f9;
   --surface-elevated: #ffffff;
   --surface-interactive: #e2e8f0;
-  
-  --accent-cyan: #06b6d4;
-  --accent-teal: #0d9488;
-  --accent-violet: #7c3aed;
-  --accent-blue: #3b82f6;
+
+  --ejji-bg: #f8fafc;
+  --ejji-surface: #ffffff;
+  --ejji-elevated: #f1f5f9;
+  --ejji-accent: #0E7490;
+  --ejji-accent-secondary: #4F46E5;
+  --ejji-text: #0f172a;
+  --ejji-text-secondary: #475569;
+  --ejji-border: #cbd5e1;
+
+  --accent-cyan: #0E7490;
+  --accent-teal: #0F766E;
+  --accent-violet: #4F46E5;
+  --accent-blue: #2563EB;
 
   --text-primary: #0f172a;
   --text-secondary: #475569;
-  --text-muted: #64748b;
-  --text-disabled: #94a3b8;
+  --text-muted: #475569;
+  --text-disabled: #64748b;
 
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-error: #ef4444;
   --color-info: #3b82f6;
 
-  --border-default: rgba(148, 163, 184, 0.2);
-  --border-emphasis: rgba(6, 182, 212, 0.4);
+  --border-default: rgba(148, 163, 184, 0.25);
+  --border-emphasis: rgba(67, 217, 233, 0.45);
 
   --radius-sm: 8px;
   --radius-btn: 10px;
@@ -36,17 +45,26 @@
 
 html.dark {
   --bg-primary: #080D18;
-  --bg-secondary: #0D1422;
-  --surface-elevated: #121C2D;
-  --surface-interactive: #19263A;
+  --bg-secondary: #101C2C;
+  --surface-elevated: #172438;
+  --surface-interactive: #1E2E46;
 
-  --accent-cyan: #22D3EE;
+  --ejji-bg: #080D18;
+  --ejji-surface: #101C2C;
+  --ejji-elevated: #172438;
+  --ejji-accent: #43D9E9;
+  --ejji-accent-secondary: #8585FF;
+  --ejji-text: #F4F7FB;
+  --ejji-text-secondary: #A0AEC0;
+  --ejji-border: #253448;
+
+  --accent-cyan: #43D9E9;
   --accent-teal: #2DD4BF;
-  --accent-violet: #8B5CF6;
+  --accent-violet: #8585FF;
   --accent-blue: #60A5FA;
 
-  --text-primary: #F8FAFC;
-  --text-secondary: #B6C2D2;
+  --text-primary: #F4F7FB;
+  --text-secondary: #A0AEC0;
   --text-muted: #8493A8;
   --text-disabled: #64748B;
 
@@ -55,8 +73,8 @@ html.dark {
   --color-error: #F87171;
   --color-info: #60A5FA;
 
-  --border-default: rgba(148, 163, 184, 0.12);
-  --border-emphasis: rgba(34, 211, 238, 0.35);
+  --border-default: #253448;
+  --border-emphasis: rgba(67, 217, 233, 0.4);
 }
 
 @layer base {
@@ -66,7 +84,7 @@ html.dark {
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Inter', -apple-system, sans-serif;
+    font-family: 'Space Grotesk', 'Inter', 'Noto Sans Ethiopic', -apple-system, sans-serif;
     letter-spacing: -0.02em;
     font-weight: 700;
   }
@@ -80,17 +98,25 @@ html.dark {
 
   html.dark body {
     background-color: #080D18;
-    color: #F8FAFC;
+    color: #F4F7FB;
+  }
+
+  code, pre, kbd, .font-mono {
+    font-family: 'JetBrains Mono', 'Noto Sans Ethiopic', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  button, input, select, textarea {
+    font-family: 'Inter', 'Noto Sans Ethiopic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 }
 
 .font-display {
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: 'Space Grotesk', 'Inter', 'Noto Sans Ethiopic', sans-serif;
   letter-spacing: -0.03em;
 }
 
 .font-heading {
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family: 'Space Grotesk', 'Inter', 'Noto Sans Ethiopic', sans-serif;
   letter-spacing: -0.02em;
 }
 
@@ -138,6 +164,104 @@ html.dark ::-webkit-scrollbar-thumb {
 
 /* Focus indicator standard */
 *:focus-visible {
-  outline: 2px solid #22D3EE;
+  outline: 2px solid var(--ejji-accent);
   outline-offset: 2px;
+}
+
+/* Purposeful Compositor-Only Motion System (OriginKit-inspired, reduced-motion safe) */
+@keyframes ejji-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ejji-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.975) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes ejji-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes ejji-drawer-in {
+  from {
+    opacity: 0.7;
+    transform: translateX(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes ejji-dock-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ejji-animate-fade-up {
+  animation: ejji-fade-up 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ejji-animate-modal {
+  animation: ejji-modal-in 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ejji-animate-toast {
+  animation: ejji-toast-in 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ejji-animate-drawer {
+  animation: ejji-drawer-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ejji-animate-dock {
+  animation: ejji-dock-in 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .ejji-animate-fade-up,
+  .ejji-animate-modal,
+  .ejji-animate-toast,
+  .ejji-animate-drawer,
+  .ejji-animate-dock {
+    animation: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

@@ -1,18 +1,29 @@
 import React, { useState } from 'react';
-import { 
-  Languages, 
-  ArrowLeftRight, 
-  Volume2, 
-  Copy, 
-  Check, 
-  RefreshCw, 
-  Sparkles, 
-  AlertCircle
+import {
+  Languages,
+  ArrowLeftRight,
+  Volume2,
+  Copy,
+  Check,
+  Sparkles,
 } from 'lucide-react';
 import { translationService } from '../services/translationService';
 import { TranslateResponse } from '../types';
 import { speechService } from '../services/speechService';
 import { useCommunication } from '../context/CommunicationContext';
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  IconButton,
+  LoadingState,
+  SelectField,
+  StatusBadge,
+  TextArea,
+  WorkspaceHeader,
+  useToast,
+} from './ui';
 
 const SUPPORTED_LANGUAGES = [
   { code: 'en', name: 'English', script: 'Latin' },
@@ -44,6 +55,7 @@ export const TranslationWorkspace: React.FC = () => {
   const [isCopied, setIsCopied] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const { setCommunicationState } = useCommunication();
+  const { showToast } = useToast();
 
   const handleTranslate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -84,6 +96,7 @@ export const TranslationWorkspace: React.FC = () => {
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
     setIsCopied(true);
+    showToast('Translation copied to clipboard', 'success');
     setTimeout(() => setIsCopied(false), 2500);
   };
 
@@ -110,240 +123,225 @@ export const TranslationWorkspace: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Workspace Header Panel */}
-      <div className="p-6 rounded-[18px] bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-[10px] bg-[#22D3EE]/10 text-[#22D3EE] flex items-center justify-center shrink-0">
-            <Languages className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC]">
-                Universal Text & Speech Translation
-              </h2>
-            </div>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-[#8493A8] mt-0.5">
-              High-accuracy translation between Ethiopian languages (Amharic Ge'ez, Afaan Oromoo, Tigrinya) and world languages with phonetic transcription.
-            </p>
-          </div>
-        </div>
+      <WorkspaceHeader
+        title="Universal Text & Speech Translation"
+        description="High-accuracy translation between Ethiopian languages (Amharic Ge'ez, Afaan Oromoo, Tigrinya) and world languages with phonetic pronunciation."
+        icon={<Languages className="w-5 h-5" />}
+        accent="cyan"
+        meta={
+          <StatusBadge tone="info">Amharic · English · Oromoo · Tigrinya</StatusBadge>
+        }
+      />
 
-        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-[#8493A8]">
-          <span className="font-mono text-[#22D3EE]">Gemini 3.8 Flash</span>
-          <span aria-hidden="true">·</span>
-          <span>Neural Engine</span>
-        </div>
-      </div>
-
-      <div className="grid lg:grid-cols-12 gap-6">
+      <div className="grid lg:grid-cols-12 gap-6 items-start">
         {/* Source Language Column */}
         <div className="lg:col-span-6 space-y-4">
-          <div className="p-6 rounded-[18px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-sm space-y-4">
-            
-            {/* Language Selection Header with Swap */}
-            <div className="flex items-end justify-between gap-3 pb-3 border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
-              <div className="flex-1">
-                <label className="text-xs font-semibold text-slate-700 dark:text-[#B6C2D2] block mb-1.5">Source Language</label>
-                <select
-                  value={sourceLang}
-                  onChange={(e) => setSourceLang(e.target.value)}
-                  className="w-full min-h-[44px] bg-slate-50 dark:bg-[#080D18] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] rounded-[10px] px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/30 focus:border-[#22D3EE]"
-                >
-                  <option value="auto">Auto-Detect</option>
-                  {SUPPORTED_LANGUAGES.map((l) => (
-                    <option key={l.code} value={l.code}>
-                      {l.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <Card padding="md" className="space-y-4">
+            <div className="flex items-end justify-between gap-2.5 pb-4 border-b border-slate-200 dark:border-[#253448]">
+              <SelectField
+                label="Source Language"
+                containerClassName="flex-1"
+                value={sourceLang}
+                onChange={(e) => setSourceLang(e.target.value)}
+              >
+                <option value="auto">Auto-Detect</option>
+                {SUPPORTED_LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.name}
+                  </option>
+                ))}
+              </SelectField>
 
-              <button
-                type="button"
+              <IconButton
+                variant="secondary"
+                size="md"
                 onClick={handleSwapLanguages}
-                className="w-11 h-11 rounded-[10px] bg-slate-100 dark:bg-[#19263A] hover:bg-slate-200 dark:hover:bg-[#1E2E44] text-slate-700 dark:text-[#B6C2D2] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                title="Swap source and target languages"
-                aria-label="Swap languages"
+                disabled={sourceLang === 'auto'}
+                label="Swap source and target languages"
               >
                 <ArrowLeftRight className="w-4 h-4" />
-              </button>
+              </IconButton>
 
-              <div className="flex-1">
-                <label className="text-xs font-semibold text-slate-700 dark:text-[#B6C2D2] block mb-1.5">Target Language</label>
-                <select
-                  value={targetLang}
-                  onChange={(e) => setTargetLang(e.target.value)}
-                  className="w-full min-h-[44px] bg-slate-50 dark:bg-[#080D18] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] rounded-[10px] px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 dark:text-[#F8FAFC] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/30 focus:border-[#22D3EE]"
+              <SelectField
+                label="Target Language"
+                containerClassName="flex-1"
+                value={targetLang}
+                onChange={(e) => setTargetLang(e.target.value)}
+              >
+                {SUPPORTED_LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.name}
+                  </option>
+                ))}
+              </SelectField>
+            </div>
+
+            <TextArea
+              label="Source Text"
+              headerRight={`${inputText.length} / 5,000 chars`}
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              rows={6}
+              placeholder="Type or paste text here to translate..."
+              className="font-ethiopic"
+            />
+
+            {inputText && (
+              <div className="flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleSpeak(inputText, sourceLang)}
+                  leftIcon={<Volume2 className="w-3.5 h-3.5" />}
                 >
-                  {SUPPORTED_LANGUAGES.map((l) => (
-                    <option key={l.code} value={l.code}>
-                      {l.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Input Textarea */}
-            <div>
-              <textarea
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                rows={6}
-                placeholder="Type or paste text here to translate..."
-                className="w-full bg-slate-50 dark:bg-[#080D18] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] rounded-[10px] p-4 text-sm text-slate-900 dark:text-[#F8FAFC] focus:ring-2 focus:ring-[#22D3EE]/30 focus:border-[#22D3EE] focus:outline-none resize-none leading-relaxed placeholder:text-[#8493A8]"
-              />
-              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#8493A8] px-1 pt-1.5">
-                <span className="font-mono tabular-nums">{inputText.length} / 5,000 characters</span>
-                {inputText && (
-                  <button
-                    onClick={() => handleSpeak(inputText, sourceLang)}
-                    className="flex items-center gap-1 hover:text-[#22D3EE] text-slate-600 dark:text-[#B6C2D2] transition-colors cursor-pointer"
-                  >
-                    <Volume2 className="w-3.5 h-3.5" /> Speak Input
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {error && (
-              <div className="p-3.5 rounded-[10px] bg-red-500/10 border border-red-500/20 text-[#F87171] text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
+                  Speak Source Input
+                </Button>
               </div>
             )}
 
-            {/* Action Bar */}
+            {error && (
+              <ErrorState
+                title="Translation failed"
+                message={error}
+                onRetry={() => handleTranslate()}
+              />
+            )}
+
             <div className="flex items-center justify-between pt-1">
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="md"
                 onClick={() => {
                   setInputText('');
                   setResult(null);
                   setError(null);
                 }}
                 disabled={!inputText}
-                className="h-10 px-4 rounded-[10px] text-xs font-medium text-slate-500 dark:text-[#8493A8] hover:text-slate-900 dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#19263A] transition-colors disabled:opacity-40 cursor-pointer"
               >
                 Clear
-              </button>
+              </Button>
 
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                size="md"
                 onClick={() => handleTranslate()}
-                disabled={isLoading || !inputText.trim()}
-                className="h-10 px-5 rounded-[10px] bg-[#22D3EE] hover:bg-[#2DD4BF] text-[#080D18] font-semibold text-xs sm:text-sm flex items-center gap-2 transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
+                isLoading={isLoading}
+                disabled={!inputText.trim()}
+                leftIcon={<Sparkles className="w-4 h-4" />}
               >
-                {isLoading ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Translating...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Translate Now</span>
-                  </>
-                )}
-              </button>
+                {isLoading ? 'Translating...' : 'Translate Now'}
+              </Button>
             </div>
-          </div>
+          </Card>
 
-          {/* Quick Presets */}
-          <div className="p-5 rounded-[18px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2.5">
-            <span className="text-xs font-semibold text-slate-700 dark:text-[#B6C2D2] block">
-              Common Ethiopian Expressions:
+          <Card padding="md" className="space-y-3">
+            <span className="text-xs font-semibold text-slate-800 dark:text-[#F4F7FB] block">
+              Common Ethiopian & Global Expressions
             </span>
             <div className="flex flex-wrap gap-2">
               {PRESET_PHRASES.map((phrase, idx) => (
                 <button
                   key={idx}
+                  type="button"
                   onClick={() => {
                     setInputText(phrase.text);
                     setResult(null);
                   }}
-                  className="px-3 py-1.5 rounded-[8px] bg-slate-50 dark:bg-[#0D1422] hover:bg-[#22D3EE]/10 border border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-xs text-slate-700 dark:text-[#B6C2D2] hover:text-[#22D3EE] transition-colors cursor-pointer"
+                  className="min-h-[36px] px-3 py-1.5 rounded-[8px] bg-slate-50 dark:bg-[#172438] hover:border-[#0E7490]/50 dark:hover:border-[#43D9E9]/50 border border-slate-200 dark:border-[#253448] text-xs text-slate-700 dark:text-[#F4F7FB] font-ethiopic transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
                 >
                   {phrase.text}
                 </button>
               ))}
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* Translation Output Column */}
         <div className="lg:col-span-6 space-y-4">
-          <div className="p-6 rounded-[18px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-sm space-y-4 min-h-[360px] flex flex-col justify-between">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)] pb-3">
-                <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${result ? 'bg-[#34D399]' : 'bg-slate-400 dark:bg-[#64748B]'}`} />
-                  <span className="text-xs font-semibold text-slate-900 dark:text-[#F8FAFC]">
+          {isLoading ? (
+            <LoadingState
+              title="Translating text..."
+              description="Resolving meaning, Ge'ez script, and phonetic pronunciation."
+              className="min-h-[360px]"
+            />
+          ) : (
+            <Card padding="md" className="space-y-4 min-h-[360px] flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-2 border-b border-slate-200 dark:border-[#253448] pb-3.5">
+                  <StatusBadge tone={result ? 'success' : 'neutral'}>
                     Translation Output
-                  </span>
+                  </StatusBadge>
+                  {result?.detectedSourceLang && (
+                    <span className="text-xs font-mono text-slate-600 dark:text-[#A0AEC0]">
+                      Detected: {result.detectedSourceLang}
+                    </span>
+                  )}
                 </div>
-                {result?.detectedSourceLang && (
-                  <span className="text-xs text-slate-500 dark:text-[#8493A8]">
-                    Detected: {result.detectedSourceLang}
-                  </span>
+
+                {result ? (
+                  <div className="space-y-4">
+                    <div className="p-5 rounded-[12px] bg-slate-50 dark:bg-[#172438] border border-slate-200 dark:border-[#253448] space-y-3">
+                      <p className="text-base sm:text-lg font-medium text-slate-900 dark:text-[#F4F7FB] leading-relaxed font-ethiopic">
+                        {result.translatedText}
+                      </p>
+
+                      {result.phoneticPronunciation && (
+                        <div className="p-3 rounded-[10px] bg-white dark:bg-[#101C2C] border border-slate-200 dark:border-[#253448]">
+                          <span className="text-[11px] text-slate-600 dark:text-[#A0AEC0] font-semibold block mb-0.5">
+                            Phonetic Pronunciation
+                          </span>
+                          <p className="text-xs font-mono text-[#0E7490] dark:text-[#43D9E9]">
+                            {result.phoneticPronunciation}
+                          </p>
+                        </div>
+                      )}
+
+                      {result.notes && (
+                        <p className="text-xs text-slate-600 dark:text-[#A0AEC0] italic">
+                          "{result.notes}"
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={<Languages className="w-5 h-5" />}
+                    title="Ready to Translate"
+                    description="Enter text or choose a common expression on the left to translate with phonetic pronunciation and audio playback."
+                    className="my-4"
+                  />
                 )}
               </div>
 
-              {result ? (
-                <div className="space-y-4 animate-in fade-in duration-200">
-                  {/* Translated Text Container */}
-                  <div className="p-5 rounded-[14px] bg-slate-50 dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-3">
-                    <p className="text-base sm:text-lg font-medium text-slate-900 dark:text-[#F8FAFC] leading-relaxed">
-                      {result.translatedText}
-                    </p>
+              {result && (
+                <div className="flex items-center justify-between gap-2 pt-4 border-t border-slate-200 dark:border-[#253448]">
+                  <Button
+                    variant="secondary"
+                    size="md"
+                    onClick={() => handleSpeak(result.translatedText, targetLang)}
+                    leftIcon={<Volume2 className="w-4 h-4 text-[#0E7490] dark:text-[#43D9E9]" />}
+                  >
+                    {isSpeaking ? 'Speaking...' : 'Listen to Audio'}
+                  </Button>
 
-                    {result.phoneticPronunciation && (
-                      <div className="p-3 rounded-[10px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
-                        <span className="text-[11px] text-slate-500 dark:text-[#8493A8] font-semibold block mb-0.5">
-                          Phonetic Pronunciation:
-                        </span>
-                        <p className="text-xs font-mono text-[#22D3EE]">
-                          {result.phoneticPronunciation}
-                        </p>
-                      </div>
-                    )}
-
-                    {result.notes && (
-                      <p className="text-xs text-slate-500 dark:text-[#8493A8] italic">
-                        "{result.notes}"
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="py-16 text-center text-slate-400 dark:text-[#8493A8] space-y-3">
-                  <Languages className="w-10 h-10 mx-auto opacity-30" />
-                  <p className="text-xs font-medium">Your translated text will appear here.</p>
+                  <Button
+                    variant="secondary"
+                    size="md"
+                    onClick={() => handleCopy(result.translatedText)}
+                    leftIcon={
+                      isCopied ? (
+                        <Check className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )
+                    }
+                  >
+                    {isCopied ? 'Copied' : 'Copy Translation'}
+                  </Button>
                 </div>
               )}
-            </div>
-
-            {/* Bottom Actions */}
-            {result && (
-              <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
-                <button
-                  onClick={() => handleSpeak(result.translatedText, targetLang)}
-                  className="h-10 px-4 rounded-[10px] bg-slate-100 dark:bg-[#19263A] hover:bg-slate-200 dark:hover:bg-[#1E2E44] text-[#22D3EE] text-xs font-medium border border-slate-200 dark:border-[rgba(148,163,184,0.15)] flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <Volume2 className="w-4 h-4" />
-                  <span>{isSpeaking ? 'Speaking...' : 'Listen to Audio'}</span>
-                </button>
-
-                <button
-                  onClick={() => handleCopy(result.translatedText)}
-                  className="h-10 px-4 rounded-[10px] bg-slate-100 dark:bg-[#19263A] hover:bg-slate-200 dark:hover:bg-[#1E2E44] text-slate-800 dark:text-[#F8FAFC] text-xs font-medium border border-slate-200 dark:border-[rgba(148,163,184,0.15)] flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  {isCopied ? <Check className="w-4 h-4 text-[#34D399]" /> : <Copy className="w-4 h-4" />}
-                  <span>{isCopied ? 'Copied' : 'Copy'}</span>
-                </button>
-              </div>
-            )}
-          </div>
+            </Card>
+          )}
         </div>
       </div>
     </div>

@@ -1,17 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-  Hand, 
-  Mic, 
-  MicOff, 
-  Search, 
-  Volume2, 
-  Sparkles, 
-  ArrowRight, 
-  CheckCircle2, 
-  AlertCircle, 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Hand,
+  Mic,
+  MicOff,
+  Volume2,
+  Sparkles,
+  ArrowRight,
+  CheckCircle2,
   RotateCcw,
-  Layers,
-  BookOpen,
   Activity,
   ListChecks,
   Radio,
@@ -21,15 +17,22 @@ import {
   HeartHandshake,
   Languages,
   Clock,
-  ShieldCheck
 } from 'lucide-react';
 import { GestureKey, SignSequence, LandmarkPoint } from '../types';
-import { GESTURE_DEFINITIONS, GESTURE_LIST } from '../data/gestures';
+import { GESTURE_DEFINITIONS } from '../data/gestures';
 import { SIGN_SEQUENCES, findSequencesByScenario } from '../data/signSequences';
 import { TranslatorStudio } from './TranslatorStudio';
 import { ThreeDHandViewer } from './ThreeDHandViewer';
 import { speechService } from '../services/speechService';
 import { geminiVoiceRecorder, TranscriptionResult } from '../services/transcribeService';
+import {
+  Alert,
+  Button,
+  Card,
+  SearchInput,
+  StatusBadge,
+  WorkspaceHeader,
+} from './ui';
 
 interface TwoWayWorkspaceProps {
   activeGestureKey: GestureKey | 'neutral';
@@ -406,168 +409,183 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
   const matchedDef = matchStatus.matchedKey ? GESTURE_DEFINITIONS[matchStatus.matchedKey] : null;
 
   return (
-    <section id="communication-workspace" className="py-8 scroll-mt-20">
-      {/* Workspace Navigation Tabs (Mode A vs Mode B) */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
-        <div>
-          <span className="text-xs font-semibold text-[#22D3EE] uppercase tracking-wider block mb-1">
-            Dual-Direction Accessibility Suite
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
-            Two-Way Communication Workspace
-          </h2>
-        </div>
-
-        {/* Mode Selector Buttons — Segmented Control Standard */}
-        <div className="flex items-center gap-1 p-1 rounded-[10px] bg-slate-100 dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-xs">
-          <button
-            onClick={() => setActiveTab('hands-to-voice')}
-            className={`px-3.5 py-2 rounded-[8px] font-semibold text-xs flex items-center gap-2 transition-colors cursor-pointer ${
-              activeTab === 'hands-to-voice'
-                ? 'bg-[#22D3EE] text-[#080D18] shadow-xs'
-                : 'text-slate-600 dark:text-[#B6C2D2] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
-            }`}
+    <div id="communication-workspace" className="space-y-6 scroll-mt-20">
+      {/* Unified Workspace Header with Accessible Segmented Mode Tabs */}
+      <WorkspaceHeader
+        title="Two-Way Communication"
+        description="Switch smoothly between live sign-to-voice camera recognition and spoken or typed phrase translation onto the 3D hand rig."
+        icon={<Languages className="w-5 h-5" />}
+        accent="cyan"
+        actions={
+          <div
+            role="tablist"
+            aria-label="Communication Direction"
+            className="flex items-center gap-1 p-1 rounded-[12px] bg-slate-100 dark:bg-[#172438] border border-slate-200 dark:border-[#253448]"
           >
-            <Hand className="w-4 h-4" />
-            <span>Mode A: Hands to Voice</span>
-          </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'hands-to-voice'}
+              onClick={() => setActiveTab('hands-to-voice')}
+              className={`min-h-[38px] px-3.5 py-2 rounded-[8px] font-semibold text-xs flex items-center gap-2 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                activeTab === 'hands-to-voice'
+                  ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18] shadow-xs'
+                  : 'text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB]'
+              }`}
+            >
+              <Hand className="w-4 h-4" aria-hidden="true" />
+              <span>Hands to Voice</span>
+            </button>
 
-          <button
-            onClick={() => setActiveTab('voice-to-hands')}
-            className={`px-3.5 py-2 rounded-[8px] font-semibold text-xs flex items-center gap-2 transition-colors cursor-pointer ${
-              activeTab === 'voice-to-hands'
-                ? 'bg-[#22D3EE] text-[#080D18] shadow-xs'
-                : 'text-slate-600 dark:text-[#B6C2D2] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
-            }`}
-          >
-            <Mic className="w-4 h-4" />
-            <span>Mode B: Voice/Text to 3D Hands</span>
-          </button>
-        </div>
-      </div>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'voice-to-hands'}
+              onClick={() => setActiveTab('voice-to-hands')}
+              className={`min-h-[38px] px-3.5 py-2 rounded-[8px] font-semibold text-xs flex items-center gap-2 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                activeTab === 'voice-to-hands'
+                  ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18] shadow-xs'
+                  : 'text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB]'
+              }`}
+            >
+              <Mic className="w-4 h-4" aria-hidden="true" />
+              <span>Voice / Text to 3D</span>
+            </button>
+          </div>
+        }
+      />
 
-      {/* Real-time Bilingual UI Status Updates & Confirmation Hub */}
+      {/* Real-time Bilingual Confirmation Status Hub */}
       {currentDef && (
-        <div 
-          role="region" 
-          aria-label="Bilingual Gesture Confirmation Status" 
-          className="mb-6 p-4 sm:p-5 rounded-[14px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-sm space-y-3"
+        <Card
+          role="region"
+          aria-label="Bilingual Gesture Confirmation Status"
+          padding="md"
+          className="space-y-4"
         >
-          {/* Header row: Status badge & timestamp */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-100 dark:border-[rgba(148,163,184,0.1)] text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200 dark:border-[#253448] text-xs">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#34D399] animate-pulse" />
-              <span className="font-semibold text-slate-900 dark:text-[#F8FAFC] uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                <Languages className="w-3.5 h-3.5 text-[#22D3EE]" />
-                Bilingual Confirmation Status · የሁለትዮሽ ምልክት ማረጋገጫ
+              <StatusBadge tone="success" icon={<CheckCircle2 className="w-3.5 h-3.5" />}>
+                Bilingual Confirmation
+              </StatusBadge>
+              <span className="font-ethiopic text-slate-600 dark:text-[#A0AEC0] text-xs">
+                የሁለትዮሽ ምልክት ማረጋገጫ
               </span>
             </div>
 
-            <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-[#8493A8]">
-              <span className="px-2 py-0.5 rounded-[6px] bg-slate-100 dark:bg-[#19263A] text-slate-700 dark:text-[#B6C2D2] border border-slate-200 dark:border-[rgba(148,163,184,0.1)] capitalize">
-                Source: {bilingualStatus.source === 'camera' ? 'Camera Vision' : bilingualStatus.source === 'voice' ? 'Voice Input' : bilingualStatus.source === 'text' ? 'Text Query' : 'Active Selection'}
-              </span>
-              <span className="flex items-center gap-1 font-mono">
-                <Clock className="w-3 h-3 text-slate-400" />
+            <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-[#A0AEC0]">
+              <StatusBadge tone="neutral">
+                {bilingualStatus.source === 'camera'
+                  ? 'Camera Vision'
+                  : bilingualStatus.source === 'voice'
+                  ? 'Voice Input'
+                  : bilingualStatus.source === 'text'
+                  ? 'Text Query'
+                  : 'Active Selection'}
+              </StatusBadge>
+              <span className="flex items-center gap-1 font-mono tabular-nums text-[11px]">
+                <Clock className="w-3 h-3" aria-hidden="true" />
                 {bilingualStatus.timestamp}
               </span>
             </div>
           </div>
 
-          {/* Bilingual Status Columns (English & Amharic side-by-side) */}
-          <div className="grid md:grid-cols-2 gap-3.5">
+          <div className="grid md:grid-cols-2 gap-4">
             {/* English Confirmation Card */}
-            <div className="p-3.5 rounded-[10px] bg-slate-50 dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.1)] flex flex-col justify-between space-y-2">
+            <div className="p-4 rounded-[12px] bg-slate-50 dark:bg-[#172438] border border-slate-200 dark:border-[#253448] flex flex-col justify-between space-y-3">
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#22D3EE] flex items-center gap-1">
-                    🇬🇧 English Confirmation
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#0E7490] dark:text-[#43D9E9]">
+                    English Output
                   </span>
-                  <span className="text-[11px] font-mono text-slate-400 dark:text-[#8493A8]">
+                  <span className="text-[11px] font-mono text-slate-600 dark:text-[#A0AEC0]">
                     {CATEGORY_TRANSLATIONS[currentDef.category]?.en || currentDef.category}
                   </span>
                 </div>
-                <div className="text-base font-bold text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2">
-                  <span>{currentDef.emoji}</span>
+                <div className="text-base font-bold text-slate-900 dark:text-[#F4F7FB] flex items-center gap-2">
+                  <span aria-hidden="true">{currentDef.emoji}</span>
                   <span>{currentDef.labelEn}</span>
-                  <CheckCircle2 className="w-4 h-4 text-[#34D399] shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" aria-hidden="true" />
                 </div>
-                <p className="text-xs text-slate-600 dark:text-[#B6C2D2] mt-1 leading-snug">
+                <p className="text-xs text-slate-700 dark:text-[#A0AEC0] mt-1 leading-snug">
                   {bilingualStatus.messageEn}
                 </p>
-                <p className="text-[11px] text-slate-500 dark:text-[#8493A8] mt-0.5">
+                <p className="text-[11px] text-slate-600 dark:text-[#A0AEC0] mt-0.5">
                   {bilingualStatus.subMessageEn}
                 </p>
               </div>
 
-              <div className="pt-2 border-t border-slate-200/60 dark:border-[rgba(148,163,184,0.08)] flex items-center justify-between">
-                <span className="text-[11px] text-slate-500 dark:text-[#8493A8]">
-                  Confidence: <strong className="text-slate-800 dark:text-[#F8FAFC]">&gt;80% Locked</strong>
+              <div className="pt-2.5 border-t border-slate-200 dark:border-[#253448] flex items-center justify-between gap-2">
+                <span className="text-[11px] text-slate-600 dark:text-[#A0AEC0]">
+                  Status: <strong className="text-slate-900 dark:text-[#F4F7FB]">Calibrated</strong>
                 </span>
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => speechService.speak(currentDef, 'en-US')}
-                  className="px-2.5 py-1 rounded-[6px] bg-white dark:bg-[#121C2D] hover:bg-slate-100 dark:hover:bg-[#19263A] text-slate-700 dark:text-[#B6C2D2] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] text-[11px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
-                  title="Speak English Confirmation"
+                  leftIcon={<Volume2 className="w-3.5 h-3.5 text-[#0E7490] dark:text-[#43D9E9]" />}
                 >
-                  <Volume2 className="w-3 h-3 text-[#22D3EE]" />
-                  <span>Speak (EN)</span>
-                </button>
+                  Speak (EN)
+                </Button>
               </div>
             </div>
 
             {/* Amharic Confirmation Card */}
-            <div className="p-3.5 rounded-[10px] bg-slate-50 dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.1)] flex flex-col justify-between space-y-2">
+            <div className="p-4 rounded-[12px] bg-slate-50 dark:bg-[#172438] border border-slate-200 dark:border-[#253448] flex flex-col justify-between space-y-3">
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#2DD4BF] flex items-center gap-1 font-ethiopic">
-                    🇪🇹 የአማርኛ ማረጋገጫ (Amharic)
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 font-ethiopic">
+                    የአማርኛ ውጤት (Amharic)
                   </span>
-                  <span className="text-[11px] text-[#2DD4BF] font-ethiopic">
+                  <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-ethiopic">
                     {CATEGORY_TRANSLATIONS[currentDef.category]?.am || currentDef.category}
                   </span>
                 </div>
-                <div className="text-base font-bold text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2">
-                  <span className="text-xl font-ethiopic text-[#22D3EE]">{currentDef.labelAm}</span>
-                  <span className="text-xs font-normal text-slate-400 dark:text-[#8493A8]">({currentDef.phoneticAm})</span>
-                  <CheckCircle2 className="w-4 h-4 text-[#34D399] shrink-0" />
+                <div className="text-base font-bold text-slate-900 dark:text-[#F4F7FB] flex items-center gap-2">
+                  <span className="text-xl font-ethiopic text-[#0E7490] dark:text-[#43D9E9]">
+                    {currentDef.labelAm}
+                  </span>
+                  <span className="text-xs font-normal text-slate-600 dark:text-[#A0AEC0]">
+                    ({currentDef.phoneticAm})
+                  </span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" aria-hidden="true" />
                 </div>
-                <p className="text-xs text-slate-600 dark:text-[#B6C2D2] mt-1 leading-snug font-ethiopic">
+                <p className="text-xs text-slate-700 dark:text-[#A0AEC0] mt-1 leading-snug font-ethiopic">
                   {bilingualStatus.messageAm}
                 </p>
-                <p className="text-[11px] text-slate-500 dark:text-[#8493A8] mt-0.5 font-ethiopic">
+                <p className="text-[11px] text-slate-600 dark:text-[#A0AEC0] mt-0.5 font-ethiopic">
                   {bilingualStatus.subMessageAm}
                 </p>
               </div>
 
-              <div className="pt-2 border-t border-slate-200/60 dark:border-[rgba(148,163,184,0.08)] flex items-center justify-between">
-                <span className="text-[11px] text-slate-500 dark:text-[#8493A8] font-ethiopic">
-                  አነባበብ፦ <strong className="text-slate-800 dark:text-[#F8FAFC] font-mono">{currentDef.phoneticAm}</strong>
+              <div className="pt-2.5 border-t border-slate-200 dark:border-[#253448] flex items-center justify-between gap-2">
+                <span className="text-[11px] text-slate-600 dark:text-[#A0AEC0] font-ethiopic">
+                  አነባበብ፦ <strong className="text-slate-900 dark:text-[#F4F7FB] font-mono">{currentDef.phoneticAm}</strong>
                 </span>
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => speechService.speak(currentDef, 'am-ET')}
-                  className="px-2.5 py-1 rounded-[6px] bg-white dark:bg-[#121C2D] hover:bg-slate-100 dark:hover:bg-[#19263A] text-slate-700 dark:text-[#B6C2D2] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] text-[11px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
-                  title="Speak Amharic Confirmation"
+                  leftIcon={<Volume2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />}
+                  className="font-ethiopic"
                 >
-                  <Volume2 className="w-3 h-3 text-[#2DD4BF]" />
-                  <span className="font-ethiopic">አማርኛ አሰማ (AM)</span>
-                </button>
+                  አማርኛ አሰማ (AM)
+                </Button>
               </div>
             </div>
           </div>
 
-          {/* Screen reader live announcement */}
           <div role="status" aria-live="polite" className="sr-only">
             {bilingualStatus.messageEn}. {bilingualStatus.messageAm}.
           </div>
-        </div>
+        </Card>
       )}
 
-      {/* Tab A Content: Hands to Voice (Camera & Computer Vision) */}
+      {/* Tab A Content: Hands to Voice */}
       {activeTab === 'hands-to-voice' && (
-        <div className="space-y-6">
+        <div role="tabpanel" aria-label="Hands to Voice">
           <TranslatorStudio
+            embedded={true}
             activeGestureKey={activeGestureKey === 'neutral' ? 'hello' : activeGestureKey}
             onGestureRecognized={(key) => handleGestureRecognized(key, 'camera')}
             onLiveLandmarksUpdate={(lms, hand) => {
@@ -578,35 +596,31 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
         </div>
       )}
 
-      {/* Tab B Content: Voice/Text to 3D Hands */}
+      {/* Tab B Content: Voice / Text to 3D Hands */}
       {activeTab === 'voice-to-hands' && (
-        <div className="space-y-6">
-          {/* Input & Phrase Matching Search Box */}
-          <div className="bg-white dark:bg-[#121C2D] rounded-[18px] p-6 sm:p-7 border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-sm space-y-5">
+        <div role="tabpanel" aria-label="Voice and Text to 3D Hands" className="space-y-6">
+          <Card padding="lg" className="space-y-5">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="max-w-2xl space-y-1.5">
-                <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-[#8493A8]">
-                  <span className="font-semibold text-[#22D3EE]">Speech & Text to Sign</span>
-                  <span aria-hidden="true">·</span>
-                  <span>Gemini 3.5 Transcribe</span>
-                </div>
-                <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC]">
+              <div className="max-w-2xl space-y-1">
+                <span className="text-xs font-semibold text-[#0E7490] dark:text-[#43D9E9] uppercase tracking-wider">
+                  Speech & Text to 3D Sign
+                </span>
+                <h3 className="font-heading text-xl font-bold text-slate-900 dark:text-[#F4F7FB]">
                   Translate English or Amharic Speech into 3D Hand Gestures
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-[#B6C2D2]">
-                  Speak into your microphone or type a phrase below. EjjiLink AI matches your input and animates the 3D hand into the corresponding anatomical gesture sequence.
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-[#A0AEC0]">
+                  Speak into your microphone or enter a phrase below to articulate the matching EthSL sign or scenario sequence on the 3D hand rig.
                 </p>
               </div>
 
-              {/* Live Audio Level Meter */}
               {isListening && (
-                <div className="flex items-center gap-2 p-2.5 rounded-[10px] bg-red-500/10 border border-red-500/20 text-[#F87171] text-xs">
-                  <Radio className="w-4 h-4 text-[#F87171]" />
+                <div className="flex items-center gap-2.5 p-2.5 rounded-[10px] bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs shrink-0">
+                  <Radio className="w-4 h-4 shrink-0" aria-hidden="true" />
                   <div>
-                    <div className="font-semibold font-mono text-xs">Audio Level: {audioVolume}%</div>
+                    <div className="font-semibold font-mono tabular-nums">Audio Level: {audioVolume}%</div>
                     <div className="w-24 bg-slate-200 dark:bg-[#080D18] h-1.5 rounded-full overflow-hidden mt-1">
                       <div
-                        className="bg-[#22D3EE] h-full rounded-full transition-all duration-75"
+                        className="bg-[#0E7490] dark:bg-[#43D9E9] h-full rounded-full transition-all duration-75"
                         style={{ width: `${audioVolume}%` }}
                       />
                     </div>
@@ -615,254 +629,200 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
               )}
             </div>
 
-            {/* Input Form */}
-            <form onSubmit={handleFormSubmit} className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  placeholder="Type a phrase (e.g., 'Water please', 'Hello teacher', 'Peace and love', 'Help')..."
-                  className="w-full min-h-[44px] bg-slate-50 dark:bg-[#080D18] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] text-slate-900 dark:text-[#F8FAFC] rounded-[10px] pl-11 pr-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-[#22D3EE]/30 focus:border-[#22D3EE] focus:outline-none transition-colors placeholder:text-[#8493A8]"
-                />
-              </div>
+            <form onSubmit={handleFormSubmit} className="flex flex-col sm:flex-row gap-2.5">
+              <SearchInput
+                aria-label="Enter phrase or Amharic word to animate in 3D"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onClear={() => setInputText('')}
+                placeholder="Type a phrase (e.g., 'Water please', 'Hello teacher', 'Peace', 'Help')..."
+              />
 
-              <div className="flex flex-wrap sm:flex-nowrap gap-2">
-                {/* Background Voice Button */}
-                <button
-                  type="button"
+              <div className="flex flex-wrap sm:flex-nowrap gap-2 shrink-0">
+                <Button
+                  variant={continuousListening ? 'primary' : 'secondary'}
+                  size="lg"
                   onClick={toggleContinuousBackgroundVoice}
-                  className={`h-11 px-4 rounded-[10px] font-medium text-xs flex items-center justify-center gap-2 transition-colors border cursor-pointer ${
-                    continuousListening
-                      ? 'bg-[#22D3EE] text-[#080D18] border-[#22D3EE] font-semibold'
-                      : 'bg-slate-100 dark:bg-[#19263A] hover:bg-slate-200 dark:hover:bg-[#1E2E44] text-slate-700 dark:text-[#B6C2D2] border-slate-200 dark:border-[rgba(148,163,184,0.15)]'
-                  }`}
-                  title="Enable continuous background speech monitoring"
+                  aria-pressed={continuousListening}
+                  leftIcon={<Activity className="w-4 h-4" />}
                 >
-                  <Activity className={`w-4 h-4 ${continuousListening ? 'text-[#080D18]' : 'text-[#22D3EE]'}`} />
-                  <span>{continuousListening ? 'Voice Monitor: ON' : 'Voice Monitor'}</span>
-                </button>
+                  {continuousListening ? 'Voice Monitor: ON' : 'Voice Monitor'}
+                </Button>
 
-                {/* Push to Speak Button */}
-                <button
-                  type="button"
+                <Button
+                  variant={isListening && !continuousListening ? 'danger' : 'secondary'}
+                  size="lg"
                   onClick={togglePushToSpeak}
-                  className={`h-11 px-4 rounded-[10px] font-medium text-xs flex items-center justify-center gap-2 transition-colors border cursor-pointer ${
-                    isListening && !continuousListening
-                      ? 'bg-red-500/10 text-[#F87171] border-red-500/30 font-semibold'
-                      : 'bg-slate-100 dark:bg-[#19263A] hover:bg-slate-200 dark:hover:bg-[#1E2E44] text-slate-700 dark:text-[#B6C2D2] border-slate-200 dark:border-[rgba(148,163,184,0.15)]'
-                  }`}
-                  title="Push to speak"
+                  leftIcon={isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                 >
-                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                  <span>{isListening ? 'Recording...' : 'Push to Speak'}</span>
-                </button>
+                  {isListening ? 'Recording...' : 'Push to Speak'}
+                </Button>
 
-                <button
+                <Button
                   type="submit"
-                  className="h-11 px-5 rounded-[10px] font-semibold text-xs sm:text-sm bg-[#22D3EE] hover:bg-[#2DD4BF] text-[#080D18] shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  variant="primary"
+                  size="lg"
+                  rightIcon={<ArrowRight className="w-4 h-4" />}
                 >
-                  <span>Animate Hand</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+                  Animate Hand
+                </Button>
               </div>
             </form>
 
-            {/* Transcription Status Banner */}
             {transcriptionNotice && (
-              <div className="flex items-center justify-between p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-medium">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                  <span>{transcriptionNotice}</span>
-                </div>
-                <span className="font-mono text-[10px] uppercase font-bold opacity-80">gemini-3.5-transcribe</span>
-              </div>
+              <Alert variant="info" title="Voice Transcription">
+                {transcriptionNotice}
+              </Alert>
             )}
 
-            {/* Three Demonstration Scenarios */}
+            {/* Preset Demonstration Scenarios */}
             <div className="pt-2 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-700 dark:text-[#B6C2D2] flex items-center gap-1.5">
-                  <ListChecks className="w-3.5 h-3.5 text-[#22D3EE]" />
-                  Preset Demonstration Scenarios (Multi-Sign Sequences):
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-slate-700 dark:text-[#F4F7FB] flex items-center gap-1.5">
+                  <ListChecks className="w-4 h-4 text-[#0E7490] dark:text-[#43D9E9]" aria-hidden="true" />
+                  Preset Demonstration Scenarios
                 </span>
-                <span className="text-[11px] text-slate-400 dark:text-[#8493A8]">Click any scenario to animate</span>
+                <span className="text-[11px] text-slate-600 dark:text-[#A0AEC0]">
+                  Select a multi-sign sequence to animate
+                </span>
               </div>
 
               <div className="grid md:grid-cols-3 gap-3">
-                {/* Scenario 1: Classroom */}
-                <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2.5">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-[#22D3EE]">
-                    <GraduationCap className="w-4 h-4" />
-                    <span>1. Classroom Communication</span>
+                {[
+                  {
+                    scenario: 'classroom' as const,
+                    title: '1. Classroom Communication',
+                    icon: <GraduationCap className="w-4 h-4" />,
+                    accentClass: 'text-[#0E7490] dark:text-[#43D9E9]',
+                    activeClass: 'bg-[#0E7490]/10 dark:bg-[#43D9E9]/15 border-[#0E7490] dark:border-[#43D9E9] text-[#0E7490] dark:text-[#43D9E9]',
+                  },
+                  {
+                    scenario: 'service' as const,
+                    title: '2. Everyday Services',
+                    icon: <Coffee className="w-4 h-4" />,
+                    accentClass: 'text-emerald-700 dark:text-emerald-400',
+                    activeClass: 'bg-emerald-500/10 border-emerald-700 dark:border-emerald-500 text-emerald-800 dark:text-emerald-300',
+                  },
+                  {
+                    scenario: 'daily' as const,
+                    title: '3. Daily Communication',
+                    icon: <HeartHandshake className="w-4 h-4" />,
+                    accentClass: 'text-[#4F46E5] dark:text-[#8585FF]',
+                    activeClass: 'bg-[#4F46E5]/10 dark:bg-[#8585FF]/15 border-[#4F46E5] dark:border-[#8585FF] text-[#4F46E5] dark:text-[#8585FF]',
+                  },
+                ].map((group) => (
+                  <div
+                    key={group.scenario}
+                    className="p-4 rounded-[12px] bg-slate-50 dark:bg-[#172438] border border-slate-200 dark:border-[#253448] space-y-2.5"
+                  >
+                    <div className={`flex items-center gap-2 text-xs font-semibold ${group.accentClass}`}>
+                      <span aria-hidden="true">{group.icon}</span>
+                      <span>{group.title}</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {findSequencesByScenario(group.scenario).map((s) => {
+                        const isSelected = selectedSequence?.id === s.id;
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => handleSelectScenarioSequence(s)}
+                            aria-pressed={isSelected}
+                            className={`w-full text-left p-2.5 rounded-[10px] text-xs transition-colors flex items-center justify-between gap-2 border cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                              isSelected
+                                ? group.activeClass
+                                : 'bg-white dark:bg-[#101C2C] text-slate-700 dark:text-[#F4F7FB] border-slate-200 dark:border-[#253448] hover:border-[#0E7490]/50 dark:hover:border-[#43D9E9]/50'
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <div className="font-semibold truncate">{s.titleEn}</div>
+                              <div className={`text-[11px] font-ethiopic ${group.accentClass}`}>{s.titleAm}</div>
+                            </div>
+                            <Play className={`w-3.5 h-3.5 shrink-0 ${group.accentClass}`} aria-hidden="true" />
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    {findSequencesByScenario('classroom').map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() => handleSelectScenarioSequence(s)}
-                        className={`w-full text-left p-2.5 rounded-[8px] text-xs transition-colors flex items-center justify-between border cursor-pointer ${
-                          selectedSequence?.id === s.id
-                            ? 'bg-[#22D3EE]/15 text-[#22D3EE] border-[#22D3EE]/50 font-semibold'
-                            : 'bg-white dark:bg-[#121C2D] text-slate-700 dark:text-[#B6C2D2] border-slate-200 dark:border-[rgba(148,163,184,0.12)] hover:border-[#22D3EE]/40'
-                        }`}
-                      >
-                        <div>
-                          <div className="font-medium text-slate-900 dark:text-[#F8FAFC]">{s.titleEn}</div>
-                          <div className="text-[11px] text-[#22D3EE] font-ethiopic">{s.titleAm}</div>
-                        </div>
-                        <Play className="w-3 h-3 text-[#22D3EE] shrink-0" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Scenario 2: Service Interactions */}
-                <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2.5">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-[#2DD4BF]">
-                    <Coffee className="w-4 h-4" />
-                    <span>2. Everyday Services</span>
-                  </div>
-                  <div className="space-y-1.5">
-                    {findSequencesByScenario('service').map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() => handleSelectScenarioSequence(s)}
-                        className={`w-full text-left p-2.5 rounded-[8px] text-xs transition-colors flex items-center justify-between border cursor-pointer ${
-                          selectedSequence?.id === s.id
-                            ? 'bg-[#2DD4BF]/15 text-[#2DD4BF] border-[#2DD4BF]/50 font-semibold'
-                            : 'bg-white dark:bg-[#121C2D] text-slate-700 dark:text-[#B6C2D2] border-slate-200 dark:border-[rgba(148,163,184,0.12)] hover:border-[#2DD4BF]/40'
-                        }`}
-                      >
-                        <div>
-                          <div className="font-medium text-slate-900 dark:text-[#F8FAFC]">{s.titleEn}</div>
-                          <div className="text-[11px] text-[#2DD4BF] font-ethiopic">{s.titleAm}</div>
-                        </div>
-                        <Play className="w-3 h-3 text-[#2DD4BF] shrink-0" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Scenario 3: Daily Communication */}
-                <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2.5">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-[#8B5CF6]">
-                    <HeartHandshake className="w-4 h-4" />
-                    <span>3. Daily Communication</span>
-                  </div>
-                  <div className="space-y-1.5">
-                    {findSequencesByScenario('daily').map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() => handleSelectScenarioSequence(s)}
-                        className={`w-full text-left p-2.5 rounded-[8px] text-xs transition-colors flex items-center justify-between border cursor-pointer ${
-                          selectedSequence?.id === s.id
-                            ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] border-[#8B5CF6]/50 font-semibold'
-                            : 'bg-white dark:bg-[#121C2D] text-slate-700 dark:text-[#B6C2D2] border-slate-200 dark:border-[rgba(148,163,184,0.12)] hover:border-[#8B5CF6]/40'
-                        }`}
-                      >
-                        <div>
-                          <div className="font-medium text-slate-900 dark:text-[#F8FAFC]">{s.titleEn}</div>
-                          <div className="text-[11px] text-[#8B5CF6] font-ethiopic">{s.titleAm}</div>
-                        </div>
-                        <Play className="w-3 h-3 text-[#8B5CF6] shrink-0" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
 
-            {/* Bilingual Match Status Feedback Card */}
-            <div
-              className={`p-4 sm:p-5 rounded-[12px] border transition-colors ${
+            {/* Bilingual Match Status Feedback */}
+            <Alert
+              variant={matchStatus.isError ? 'warning' : 'success'}
+              title={
                 matchStatus.isError
-                  ? 'bg-amber-500/10 border-amber-500/20 text-[#FBBF24]'
-                  : 'bg-emerald-500/10 border-emerald-500/20 text-[#34D399]'
-              }`}
+                  ? 'Phrase Not Matched · የግብዓት ማስታወሻ'
+                  : 'Bilingual Gesture Confirmation · የሁለትዮሽ ምልክት ማረጋገጫ'
+              }
             >
-              <div className="flex items-start gap-3">
-                {matchStatus.isError ? (
-                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" />
-                ) : (
-                  <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5 text-[#34D399]" />
-                )}
-                <div className="flex-1 space-y-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <strong className="block text-sm font-semibold text-slate-900 dark:text-[#F8FAFC]">
-                      {matchStatus.isError ? 'Input Notice · የግብዓት ማስታወሻ' : 'Bilingual Gesture Confirmation · የሁለትዮሽ ምልክት ማረጋገጫ'}
-                    </strong>
-                    <span className="text-[11px] px-2 py-0.5 rounded-[6px] bg-white/60 dark:bg-[#0D1422]/60 font-mono text-slate-600 dark:text-[#B6C2D2] border border-slate-200/60 dark:border-[rgba(148,163,184,0.1)]">
-                      {matchStatus.isError ? 'Unmatched · አልተገኘም' : 'Verified · ተረጋግጧል'}
-                    </span>
-                  </div>
+              <div className="grid sm:grid-cols-2 gap-3 pt-1.5">
+                <div className="p-3 rounded-[10px] bg-white/80 dark:bg-[#101C2C] border border-slate-200 dark:border-[#253448]">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#0E7490] dark:text-[#43D9E9] block mb-0.5">
+                    English Status
+                  </span>
+                  <p className="text-xs text-slate-800 dark:text-[#F4F7FB] font-medium leading-relaxed">
+                    {matchStatus.messageEn}
+                  </p>
+                  {matchStatus.subMessageEn && (
+                    <p className="text-[11px] text-slate-600 dark:text-[#A0AEC0] mt-1">
+                      {matchStatus.subMessageEn}
+                    </p>
+                  )}
+                </div>
 
-                  {/* Dual English and Amharic Confirmation Boxes */}
-                  <div className="grid sm:grid-cols-2 gap-3 pt-1">
-                    <div className="p-2.5 rounded-[8px] bg-white/70 dark:bg-[#121C2D]/70 border border-slate-200/50 dark:border-[rgba(148,163,184,0.1)]">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#22D3EE] block mb-0.5">
-                        🇬🇧 English Status
-                      </span>
-                      <p className="text-xs text-slate-800 dark:text-[#F8FAFC] font-medium leading-relaxed">
-                        {matchStatus.messageEn}
-                      </p>
-                      {matchStatus.subMessageEn && (
-                        <p className="text-[11px] text-slate-500 dark:text-[#8493A8] mt-1">
-                          {matchStatus.subMessageEn}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="p-2.5 rounded-[8px] bg-white/70 dark:bg-[#121C2D]/70 border border-slate-200/50 dark:border-[rgba(148,163,184,0.1)]">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#2DD4BF] block mb-0.5 font-ethiopic">
-                        🇪🇹 የአማርኛ ሁኔታ (Amharic)
-                      </span>
-                      <p className="text-xs text-slate-800 dark:text-[#F8FAFC] font-medium leading-relaxed font-ethiopic">
-                        {matchStatus.messageAm}
-                      </p>
-                      {matchStatus.subMessageAm && (
-                        <p className="text-[11px] text-slate-500 dark:text-[#8493A8] mt-1 font-ethiopic">
-                          {matchStatus.subMessageAm}
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                <div className="p-3 rounded-[10px] bg-white/80 dark:bg-[#101C2C] border border-slate-200 dark:border-[#253448]">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 block mb-0.5 font-ethiopic">
+                    የአማርኛ ሁኔታ (Amharic)
+                  </span>
+                  <p className="text-xs text-slate-800 dark:text-[#F4F7FB] font-medium leading-relaxed font-ethiopic">
+                    {matchStatus.messageAm}
+                  </p>
+                  {matchStatus.subMessageAm && (
+                    <p className="text-[11px] text-slate-600 dark:text-[#A0AEC0] mt-1 font-ethiopic">
+                      {matchStatus.subMessageAm}
+                    </p>
+                  )}
                 </div>
               </div>
-            </div>
-          </div>
+            </Alert>
+          </Card>
 
           {/* 3D Hand Model Execution in Mode B */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-[#B6C2D2] flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#22D3EE]" />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h4 className="font-heading text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-[#A0AEC0] flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#0E7490] dark:text-[#43D9E9]" aria-hidden="true" />
                 Interactive 3D Hand Execution
               </h4>
               {matchedDef && (
-                <div className="flex items-center gap-2">
-                  <button
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => speechService.speak(matchedDef, 'en-US')}
-                    className="h-8 px-3 rounded-[8px] bg-white dark:bg-[#121C2D] hover:bg-slate-100 dark:hover:bg-[#19263A] text-xs font-medium text-[#22D3EE] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] flex items-center gap-1.5 transition-colors cursor-pointer"
-                    title="Speak in English"
+                    leftIcon={<Volume2 className="w-3.5 h-3.5 text-[#0E7490] dark:text-[#43D9E9]" />}
                   >
-                    <Volume2 className="w-3.5 h-3.5" /> Speak (EN)
-                  </button>
-                  <button
+                    Speak (EN)
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => speechService.speak(matchedDef, 'am-ET')}
-                    className="h-8 px-3 rounded-[8px] bg-white dark:bg-[#121C2D] hover:bg-slate-100 dark:hover:bg-[#19263A] text-xs font-medium text-[#2DD4BF] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] flex items-center gap-1.5 transition-colors cursor-pointer font-ethiopic"
-                    title="Speak in Amharic"
+                    leftIcon={<Volume2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />}
+                    className="font-ethiopic"
                   >
-                    <Volume2 className="w-3.5 h-3.5" /> አማርኛ አሰማ (AM)
-                  </button>
-                  <button
+                    አማርኛ አሰማ (AM)
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => onGestureChange(matchedDef.id)}
-                    className="h-8 px-3 rounded-[8px] bg-white dark:bg-[#121C2D] hover:bg-slate-100 dark:hover:bg-[#19263A] text-xs font-medium text-slate-700 dark:text-[#B6C2D2] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] flex items-center gap-1.5 transition-colors cursor-pointer"
-                    title="Replay 3D hand gesture"
+                    leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
                   >
-                    <RotateCcw className="w-3.5 h-3.5" /> Replay Pose
-                  </button>
+                    Replay Pose
+                  </Button>
                 </div>
               )}
             </div>
@@ -876,30 +836,33 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
               isSimulated={true}
             />
 
-            {/* Gesture Details */}
             {matchedDef && (
-              <div className="p-4 rounded-[14px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs shadow-xs">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{matchedDef.emoji}</span>
-                  <div>
-                    <div className="font-semibold text-slate-900 dark:text-[#F8FAFC] text-sm flex items-center gap-2">
+              <Card padding="sm" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-2xl shrink-0" aria-hidden="true">{matchedDef.emoji}</span>
+                  <div className="min-w-0">
+                    <div className="font-semibold text-slate-900 dark:text-[#F4F7FB] text-sm flex flex-wrap items-center gap-2">
                       <span>{matchedDef.labelEn}</span>
-                      <span className="text-[#22D3EE] font-ethiopic font-bold">· {matchedDef.labelAm}</span>
-                      <span className="text-slate-400 dark:text-[#8493A8] text-xs">("{matchedDef.phoneticAm}")</span>
+                      <span className="text-[#0E7490] dark:text-[#43D9E9] font-ethiopic font-bold">
+                        · {matchedDef.labelAm}
+                      </span>
+                      <span className="text-slate-600 dark:text-[#A0AEC0] text-xs">
+                        ("{matchedDef.phoneticAm}")
+                      </span>
                     </div>
-                    <p className="text-slate-500 dark:text-[#8493A8] mt-0.5">{matchedDef.poseInstructions}</p>
+                    <p className="text-slate-600 dark:text-[#A0AEC0] mt-0.5 leading-relaxed">
+                      {matchedDef.poseInstructions}
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-xs font-mono text-[#22D3EE] px-2 py-1 rounded-[6px] bg-[#22D3EE]/10 border border-[#22D3EE]/20">
-                    Pose: {matchedDef.id.toUpperCase()}
-                  </span>
-                </div>
-              </div>
+                <StatusBadge tone="info">
+                  <span className="font-mono">POSE: {matchedDef.id.toUpperCase()}</span>
+                </StatusBadge>
+              </Card>
             )}
           </div>
         </div>
       )}
-    </section>
+    </div>
   );
 };

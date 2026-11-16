@@ -1,95 +1,121 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
-export const ScrollAtmosphere3D: React.FC = () => {
+interface ScrollAtmosphere3DProps {
+  disabled?: boolean;
+}
+
+function createSoftRadialTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+  gradient.addColorStop(0.32, 'rgba(255, 255, 255, 0.42)');
+  gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 64, 64);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+}
+
+export const ScrollAtmosphere3D: React.FC<ScrollAtmosphere3DProps> = ({ disabled = false }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (disabled) return;
     const container = containerRef.current;
     if (!container) return;
 
-    // Scene, Camera, Renderer
+    const motionQuery =
+      typeof window !== 'undefined' && window.matchMedia
+        ? window.matchMedia('(prefers-reduced-motion: reduce)')
+        : null;
+    let isReducedMotion = Boolean(motionQuery?.matches);
+
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(
-      60,
+      55,
       window.innerWidth / window.innerHeight,
       0.1,
       1000
     );
-    camera.position.z = 80;
+    camera.position.z = 95;
 
     let renderer: THREE.WebGLRenderer | null = null;
     try {
-      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'low-power' });
+      renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: true,
+        powerPreference: 'low-power',
+      });
       renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
       container.appendChild(renderer.domElement);
-    } catch (e) {
-      console.warn('WebGL not supported for background atmosphere', e);
+    } catch {
       return;
     }
 
-    // Create 3D particle constellation with Axum & Neural network vibes
-    const particleCount = 220;
+    // Dual-depth soft circular particle field inspired by Casberry Particles, restrained for readability
+    const particleCount = 72;
     const geometry = new THREE.BufferGeometry();
+    const basePositions = new Float32Array(particleCount * 3);
     const positions = new Float32Array(particleCount * 3);
     const colors = new Float32Array(particleCount * 3);
 
-    const amberColor = new THREE.Color('#d97706'); // Ethiopian amber
-    const emeraldColor = new THREE.Color('#10b981'); // Ethiopian emerald
-    const goldColor = new THREE.Color('#fbbf24'); // Sun gold
+    const primaryCyan = new THREE.Color('#43D9E9');
+    const secondaryIndigo = new THREE.Color('#8585FF');
 
     for (let i = 0; i < particleCount; i++) {
-      // Distribute in a spherical/ellipsoid cloud
       const u = Math.random();
       const v = Math.random();
       const theta = u * 2.0 * Math.PI;
       const phi = Math.acos(2.0 * v - 1.0);
-      const r = Math.cbrt(Math.random()) * 85 + 10;
+      const r = Math.cbrt(Math.random()) * 76 + 24;
 
       const sinPhi = Math.sin(phi);
-      positions[i * 3] = r * sinPhi * Math.cos(theta);
-      positions[i * 3 + 1] = r * sinPhi * Math.sin(theta);
-      positions[i * 3 + 2] = r * Math.cos(phi);
+      const x = r * sinPhi * Math.cos(theta);
+      const y = r * sinPhi * Math.sin(theta);
+      const z = r * Math.cos(phi);
 
-      // Color distribution: 60% amber/gold, 40% emerald
-      const chosenColor = Math.random() > 0.4 ? (Math.random() > 0.5 ? amberColor : goldColor) : emeraldColor;
-      colors[i * 3] = chosenColor.r;
-      colors[i * 3 + 1] = chosenColor.g;
-      colors[i * 3 + 2] = chosenColor.b;
+      basePositions[i * 3] = x;
+      basePositions[i * 3 + 1] = y;
+      basePositions[i * 3 + 2] = z;
+
+      positions[i * 3] = x;
+      positions[i * 3 + 1] = y;
+      positions[i * 3 + 2] = z;
+
+      const chosen = i % 3 === 0 ? secondaryIndigo : primaryCyan;
+      colors[i * 3] = chosen.r;
+      colors[i * 3 + 1] = chosen.g;
+      colors[i * 3 + 2] = chosen.b;
     }
 
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-    // Particle texture point material
+    const spriteTexture = createSoftRadialTexture();
     const particleMaterial = new THREE.PointsMaterial({
-      size: 2.2,
+      size: 2.9,
+      map: spriteTexture || undefined,
       vertexColors: true,
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.3,
+      depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
 
     const pointCloud = new THREE.Points(geometry, particleMaterial);
     scene.add(pointCloud);
 
-    // Dynamic interconnected lines between nearest neighbors
-    const lineMaterial = new THREE.LineBasicMaterial({
-      color: 0xd97706,
-      transparent: true,
-      opacity: 0.12,
-      blending: THREE.AdditiveBlending,
-    });
-
-    const maxLineSegments = 180;
-    const linePositions = new Float32Array(maxLineSegments * 6);
-    const lineGeometry = new THREE.BufferGeometry();
-    lineGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
-    const linesMesh = new THREE.LineSegments(lineGeometry, lineMaterial);
-    scene.add(linesMesh);
-
-    // Mouse & Scroll Parallax State
     let mouseX = 0;
     let mouseY = 0;
     let targetMouseX = 0;
@@ -98,12 +124,12 @@ export const ScrollAtmosphere3D: React.FC = () => {
     let targetScrollY = 0;
 
     const onMouseMove = (e: MouseEvent) => {
-      targetMouseX = (e.clientX - window.innerWidth / 2) * 0.05;
-      targetMouseY = (e.clientY - window.innerHeight / 2) * 0.05;
+      targetMouseX = (e.clientX / window.innerWidth - 0.5) * 2.0;
+      targetMouseY = -(e.clientY / window.innerHeight - 0.5) * 2.0;
     };
 
     const onScroll = () => {
-      targetScrollY = window.scrollY * 0.04;
+      targetScrollY = window.scrollY * 0.018;
     };
 
     const onResize = () => {
@@ -117,64 +143,52 @@ export const ScrollAtmosphere3D: React.FC = () => {
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onResize);
 
-    // Animation Loop
-    let animationFrameId: number;
-    let clock = new THREE.Clock();
+    let animationFrameId = 0;
+    const clock = new THREE.Clock();
 
-    const animate = () => {
-      animationFrameId = requestAnimationFrame(animate);
-      const delta = clock.getDelta();
+    const renderFrame = () => {
       const time = clock.getElapsedTime();
+      mouseX += (targetMouseX - mouseX) * 0.04;
+      mouseY += (targetMouseY - mouseY) * 0.04;
+      scrollY += (targetScrollY - scrollY) * 0.06;
 
-      // Smooth lerp for mouse and scroll
-      mouseX += (targetMouseX - mouseX) * 0.05;
-      mouseY += (targetMouseY - mouseY) * 0.05;
-      scrollY += (targetScrollY - scrollY) * 0.08;
+      pointCloud.rotation.y = time * 0.016 + mouseX * 0.06;
+      pointCloud.rotation.x = mouseY * 0.045 + Math.sin(time * 0.06) * 0.02;
+      pointCloud.position.y = -scrollY * 0.22;
 
-      pointCloud.rotation.y = time * 0.05 + mouseX * 0.01;
-      pointCloud.rotation.x = mouseY * 0.01 + Math.sin(time * 0.1) * 0.05;
-      pointCloud.position.y = -scrollY * 0.3;
+      renderer?.render(scene, camera);
+    };
 
-      linesMesh.rotation.y = pointCloud.rotation.y;
-      linesMesh.rotation.x = pointCloud.rotation.x;
-      linesMesh.position.y = pointCloud.position.y;
-
-      // Update lines between nearby particles
-      const posAttr = geometry.attributes.position.array as Float32Array;
-      const linePosAttr = lineGeometry.attributes.position.array as Float32Array;
-      let lineIndex = 0;
-
-      for (let i = 0; i < particleCount && lineIndex < maxLineSegments * 6; i += 3) {
-        for (let j = i + 1; j < Math.min(particleCount, i + 12); j++) {
-          const dx = posAttr[i * 3] - posAttr[j * 3];
-          const dy = posAttr[i * 3 + 1] - posAttr[j * 3 + 1];
-          const dz = posAttr[i * 3 + 2] - posAttr[j * 3 + 2];
-          const dist = Math.hypot(dx, dy, dz);
-
-          if (dist < 22 && lineIndex < maxLineSegments * 6 - 6) {
-            linePosAttr[lineIndex++] = posAttr[i * 3];
-            linePosAttr[lineIndex++] = posAttr[i * 3 + 1];
-            linePosAttr[lineIndex++] = posAttr[i * 3 + 2];
-
-            linePosAttr[lineIndex++] = posAttr[j * 3];
-            linePosAttr[lineIndex++] = posAttr[j * 3 + 1];
-            linePosAttr[lineIndex++] = posAttr[j * 3 + 2];
-          }
-        }
-      }
-
-      lineGeometry.setDrawRange(0, lineIndex / 3);
-      lineGeometry.attributes.position.needsUpdate = true;
-
-      if (renderer) {
-        renderer.render(scene, camera);
+    const handleMotionChange = (e: MediaQueryListEvent) => {
+      isReducedMotion = e.matches;
+      if (isReducedMotion && animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = 0;
+        renderFrame();
+      } else if (!isReducedMotion && !animationFrameId) {
+        const animate = () => {
+          animationFrameId = requestAnimationFrame(animate);
+          renderFrame();
+        };
+        animate();
       }
     };
 
-    animate();
+    motionQuery?.addEventListener('change', handleMotionChange);
+
+    if (isReducedMotion) {
+      renderFrame();
+    } else {
+      const animate = () => {
+        animationFrameId = requestAnimationFrame(animate);
+        renderFrame();
+      };
+      animate();
+    }
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      motionQuery?.removeEventListener('change', handleMotionChange);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onResize);
@@ -185,15 +199,16 @@ export const ScrollAtmosphere3D: React.FC = () => {
       }
       geometry.dispose();
       particleMaterial.dispose();
-      lineGeometry.dispose();
-      lineMaterial.dispose();
+      spriteTexture?.dispose();
     };
-  }, []);
+  }, [disabled]);
+
+  if (disabled) return null;
 
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 pointer-events-none z-0 opacity-40 dark:opacity-35 transition-opacity duration-700"
+      className="fixed inset-0 pointer-events-none z-0 opacity-22 dark:opacity-45 transition-opacity duration-500"
       aria-hidden="true"
     />
   );

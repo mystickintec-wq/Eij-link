@@ -26,11 +26,15 @@ interface CommunicationContextType {
 }
 
 const MODULE_ACCENT_MAP: Record<ActiveModule, ThemeAccent> = {
+  overview: 'cyan',
+  'live-recognition': 'emerald',
   studio: 'emerald',
-  assistant: 'amber',
-  translate: 'violet',
   captions: 'blue',
+  translate: 'violet',
+  assistant: 'amber',
   documents: 'rose',
+  'hand-studio': 'cyan',
+  vocabulary: 'violet',
   settings: 'cyan',
 };
 

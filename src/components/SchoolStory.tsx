@@ -1,80 +1,126 @@
 import React from 'react';
-import { Heart } from 'lucide-react';
+import { Cpu, Hand, Languages, ShieldCheck } from 'lucide-react';
+import { AppLanguage } from '../config/navigation';
+import { GESTURE_LIST } from '../data/gestures';
+import { Card } from './ui';
 
-export const SchoolStory: React.FC = () => {
+interface SchoolStoryProps {
+  language?: AppLanguage;
+}
+
+export const SchoolStory: React.FC<SchoolStoryProps> = ({ language = 'en' }) => {
+  const isAm = language === 'am';
+
+  const metrics = [
+    {
+      label: isAm ? 'የእርግጠኝነት መቆለፊያ' : 'Confidence Lock',
+      value: '>80%',
+      caption: isAm ? 'ያልተረጋጋ እንቅስቃሴን ያጣራል' : 'Temporal filtering prevents jitter',
+      accent: 'text-emerald-700 dark:text-emerald-400',
+      icon: <ShieldCheck className="w-4 h-4" aria-hidden="true" />,
+    },
+    {
+      label: isAm ? 'ዋና የምልክት ቃላት' : 'Core Gestures',
+      value: String(GESTURE_LIST.length),
+      caption: isAm ? 'EthSL እና ዓለም አቀፍ ምልክቶች' : 'EthSL and universal signs supported',
+      accent: 'text-[#0E7490] dark:text-[#43D9E9]',
+      icon: <Hand className="w-4 h-4" aria-hidden="true" />,
+    },
+    {
+      label: isAm ? 'ወደ ደመና የሚላክ ቪዲዮ' : 'Cloud Frame Uploads',
+      value: '0ms',
+      caption: isAm ? '100% በመሳሪያው ላይ የሚሰራ' : 'On-device camera inference only',
+      accent: 'text-[#0E7490] dark:text-[#43D9E9]',
+      icon: <Cpu className="w-4 h-4" aria-hidden="true" />,
+    },
+    {
+      label: isAm ? 'የተደገፉ ቋንቋዎች' : 'Core Languages',
+      value: '2',
+      caption: isAm ? 'እንግሊዝኛ እና አማርኛ' : 'English and Amharic (አማርኛ)',
+      accent: 'text-[#4F46E5] dark:text-[#8585FF]',
+      icon: <Languages className="w-4 h-4" aria-hidden="true" />,
+    },
+  ];
+
   return (
-    <section id="our-story" className="py-12 scroll-mt-20">
-      <div className="text-center mb-10">
-        <span className="text-xs font-semibold uppercase tracking-wider text-[#F87171] inline-flex items-center gap-1.5 mb-2">
-          <Heart className="w-3.5 h-3.5" /> Human-Centered AI
-        </span>
-        <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-[#F8FAFC] tracking-tight">
-          Why We Built EjjiLink AI
-        </h2>
-        <p className="text-slate-600 dark:text-[#B6C2D2] text-xs sm:text-sm max-w-2xl mx-auto mt-1">
-          A story about bringing people closer—using accessible technology to turn silent gestures into shared understanding.
-        </p>
-      </div>
+    <section id="our-story" aria-labelledby="identity-heading" className="scroll-mt-24">
+      <Card padding="none" className="overflow-hidden">
+        <div className="grid lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-200 dark:divide-[#253448]">
+          {/* Mission & Ethiopian Accessibility Identity */}
+          <div className="lg:col-span-7 p-6 sm:p-8 space-y-5">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#0E7490] dark:text-[#43D9E9] font-ethiopic">
+                {isAm ? 'ሰውን ማዕከል ያደረገ ተልዕኮ' : 'Human-Centered Mission'}
+              </p>
+              <h2
+                id="identity-heading"
+                className="font-heading text-2xl sm:text-3xl font-bold text-slate-900 dark:text-[#F4F7FB] [text-wrap:balance]"
+              >
+                {isAm
+                  ? 'በኢትዮጵያ የመግባቢያ ክፍተቶችን ማጥበብ'
+                  : 'Designed for inclusive communication in Ethiopia.'}
+              </h2>
+            </div>
 
-      <div className="bg-white dark:bg-[#121C2D] rounded-[18px] p-6 md:p-8 border border-slate-200 dark:border-[rgba(148,163,184,0.12)] shadow-sm">
-        <div className="grid lg:grid-cols-2 gap-8 items-center">
-          <div className="space-y-4">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#22D3EE] block">
-              Inclusion Through Innovation
-            </span>
+            <div className="space-y-3 text-sm text-slate-600 dark:text-[#A0AEC0] leading-relaxed max-w-2xl font-ethiopic">
+              <p>
+                {isAm
+                  ? 'EjjiLink AI መስማት የተሳናቸው፣ የመስማት እክል ያለባቸው እና መስማት የሚችሉ ሰዎች በእንግሊዝኛ እና በአማርኛ በነጻነት እንዲግባቡ በተራ ላፕቶፖችና ስልኮች ላይ ወዲያውኑ እንዲሰራ ሆኖ የተገነባ ነው።'
+                  : 'EjjiLink AI connects Deaf, hard-of-hearing, and hearing people directly in everyday settings—running locally on ordinary laptops and phones without specialized sensor hardware.'}
+              </p>
+              <p>
+                {isAm
+                  ? 'ሁሉም የካሜራ ትንተናዎች በመሳሪያዎ ላይ ስለሚከናወኑ የእርስዎ የግል ምስል ወደ ውጭ አይላክም።'
+                  : 'Camera tracking happens strictly on-device so conversations remain fast, private, and dignified while respecting Ethiopian Sign Language (EthSL) structure.'}
+              </p>
+            </div>
 
-            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#F8FAFC] leading-snug">
-              Bridging Communication Barriers in Ethiopia
-            </h3>
-
-            <p className="text-slate-600 dark:text-[#B6C2D2] text-xs sm:text-sm leading-relaxed">
-              In Ethiopia, vibrant languages and cultural signing exist side by side, yet communication barriers can still isolate members of the Deaf and hard-of-hearing community. Our mission at <strong>The Ethio-Tech Initiative</strong> was to build a tool that feels natural, respectful, and operates instantly on ordinary school laptops and phones without requiring expensive custom sensor hardware.
-            </p>
-
-            <p className="text-slate-600 dark:text-[#B6C2D2] text-xs sm:text-sm leading-relaxed">
-              Engineered by high school students at <strong>Holy Trinity Cathedral Secondary School</strong> in Addis Ababa, EjjiLink AI prioritizes stability and trust over superficial complexity. We engineered 7 essential everyday gestures with strict confidence gating and on-device privacy.
-            </p>
-
-            {/* Emblem Meaning Callout */}
-            <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex items-start gap-3">
-              <div className="w-8 h-8 rounded-[8px] bg-[#22D3EE]/15 text-[#22D3EE] flex items-center justify-center font-bold text-sm shrink-0">
+            <div className="pt-3 border-t border-slate-200 dark:border-[#253448] flex items-center gap-3">
+              <span
+                aria-hidden="true"
+                className="w-9 h-9 rounded-[10px] bg-[#0E7490]/12 dark:bg-[#43D9E9]/15 text-[#0E7490] dark:text-[#43D9E9] flex items-center justify-center font-bold text-sm font-ethiopic shrink-0"
+              >
                 ነ
-              </div>
-              <div className="text-xs text-slate-600 dark:text-[#B6C2D2] leading-relaxed">
-                <strong className="text-slate-900 dark:text-[#F8FAFC] block mb-0.5">Heritage Meets Tomorrow:</strong>
-                Our emblem unites the Axum Obelisk with glowing circuit pathways—symbolizing Ethiopia's heritage inspiring the next generation of African computer vision innovation.
-              </div>
+              </span>
+              <p className="text-xs text-slate-600 dark:text-[#A0AEC0] leading-relaxed">
+                <strong className="text-slate-900 dark:text-[#F4F7FB]">
+                  {isAm ? 'ቅርስ እና ቴክኖሎጂ፡' : 'Heritage Meets Accessible AI:'}
+                </strong>{' '}
+                {isAm
+                  ? 'አርማችን የአክሱም ሐውልትን ከዲጂታል መስመሮች ጋር በማዋሃድ የኢትዮጵያን ቅርስ ከዘመናዊ ቴክኖሎጂ ጋር ያገናኛል።'
+                  : 'Our emblem pairs the Axum Obelisk with circuit pathways to represent Ethiopian heritage driving inclusive computer vision.'}
+              </p>
             </div>
           </div>
 
-          {/* Performance & Trust Metric Cards */}
-          <div className="grid grid-cols-2 gap-3.5">
-            <div className="bg-slate-50 dark:bg-[#0D1422] p-5 rounded-[14px] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-center">
-              <div className="text-3xl font-bold font-mono tabular-nums text-[#34D399] mb-1">&gt;80%</div>
-              <div className="text-xs font-semibold text-slate-800 dark:text-[#F8FAFC]">Confidence Lock</div>
-              <div className="text-[11px] text-slate-500 dark:text-[#8493A8] mt-1">Filters out erratic tremors and transitions</div>
-            </div>
-
-            <div className="bg-slate-50 dark:bg-[#0D1422] p-5 rounded-[14px] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-center">
-              <div className="text-3xl font-bold font-mono tabular-nums text-[#22D3EE] mb-1">7</div>
-              <div className="text-xs font-semibold text-slate-800 dark:text-[#F8FAFC]">Core Gestures</div>
-              <div className="text-[11px] text-slate-500 dark:text-[#8493A8] mt-1">EthSL and universal gestures validated</div>
-            </div>
-
-            <div className="bg-slate-50 dark:bg-[#0D1422] p-5 rounded-[14px] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-center">
-              <div className="text-3xl font-bold font-mono tabular-nums text-[#60A5FA] mb-1">0ms</div>
-              <div className="text-xs font-semibold text-slate-800 dark:text-[#F8FAFC]">Cloud Frame Uploads</div>
-              <div className="text-[11px] text-slate-500 dark:text-[#8493A8] mt-1">100% on-device local camera inference</div>
-            </div>
-
-            <div className="bg-slate-50 dark:bg-[#0D1422] p-5 rounded-[14px] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-center">
-              <div className="text-3xl font-bold font-mono tabular-nums text-[#8B5CF6] mb-1">2</div>
-              <div className="text-xs font-semibold text-slate-800 dark:text-[#F8FAFC]">Supported Languages</div>
-              <div className="text-[11px] text-slate-500 dark:text-[#8493A8] mt-1">English and Amharic (አማርኛ)</div>
-            </div>
+          {/* 4-Cell Tabular Metrics Panel (Zero Nested Cards) */}
+          <div className="lg:col-span-5 grid grid-cols-2 bg-slate-50/60 dark:bg-[#172438]/40">
+            {metrics.map((m, idx) => (
+              <div
+                key={m.label}
+                className={`p-5 sm:p-6 flex flex-col justify-between gap-3 border-slate-200 dark:border-[#253448] ${
+                  idx % 2 === 1 ? 'border-l' : ''
+                } ${idx >= 2 ? 'border-t' : ''}`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-medium text-slate-600 dark:text-[#A0AEC0] font-ethiopic">
+                    {m.label}
+                  </span>
+                  <span className="text-slate-600 dark:text-[#A0AEC0]">{m.icon}</span>
+                </div>
+                <div>
+                  <div className={`text-2xl sm:text-3xl font-bold font-mono tabular-nums ${m.accent}`}>
+                    {m.value}
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-[#A0AEC0] mt-1 leading-snug font-ethiopic">
+                    {m.caption}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      </Card>
     </section>
   );
 };

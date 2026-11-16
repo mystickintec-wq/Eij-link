@@ -146,13 +146,19 @@ export const EvaluationLabModal: React.FC<EvaluationLabModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md">
-      <div className="bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] rounded-[20px] max-w-5xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Evaluation and Scientific Testing Lab"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md"
+    >
+      <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
+      <div className="relative z-10 bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] rounded-[20px] max-w-5xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden ejji-animate-modal">
         
         {/* Modal Header */}
         <div className="p-5 sm:p-6 border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex items-center justify-between gap-4 bg-slate-50 dark:bg-[#080D18]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[10px] bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-[#22D3EE]">
+            <div className="w-10 h-10 rounded-[10px] bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-[#0E7490] dark:text-[#43D9E9]">
               <FlaskConical className="w-5 h-5" />
             </div>
             <div>
@@ -160,19 +166,20 @@ export const EvaluationLabModal: React.FC<EvaluationLabModalProps> = ({
                 <h3 className="font-bold text-lg text-slate-900 dark:text-[#F8FAFC]">
                   Evaluation & Scientific Testing Lab
                 </h3>
-                <span className="px-2.5 py-0.5 rounded-[8px] bg-cyan-500/10 text-[#22D3EE] border border-cyan-500/20 text-[10px] font-semibold uppercase tracking-wider font-mono">
+                <span className="px-2.5 py-0.5 rounded-[8px] bg-cyan-500/10 text-[#0E7490] dark:text-[#43D9E9] border border-cyan-500/20 text-[10px] font-semibold uppercase tracking-wider font-mono">
                   Phase C Verified
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-[#8493A8]">
+              <p className="text-xs text-slate-600 dark:text-[#A0AEC0]">
                 Repeatable evaluation metrics, confusion matrix, and robustness unit tests.
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-2 rounded-[10px] bg-slate-100 hover:bg-slate-200 dark:bg-[#19263A] dark:hover:bg-[#1f2f47] text-slate-500 dark:text-[#8493A8] transition-colors cursor-pointer"
+            className="p-2 rounded-[10px] bg-slate-100 hover:bg-slate-200 dark:bg-[#19263A] dark:hover:bg-[#1f2f47] text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F8FAFC] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
             aria-label="Close Modal"
           >
             <X className="w-5 h-5" />
@@ -182,44 +189,48 @@ export const EvaluationLabModal: React.FC<EvaluationLabModalProps> = ({
         {/* Navigation Tabs */}
         <div className="flex items-center gap-2 px-5 sm:px-6 pt-3 border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)] bg-slate-50/40 dark:bg-[#080D18]/40 text-xs font-semibold overflow-x-auto">
           <button
+            type="button"
             onClick={() => setActiveTab('benchmark')}
-            className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
+            className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
               activeTab === 'benchmark'
-                ? 'border-[#22D3EE] text-[#22D3EE] font-bold'
-                : 'border-transparent text-slate-500 dark:text-[#8493A8] hover:text-slate-800 dark:hover:text-[#F8FAFC]'
+                ? 'border-[#0E7490] dark:border-[#43D9E9] text-[#0E7490] dark:text-[#43D9E9] font-bold'
+                : 'border-transparent text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
             }`}
           >
             <Play className="w-3.5 h-3.5" /> Robustness Unit Tests
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab('metrics')}
-            className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
+            className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
               activeTab === 'metrics'
-                ? 'border-[#22D3EE] text-[#22D3EE] font-bold'
-                : 'border-transparent text-slate-500 dark:text-[#8493A8] hover:text-slate-800 dark:hover:text-[#F8FAFC]'
+                ? 'border-[#0E7490] dark:border-[#43D9E9] text-[#0E7490] dark:text-[#43D9E9] font-bold'
+                : 'border-transparent text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
             }`}
           >
             <BarChart3 className="w-3.5 h-3.5" /> Performance Metrics
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab('confusion')}
-            className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
+            className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
               activeTab === 'confusion'
-                ? 'border-[#22D3EE] text-[#22D3EE] font-bold'
-                : 'border-transparent text-slate-500 dark:text-[#8493A8] hover:text-slate-800 dark:hover:text-[#F8FAFC]'
+                ? 'border-[#0E7490] dark:border-[#43D9E9] text-[#0E7490] dark:text-[#43D9E9] font-bold'
+                : 'border-transparent text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
             }`}
           >
             <Activity className="w-3.5 h-3.5" /> Confusion Matrix
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab('audit')}
-            className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer ${
+            className={`pb-3 px-3 border-b-2 flex items-center gap-1.5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
               activeTab === 'audit'
-                ? 'border-[#22D3EE] text-[#22D3EE] font-bold'
-                : 'border-transparent text-slate-500 dark:text-[#8493A8] hover:text-slate-800 dark:hover:text-[#F8FAFC]'
+                ? 'border-[#0E7490] dark:border-[#43D9E9] text-[#0E7490] dark:text-[#43D9E9] font-bold'
+                : 'border-transparent text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F8FAFC]'
             }`}
           >
             <ShieldAlert className="w-3.5 h-3.5" /> Scientific Disclosures
@@ -234,23 +245,24 @@ export const EvaluationLabModal: React.FC<EvaluationLabModalProps> = ({
             <div className="space-y-5">
               <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-[14px] bg-slate-900 dark:bg-[#121C2D] text-white border border-slate-800 dark:border-[rgba(148,163,184,0.12)]">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-[10px] bg-cyan-500/20 text-[#22D3EE]">
+                  <div className="p-2.5 rounded-[10px] bg-cyan-500/20 text-[#43D9E9]">
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
                     <h4 className="font-bold text-sm text-slate-100">
                       Automated Pipeline & Geometry Unit Tests
                     </h4>
-                    <p className="text-[11px] text-slate-400 dark:text-[#8493A8]">
+                    <p className="text-[11px] text-slate-300 dark:text-[#A0AEC0]">
                       Verifies translation/scale normalizer invariance, malformed data safety, template coverage, distractor rejection, and temporal debounce.
                     </p>
                   </div>
                 </div>
 
                 <button
+                  type="button"
                   onClick={runAutomatedSuite}
                   disabled={isRunningSuite}
-                  className="px-4 py-2 rounded-[10px] bg-[#22D3EE] hover:bg-[#06b6d4] text-[#080D18] font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50 transition-all"
+                  className="px-4 py-2 rounded-[10px] bg-[#43D9E9] hover:bg-[#67E8F9] text-[#080D18] font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer disabled:text-slate-700 disabled:bg-slate-300 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
                   <Play className="w-3.5 h-3.5 fill-current" />
                   <span>{isRunningSuite ? 'Running Tests...' : 'Re-Run Suite'}</span>
@@ -262,24 +274,24 @@ export const EvaluationLabModal: React.FC<EvaluationLabModalProps> = ({
                   {/* Summary Bar */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
                     <div className="p-3.5 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
-                      <div className="text-[10px] text-slate-400 dark:text-[#8493A8] uppercase font-bold">Total Tests</div>
+                      <div className="text-[10px] text-slate-600 dark:text-[#A0AEC0] uppercase font-bold">Total Tests</div>
                       <div className="text-xl font-bold font-mono tabular-nums text-slate-900 dark:text-[#F8FAFC]">
                         {suiteReport.totalTests}
                       </div>
                     </div>
-                    <div className="p-3.5 rounded-[14px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                    <div className="p-3.5 rounded-[14px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400">
                       <div className="text-[10px] uppercase font-bold">Passed Tests</div>
                       <div className="text-xl font-bold font-mono tabular-nums">
                         {suiteReport.passedTests}
                       </div>
                     </div>
-                    <div className="p-3.5 rounded-[14px] bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400">
+                    <div className="p-3.5 rounded-[14px] bg-red-500/10 border border-red-500/20 text-rose-700 dark:text-rose-400">
                       <div className="text-[10px] uppercase font-bold">Failed Tests</div>
                       <div className="text-xl font-bold font-mono tabular-nums">
                         {suiteReport.failedTests}
                       </div>
                     </div>
-                    <div className="p-3.5 rounded-[14px] bg-cyan-500/10 border border-cyan-500/20 text-[#22D3EE]">
+                    <div className="p-3.5 rounded-[14px] bg-cyan-500/10 border border-cyan-500/20 text-[#0E7490] dark:text-[#43D9E9]">
                       <div className="text-[10px] uppercase font-bold">Pass Rate</div>
                       <div className="text-xl font-bold font-mono tabular-nums">
                         {suiteReport.passRate}%
@@ -303,8 +315,8 @@ export const EvaluationLabModal: React.FC<EvaluationLabModalProps> = ({
                               <span
                                 className={`px-2 py-0.5 rounded-[6px] font-mono text-[10px] font-bold uppercase ${
                                   test.status === 'passed'
-                                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                                    : 'bg-red-500/20 text-red-600 dark:text-red-400'
+                                    ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'
+                                    : 'bg-red-500/20 text-rose-700 dark:text-rose-400'
                                 }`}
                               >
                                 {test.status}
@@ -313,11 +325,11 @@ export const EvaluationLabModal: React.FC<EvaluationLabModalProps> = ({
                                 {test.testName}
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-600 dark:text-[#8493A8] leading-relaxed">
+                            <p className="text-[11px] text-slate-600 dark:text-[#A0AEC0] leading-relaxed">
                               {test.details}
                             </p>
                           </div>
-                          <span className="font-mono tabular-nums text-[10px] text-slate-400 shrink-0">
+                          <span className="font-mono tabular-nums text-[10px] text-slate-600 dark:text-[#A0AEC0] shrink-0">
                             {test.latencyMs} ms
                           </span>
                         </div>
@@ -335,26 +347,28 @@ export const EvaluationLabModal: React.FC<EvaluationLabModalProps> = ({
               {/* Dataset Selection Controls */}
               <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
                 <div className="flex items-center gap-2 font-semibold text-slate-700 dark:text-[#B6C2D2]">
-                  <Database className="w-4 h-4 text-[#22D3EE]" />
+                  <Database className="w-4 h-4 text-[#0E7490] dark:text-[#43D9E9]" />
                   <span>Evaluation Data Source:</span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
+                    type="button"
                     onClick={() => setEvalDataSource('benchmark')}
-                    className={`px-3 py-1.5 rounded-[10px] border text-xs font-medium cursor-pointer transition-colors ${
+                    className={`px-3 py-1.5 rounded-[10px] border text-xs font-medium cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                       evalDataSource === 'benchmark'
-                        ? 'bg-[#22D3EE] text-[#080D18] border-[#22D3EE] font-bold'
+                        ? 'bg-[#0E7490] text-white border-[#0E7490] dark:bg-[#43D9E9] dark:text-[#080D18] dark:border-[#43D9E9] font-bold'
                         : 'bg-white dark:bg-[#19263A] text-slate-700 dark:text-[#B6C2D2] border-slate-200 dark:border-[rgba(148,163,184,0.15)]'
                     }`}
                   >
                     Benchmark Ground-Truth Suite (N=28)
                   </button>
                   <button
+                    type="button"
                     onClick={() => setEvalDataSource('user_collected')}
-                    className={`px-3 py-1.5 rounded-[10px] border text-xs font-medium cursor-pointer transition-colors ${
+                    className={`px-3 py-1.5 rounded-[10px] border text-xs font-medium cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                       evalDataSource === 'user_collected'
-                        ? 'bg-[#22D3EE] text-[#080D18] border-[#22D3EE] font-bold'
+                        ? 'bg-[#0E7490] text-white border-[#0E7490] dark:bg-[#43D9E9] dark:text-[#080D18] dark:border-[#43D9E9] font-bold'
                         : 'bg-white dark:bg-[#19263A] text-slate-700 dark:text-[#B6C2D2] border-slate-200 dark:border-[rgba(148,163,184,0.15)]'
                     }`}
                   >
@@ -362,18 +376,19 @@ export const EvaluationLabModal: React.FC<EvaluationLabModalProps> = ({
                   </button>
 
                   <button
+                    type="button"
                     onClick={handleExportEvaluationReport}
-                    className="px-3 py-1.5 rounded-[10px] bg-slate-200 dark:bg-[#19263A] hover:bg-slate-300 dark:hover:bg-[#1f2f47] text-slate-800 dark:text-[#F8FAFC] font-semibold flex items-center gap-1.5 cursor-pointer transition-colors ml-2 border border-slate-200 dark:border-[rgba(148,163,184,0.15)]"
+                    className="px-3 py-1.5 rounded-[10px] bg-slate-200 dark:bg-[#19263A] hover:bg-slate-300 dark:hover:bg-[#1f2f47] text-slate-800 dark:text-[#F8FAFC] font-semibold flex items-center gap-1.5 cursor-pointer transition-colors border border-slate-200 dark:border-[rgba(148,163,184,0.15)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
                   >
-                    <Download className="w-3.5 h-3.5 text-[#22D3EE]" /> Export Report (JSON)
+                    <Download className="w-3.5 h-3.5 text-[#0E7490] dark:text-[#43D9E9]" /> Export Report (JSON)
                   </button>
                 </div>
               </div>
 
               {/* Insufficient Sample Size Alert */}
               {evalDataSource === 'user_collected' && userSampleCount < 10 && (
-                <div className="p-4 rounded-[14px] bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-300 flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                <div className="p-4 rounded-[14px] bg-amber-500/10 border border-amber-500/25 text-amber-800 dark:text-amber-300 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
                   <div>
                     <strong className="block font-bold">Limited Sample Size Warning (N = {userSampleCount})</strong>
                     <span>
@@ -387,44 +402,44 @@ export const EvaluationLabModal: React.FC<EvaluationLabModalProps> = ({
                 <div className="space-y-5">
                   {/* Metric Stat Cards */}
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
-                    <div className="p-3.5 rounded-[14px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                    <div className="p-3.5 rounded-[14px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400">
                       <div className="text-[10px] uppercase font-bold">Overall Accuracy</div>
                       <div className="text-2xl font-bold font-mono tabular-nums">
                         {evalReport.overallAccuracy}%
                       </div>
-                      <span className="text-[10px] text-slate-400 dark:text-[#8493A8]">N = {evalReport.evaluatedSampleCount}</span>
+                      <span className="text-[10px] text-slate-600 dark:text-[#A0AEC0]">N = {evalReport.evaluatedSampleCount}</span>
                     </div>
 
-                    <div className="p-3.5 rounded-[14px] bg-cyan-500/10 border border-cyan-500/20 text-[#22D3EE]">
+                    <div className="p-3.5 rounded-[14px] bg-cyan-500/10 border border-cyan-500/20 text-[#0E7490] dark:text-[#43D9E9]">
                       <div className="text-[10px] uppercase font-bold">Unknown Rejection</div>
                       <div className="text-2xl font-bold font-mono tabular-nums">
                         {evalReport.unknownRejectionRate}%
                       </div>
-                      <span className="text-[10px] text-slate-400 dark:text-[#8493A8]">Rejected safely</span>
+                      <span className="text-[10px] text-slate-600 dark:text-[#A0AEC0]">Rejected safely</span>
                     </div>
 
-                    <div className="p-3.5 rounded-[14px] bg-purple-500/10 border border-purple-500/20 text-purple-600 dark:text-purple-400">
+                    <div className="p-3.5 rounded-[14px] bg-purple-500/10 border border-purple-500/20 text-purple-700 dark:text-purple-400">
                       <div className="text-[10px] uppercase font-bold">False Acceptance (FAR)</div>
                       <div className="text-2xl font-bold font-mono tabular-nums">
                         {evalReport.falseAcceptanceRate}%
                       </div>
-                      <span className="text-[10px] text-slate-400 dark:text-[#8493A8]">Distractor errors</span>
+                      <span className="text-[10px] text-slate-600 dark:text-[#A0AEC0]">Distractor errors</span>
                     </div>
 
                     <div className="p-3.5 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-slate-800 dark:text-[#F8FAFC]">
-                      <div className="text-[10px] uppercase font-bold text-slate-400 dark:text-[#8493A8]">Median Latency</div>
+                      <div className="text-[10px] uppercase font-bold text-slate-600 dark:text-[#A0AEC0]">Median Latency</div>
                       <div className="text-2xl font-bold font-mono tabular-nums">
                         {evalReport.medianLatencyMs} <span className="text-xs">ms</span>
                       </div>
-                      <span className="text-[10px] text-slate-400 dark:text-[#8493A8]">50th percentile</span>
+                      <span className="text-[10px] text-slate-600 dark:text-[#A0AEC0]">50th percentile</span>
                     </div>
 
                     <div className="p-3.5 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-slate-800 dark:text-[#F8FAFC]">
-                      <div className="text-[10px] uppercase font-bold text-slate-400 dark:text-[#8493A8]">p95 Latency</div>
+                      <div className="text-[10px] uppercase font-bold text-slate-600 dark:text-[#A0AEC0]">p95 Latency</div>
                       <div className="text-2xl font-bold font-mono tabular-nums">
                         {evalReport.p95LatencyMs} <span className="text-xs">ms</span>
                       </div>
-                      <span className="text-[10px] text-slate-400 dark:text-[#8493A8]">95th percentile</span>
+                      <span className="text-[10px] text-slate-600 dark:text-[#A0AEC0]">95th percentile</span>
                     </div>
                   </div>
 
@@ -454,13 +469,13 @@ export const EvaluationLabModal: React.FC<EvaluationLabModalProps> = ({
                                 <span>{GESTURE_DEFINITIONS[row.label as any]?.emoji || '❓'}</span>
                                 <span>{row.label.replace('_', ' ')}</span>
                               </td>
-                              <td className="p-2.5 text-center text-slate-600 dark:text-[#8493A8]">{row.support}</td>
-                              <td className="p-2.5 text-center text-emerald-600 dark:text-emerald-400 font-bold">{row.tp}</td>
-                              <td className="p-2.5 text-center text-amber-500 font-medium">{row.fp}</td>
-                              <td className="p-2.5 text-center text-red-500 font-medium">{row.fn}</td>
+                              <td className="p-2.5 text-center text-slate-600 dark:text-[#A0AEC0]">{row.support}</td>
+                              <td className="p-2.5 text-center text-emerald-700 dark:text-emerald-400 font-bold">{row.tp}</td>
+                              <td className="p-2.5 text-center text-amber-700 dark:text-amber-400 font-medium">{row.fp}</td>
+                              <td className="p-2.5 text-center text-rose-700 dark:text-rose-400 font-medium">{row.fn}</td>
                               <td className="p-2.5 text-center">{Math.round(row.precision * 100)}%</td>
                               <td className="p-2.5 text-center">{Math.round(row.recall * 100)}%</td>
-                              <td className="p-2.5 text-center font-bold text-[#22D3EE]">
+                              <td className="p-2.5 text-center font-bold text-[#0E7490] dark:text-[#43D9E9]">
                                 {Math.round(row.f1 * 100)}%
                               </td>
                             </tr>
@@ -482,11 +497,11 @@ export const EvaluationLabModal: React.FC<EvaluationLabModalProps> = ({
                   <span className="font-bold text-slate-800 dark:text-[#F8FAFC]">
                     Confusion Matrix Visualization
                   </span>
-                  <p className="text-[11px] text-slate-500 dark:text-[#8493A8]">
+                  <p className="text-[11px] text-slate-600 dark:text-[#A0AEC0]">
                     Rows represent Ground Truth (Actual Class); Columns represent Predicted Class.
                   </p>
                 </div>
-                <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400">
+                <span className="text-[11px] font-mono text-emerald-700 dark:text-emerald-400">
                   ● Diagonal = True Positive Matches
                 </span>
               </div>
@@ -496,9 +511,9 @@ export const EvaluationLabModal: React.FC<EvaluationLabModalProps> = ({
                   <table className="border-collapse text-[10px] font-mono tabular-nums w-full">
                     <thead>
                       <tr>
-                        <th className="p-1.5 text-left text-slate-400 dark:text-[#8493A8]">Actual \ Pred</th>
+                        <th className="p-1.5 text-left text-slate-600 dark:text-[#A0AEC0]">Actual \ Pred</th>
                         {evalReport.confusionMatrix.labels.map((l) => (
-                          <th key={l} className="p-1.5 text-center text-slate-500 dark:text-[#8493A8] uppercase tracking-tighter truncate max-w-[45px]" title={l}>
+                          <th key={l} className="p-1.5 text-center text-slate-600 dark:text-[#A0AEC0] uppercase tracking-tighter truncate max-w-[45px]" title={l}>
                             {l.slice(0, 3)}
                           </th>
                         ))}
@@ -519,10 +534,10 @@ export const EvaluationLabModal: React.FC<EvaluationLabModalProps> = ({
                                   key={cIdx}
                                   className={`p-1.5 text-center font-bold rounded ${
                                     isDiagonal && val > 0
-                                      ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                                      ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'
                                       : val > 0
-                                      ? 'bg-red-500/20 text-red-600 dark:text-red-400'
-                                      : 'text-slate-300 dark:text-slate-700'
+                                      ? 'bg-red-500/20 text-rose-700 dark:text-rose-400'
+                                      : 'text-slate-500 dark:text-slate-500'
                                   }`}
                                 >
                                   {val}
@@ -543,8 +558,8 @@ export const EvaluationLabModal: React.FC<EvaluationLabModalProps> = ({
           {activeTab === 'audit' && (
             <div className="space-y-4">
               <div className="p-4 rounded-[14px] bg-cyan-500/10 border border-cyan-500/25 space-y-2">
-                <div className="flex items-center gap-2 font-bold text-cyan-600 dark:text-[#22D3EE] text-sm">
-                  <ShieldAlert className="w-5 h-5 text-[#22D3EE]" />
+                <div className="flex items-center gap-2 font-bold text-[#0E7490] dark:text-[#43D9E9] text-sm">
+                  <ShieldAlert className="w-5 h-5 text-[#0E7490] dark:text-[#43D9E9]" />
                   <span>Scientific Honesty & Architecture Audit</span>
                 </div>
                 <p className="text-xs text-slate-700 dark:text-[#B6C2D2] leading-relaxed">
@@ -555,40 +570,40 @@ export const EvaluationLabModal: React.FC<EvaluationLabModalProps> = ({
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2">
                   <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-[#F8FAFC]">
-                    <Cpu className="w-4 h-4 text-emerald-400" />
+                    <Cpu className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
                     <span>Rule-Based Heuristic Engine</span>
                   </div>
-                  <p className="text-[11px] text-slate-600 dark:text-[#8493A8] leading-relaxed">
+                  <p className="text-[11px] text-slate-600 dark:text-[#A0AEC0] leading-relaxed">
                     The current recognition system uses an on-device geometric vector heuristic pipeline comparing normalized 2D/3D angles and ratios. <strong>No trained deep neural network or blackbox ML classifier is connected yet.</strong>
                   </p>
                 </div>
 
                 <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2">
                   <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-[#F8FAFC]">
-                    <Activity className="w-4 h-4 text-[#60A5FA]" />
+                    <Activity className="w-4 h-4 text-blue-700 dark:text-[#60A5FA]" />
                     <span>Confidence Score Interpretation</span>
                   </div>
-                  <p className="text-[11px] text-slate-600 dark:text-[#8493A8] leading-relaxed">
+                  <p className="text-[11px] text-slate-600 dark:text-[#A0AEC0] leading-relaxed">
                     Confidence percentages represent geometric distance margins from defined static hand pose thresholds. <strong>They are not calibrated Bayesian posterior probabilities</strong> and must not be cited as such.
                   </p>
                 </div>
 
                 <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2">
                   <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-[#F8FAFC]">
-                    <Layers className="w-4 h-4 text-[#8B5CF6]" />
+                    <Layers className="w-4 h-4 text-[#4F46E5] dark:text-[#8585FF]" />
                     <span>EthSL Linguistic Validation Status</span>
                   </div>
-                  <p className="text-[11px] text-slate-600 dark:text-[#8493A8] leading-relaxed">
+                  <p className="text-[11px] text-slate-600 dark:text-[#A0AEC0] leading-relaxed">
                     The sign vocabulary represents a high-school innovation prototype developed by students at Holy Trinity Cathedral School. <strong>Full linguistic certification requires official collaboration with the Ethiopian National Association of the Deaf (ENAD).</strong>
                   </p>
                 </div>
 
                 <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2">
                   <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-[#F8FAFC]">
-                    <Database className="w-4 h-4 text-[#2DD4BF]" />
+                    <Database className="w-4 h-4 text-teal-700 dark:text-[#2DD4BF]" />
                     <span>Isolation of Simulation Data</span>
                   </div>
-                  <p className="text-[11px] text-slate-600 dark:text-[#8493A8] leading-relaxed">
+                  <p className="text-[11px] text-slate-600 dark:text-[#A0AEC0] leading-relaxed">
                     Card simulations are strictly flagged and excluded from real webcam evaluations to prevent artificial accuracy inflation. Only real camera frames or canonical recorded benchmark fixtures are used for metrics.
                   </p>
                 </div>

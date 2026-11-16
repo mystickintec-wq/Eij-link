@@ -1,159 +1,292 @@
-import React from 'react';
-import { Camera, Sparkles, Shield, Cpu, ExternalLink, CheckCircle2 } from 'lucide-react';
-import { GESTURE_LIST } from '../data/gestures';
-import { CommunicationOrb3D } from './CommunicationOrb3D';
-import { useCommunication } from '../context/CommunicationContext';
+import React, { useState } from 'react';
+import { ArrowDown, ArrowRight, Camera, Check, Hand, Volume2 } from 'lucide-react';
+import { AppLanguage } from '../config/navigation';
+import { GESTURE_DEFINITIONS, GESTURE_LIST } from '../data/gestures';
+import { speechService } from '../services/speechService';
+import { GestureKey } from '../types';
+import { HandPoseDiagram } from './HandPoseDiagram';
+import { Button, Card, useToast } from './ui';
 
 interface HeroSectionProps {
+  language?: AppLanguage;
   onStartDemo: () => void;
-  onExplore3D: () => void;
-  onOpenCloudVault?: () => void;
+  onStartLiveRecognition?: () => void;
+  onExplore3D: (gestureKey?: GestureKey) => void;
 }
 
-export const HeroSection: React.FC<HeroSectionProps> = ({ onStartDemo, onExplore3D, onOpenCloudVault }) => {
-  const { communicationState, setCommunicationState, audioLevel, themeAccent, disable3D } = useCommunication();
+const DEMO_SIGN_KEYS: GestureKey[] = ['hello', 'thank_you', 'water', 'help', 'please', 'yes'];
+
+export const HeroSection: React.FC<HeroSectionProps> = ({
+  language = 'en',
+  onStartDemo,
+  onStartLiveRecognition,
+  onExplore3D,
+}) => {
+  const { showToast } = useToast();
+  const [selectedKey, setSelectedKey] = useState<GestureKey>('hello');
+  const [speakingLang, setSpeakingLang] = useState<'en' | 'am' | null>(null);
+
+  const isAm = language === 'am';
+  const activeGesture = GESTURE_DEFINITIONS[selectedKey] || GESTURE_LIST[0];
+  const demoGestures = DEMO_SIGN_KEYS.map((key) => GESTURE_DEFINITIONS[key]).filter(Boolean);
+
+  const handleScrollToHowItWorks = () => {
+    const target = document.getElementById('how-it-works');
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleSpeak = (langCode: 'en-US' | 'am-ET') => {
+    const shortLang = langCode === 'am-ET' ? 'am' : 'en';
+    setSpeakingLang(shortLang);
+    speechService.speak(
+      activeGesture,
+      langCode,
+      0.95,
+      () => setSpeakingLang(shortLang),
+      () => setSpeakingLang(null),
+      () => {
+        setSpeakingLang(null);
+        showToast(
+          isAm
+            ? 'በዚህ አሳሽ ላይ የድምፅ ንባብ አይገኝም።'
+            : 'Speech playback is unavailable in this browser.',
+          'info'
+        );
+      }
+    );
+  };
 
   return (
-    <section className="pt-20 pb-12 md:pt-28 md:pb-16">
-      {/* School & Initiative Top Banner */}
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-3 px-5 py-3 rounded-[14px] bg-slate-100 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] text-slate-800 dark:text-[#F8FAFC] shadow-xs">
-        <div className="flex items-center gap-2.5">
-          <span className="w-2 h-2 rounded-full bg-[#22D3EE] shrink-0" />
-          <p className="text-xs sm:text-sm font-medium text-slate-700 dark:text-[#B6C2D2]">
-            <strong className="text-slate-900 dark:text-[#F8FAFC] font-semibold">Holy Trinity Cathedral Secondary School:</strong> Student-Led AI Innovation from{' '}
-            <span className="text-[#22D3EE]">The Ethio-Tech Initiative</span>, Addis Ababa, Ethiopia
-          </p>
-        </div>
-        <a
-          href="https://t.me/EthioTech_HTCS"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs font-semibold text-[#22D3EE] hover:text-[#2DD4BF] flex items-center gap-1.5 transition-colors"
-        >
-          Follow Updates <ExternalLink className="w-3.5 h-3.5" />
-        </a>
-      </div>
+    <section aria-labelledby="hero-headline" className="relative pt-2 pb-6 lg:pt-6 lg:pb-10">
+      <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+        {/* Left Column: Product Proposition */}
+        <div className="lg:col-span-6 space-y-6">
+          <div className="space-y-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0E7490] dark:text-[#43D9E9] font-ethiopic">
+              {isAm
+                ? 'በAI የተደገፈ የመግባቢያ ቴክኖሎጂ'
+                : 'AI-POWERED ACCESSIBILITY TECHNOLOGY'}
+            </p>
 
-      <div className="grid lg:grid-cols-12 gap-10 items-center">
-        {/* Left Column: Mission & Pitch */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* Metadata tags — Clean unboxed text with separators */}
-          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-[#8493A8]">
-            <span className="font-medium text-slate-700 dark:text-[#B6C2D2]">React.js + Three.js</span>
-            <span aria-hidden="true">·</span>
-            <span>MediaPipe Hand Kinematics</span>
-            <span aria-hidden="true">·</span>
-            <span>Addis Ababa, Ethiopia</span>
-            <span aria-hidden="true">·</span>
-            <span className="text-[#22D3EE]">English & አማርኛ</span>
-          </div>
-
-          {/* Headline */}
-          <div className="space-y-3">
-            <h1 className="text-4xl sm:text-5xl lg:text-[54px] font-bold tracking-tight leading-[1.1] text-slate-900 dark:text-[#F8FAFC]">
-              Where Hands{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#22D3EE] via-[#2DD4BF] to-[#60A5FA]">
-                Become Voices
-              </span>
+            <h1
+              id="hero-headline"
+              className="font-heading text-[clamp(2.35rem,4.4vw,3.65rem)] font-bold tracking-tight leading-[1.08] text-slate-900 dark:text-[#F4F7FB] [text-wrap:balance]"
+            >
+              {isAm ? 'እጆች ድምፅ የሚሆኑበት።' : 'Where Hands Become Voices.'}
             </h1>
-            <p className="text-base sm:text-lg text-slate-600 dark:text-[#B6C2D2] leading-relaxed max-w-2xl font-normal">
-              What if a simple hand gesture could speak for you? Built in <strong>React</strong> and driven by on-device computer vision and real-time 3D kinematics, <strong>EjjiLink AI</strong> bridges communication barriers between Deaf, hard-of-hearing, and hearing individuals in both <strong>English</strong> and <strong>Amharic (አማርኛ)</strong>.
+
+            <p className="text-base sm:text-lg text-slate-600 dark:text-[#A0AEC0] leading-relaxed max-w-xl font-normal font-ethiopic">
+              {isAm
+                ? 'ብልህ የምልክት ቋንቋ ማወቂያ፣ ባለሁለት ቋንቋ ትርጉም እና ተደራሽ ቴክኖሎጂን በመጠቀም የመግባቢያ እንቅፋቶችን ያስወግዱ።'
+                : 'Breaking communication barriers through intelligent sign recognition, multilingual translation, and accessible technology.'}
             </p>
           </div>
 
-          {/* Action CTAs — Standardized button sizes & hierarchy */}
-          <div className="flex flex-wrap items-center gap-3 pt-2">
-            <a
-              href="#communication-workspace"
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <Button
+              variant="primary"
+              size="lg"
               onClick={onStartDemo}
-              className="h-12 px-6 rounded-[10px] text-sm font-semibold bg-[#22D3EE] hover:bg-[#2DD4BF] text-[#080D18] transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+              rightIcon={<ArrowRight className="w-4 h-4" />}
+              className="font-ethiopic"
             >
-              <Camera className="w-4 h-4" />
-              Launch Two-Way Studio
-            </a>
+              {isAm ? 'መገናኘት ይጀምሩ' : 'Start Communicating'}
+            </Button>
 
-            <a
-              href="#ux-particle-displayer"
-              onClick={() => {
-                document.getElementById('ux-particle-displayer')?.scrollIntoView({ behavior: 'smooth' });
-              }}
-              className="h-12 px-5 rounded-[10px] text-sm font-medium bg-slate-100 dark:bg-[#19263A] hover:bg-slate-200 dark:hover:bg-[#1E2E44] text-slate-900 dark:text-[#F8FAFC] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={handleScrollToHowItWorks}
+              leftIcon={<ArrowDown className="w-4 h-4" />}
+              className="font-ethiopic"
             >
-              <Sparkles className="w-4 h-4 text-[#22D3EE]" />
-              UX Particle Displayer
-            </a>
-
-            {onOpenCloudVault && (
-              <button
-                onClick={onOpenCloudVault}
-                className="h-12 px-5 rounded-[10px] text-sm font-medium bg-transparent hover:bg-slate-100 dark:hover:bg-[#19263A]/60 text-slate-700 dark:text-[#B6C2D2] hover:text-slate-900 dark:hover:text-[#F8FAFC] transition-colors flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>Cloud Vault</span>
-              </button>
-            )}
+              {isAm ? 'አሰራሩን ይመልከቱ' : 'Explore How It Works'}
+            </Button>
           </div>
 
-          {/* Core Trust Guarantees — Standardized 14px cards */}
-          <div className="grid sm:grid-cols-3 gap-3 pt-3">
-            <div className="p-4 rounded-[14px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex items-start gap-3">
-              <Shield className="w-5 h-5 text-[#22D3EE] shrink-0 mt-0.5" />
-              <div>
-                <strong className="block text-xs font-semibold text-slate-900 dark:text-[#F8FAFC]">100% On-Device</strong>
-                <span className="text-[12px] text-slate-500 dark:text-[#8493A8]">Zero video frames uploaded or stored.</span>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-[14px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex items-start gap-3">
-              <CheckCircle2 className="w-5 h-5 text-[#34D399] shrink-0 mt-0.5" />
-              <div>
-                <strong className="block text-xs font-semibold text-slate-900 dark:text-[#F8FAFC]">&gt;80% Lock Guard</strong>
-                <span className="text-[12px] text-slate-500 dark:text-[#8493A8]">5-frame temporal smoothing eliminates jitter.</span>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-[14px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex items-start gap-3">
-              <Cpu className="w-5 h-5 text-[#8B5CF6] shrink-0 mt-0.5" />
-              <div>
-                <strong className="block text-xs font-semibold text-slate-900 dark:text-[#F8FAFC]">60 FPS Kinematics</strong>
-                <span className="text-[12px] text-slate-500 dark:text-[#8493A8]">Three.js PBR rendering and local AI inference.</span>
-              </div>
-            </div>
+          {/* Quiet Unboxed Product Metadata */}
+          <div className="pt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-600 dark:text-[#A0AEC0]">
+            <span className="font-medium text-slate-900 dark:text-[#F4F7FB]">
+              English &amp; <span className="font-ethiopic font-medium">አማርኛ</span>
+            </span>
+            <span aria-hidden="true">·</span>
+            <span className="font-mono tabular-nums">
+              {GESTURE_LIST.length}{' '}
+              <span className="font-ethiopic">
+                {isAm ? 'ዋና ምልክቶች' : 'EthSL & Universal Signs'}
+              </span>
+            </span>
+            <span aria-hidden="true">·</span>
+            <span className="font-ethiopic">
+              {isAm ? 'በመሳሪያ ላይ 100% ግላዊ' : 'On-device sign tracking'}
+            </span>
           </div>
         </div>
 
-        {/* Right Column: Interactive Real-Time 3D Communication Experience (UX Particle Displayer) */}
-        <div id="ux-particle-displayer" className="lg:col-span-5 space-y-4 scroll-mt-24">
-          <CommunicationOrb3D
-            state={communicationState}
-            audioLevel={audioLevel}
-            accent={themeAccent}
-            disable3D={disable3D}
-            onStateSelect={(s) => setCommunicationState(s)}
-            showStateControls={true}
+        {/* Right Column: Integrated 21-Point Hand Rig -> Bilingual Translation -> Speech */}
+        <div className="lg:col-span-6 relative">
+          {/* Restrained localized radial lighting anchored strictly behind visual stage */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-6 rounded-[28px] bg-[radial-gradient(ellipse_at_top_right,rgba(8,145,178,0.10),transparent_65%)] dark:bg-[radial-gradient(ellipse_at_top_right,rgba(67,217,233,0.13),rgba(133,133,255,0.06)_45%,transparent_72%)]"
           />
 
-          {/* Quick Sign Vocabulary & Core Reference */}
-          <div className="p-5 rounded-[14px] bg-white dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold text-slate-800 dark:text-[#F8FAFC]">
-                Everyday Sign Vocabulary (EthSL + Universal)
+          <Card padding="none" className="relative overflow-hidden shadow-sm dark:shadow-[0_18px_45px_rgba(2,6,23,0.45)]">
+            {/* Top Bar: Interactive EthSL Sign Header */}
+            <div className="px-5 py-3.5 border-b border-slate-200 dark:border-[#253448] flex items-center justify-between gap-3 bg-slate-50/80 dark:bg-[#172438]/65">
+              <div className="flex items-center gap-2 min-w-0">
+                <Hand className="w-4 h-4 text-[#0E7490] dark:text-[#43D9E9] shrink-0" aria-hidden="true" />
+                <span className="text-xs font-semibold text-slate-900 dark:text-[#F4F7FB] truncate font-ethiopic">
+                  {isAm ? (
+                    'የቀጥታ መግባቢያ ፍሰት'
+                  ) : (
+                    <>
+                      <span className="hidden sm:inline">Interactive </span>Sign-to-Voice Flow
+                    </>
+                  )}
+                </span>
+              </div>
+              <span className="text-[11px] font-mono tabular-nums text-slate-600 dark:text-[#A0AEC0] shrink-0">
+                {activeGesture.signLanguage || 'EthSL'} · &ge;{Math.round(activeGesture.threshold * 100)}% lock
               </span>
-              <span className="text-xs text-[#22D3EE] font-mono font-medium">7 Core Signs</span>
             </div>
 
-            <div className="grid grid-cols-4 gap-2 text-center">
-              {GESTURE_LIST.slice(0, 4).map((g) => (
-                <div
-                  key={g.id}
-                  className="p-2 rounded-[10px] bg-slate-50 dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.1)]"
-                >
-                  <span className="text-base block">{g.emoji}</span>
-                  <span className="text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] block truncate">{g.labelEn}</span>
-                  <span className="text-[11px] text-[#22D3EE] font-ethiopic block truncate">{g.labelAm}</span>
-                </div>
-              ))}
+            {/* Symmetrical Gesture Selector (Zero Orphan Rows) */}
+            <div
+              className="px-5 py-3 border-b border-slate-200 dark:border-[#253448] grid grid-cols-2 sm:grid-cols-3 gap-2"
+              role="group"
+              aria-label={isAm ? 'የምልክት ናሙና ይምረጡ' : 'Choose a sign gesture to preview'}
+            >
+              {demoGestures.map((gesture) => {
+                const isSelected = gesture.id === activeGesture.id;
+                return (
+                  <button
+                    key={gesture.id}
+                    type="button"
+                    onClick={() => setSelectedKey(gesture.id)}
+                    aria-pressed={isSelected}
+                    className={`min-h-[36px] px-3 py-1.5 rounded-[8px] text-xs font-medium border transition-[colors,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100 cursor-pointer flex items-center justify-between gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                      isSelected
+                        ? 'bg-[#0E7490]/10 dark:bg-[#43D9E9]/14 border-[#0E7490] dark:border-[#43D9E9] text-[#0E7490] dark:text-[#43D9E9] font-semibold'
+                        : 'bg-slate-50 dark:bg-[#172438]/75 border-slate-200 dark:border-[#253448] text-slate-700 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB] hover:border-slate-300 dark:hover:border-[#374c68]'
+                    }`}
+                  >
+                    <span className="truncate font-ethiopic">
+                      {isAm ? gesture.labelAm : gesture.labelEn}
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${
+                        isSelected
+                          ? 'bg-[#0E7490] dark:bg-[#43D9E9]'
+                          : 'bg-slate-300 dark:bg-[#33465f]'
+                      }`}
+                    />
+                  </button>
+                );
+              })}
             </div>
-          </div>
+
+            {/* Core Demonstration Body: 21-Point Hand Rig -> Bilingual Recognition -> Speech */}
+            <div className="p-5 sm:p-6 space-y-5">
+              <div className="grid sm:grid-cols-12 gap-5 items-center">
+                {/* Product-Quality 21-Point Anatomical Hand Visualizer */}
+                <div className="sm:col-span-6 space-y-2.5">
+                  <HandPoseDiagram gestureKey={activeGesture.id} variant="stage" />
+
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+                      <Check className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                      <span className="font-ethiopic">
+                        {isAm ? 'ምልክት ተለይቷል' : 'Gesture Recognized'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-[#A0AEC0] leading-relaxed">
+                      {activeGesture.poseInstructions}
+                    </p>
+                  </div>
+                </div>
+
+                {/* English + Amharic Output + Direct Audio Playback */}
+                <div className="sm:col-span-6 flex flex-col justify-between space-y-4 sm:pl-2">
+                  <div key={activeGesture.id} className="space-y-3.5 ejji-animate-fade-up">
+                    <div>
+                      <span className="text-[11px] font-medium text-slate-600 dark:text-[#A0AEC0] block mb-0.5">
+                        English
+                      </span>
+                      <div className="font-heading text-2xl sm:text-[28px] font-bold text-slate-900 dark:text-[#F4F7FB] tracking-tight leading-tight">
+                        {activeGesture.labelEn}
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-200 dark:border-[#253448]">
+                      <span className="text-[11px] font-medium text-slate-600 dark:text-[#A0AEC0] block mb-0.5 font-ethiopic">
+                        አማርኛ (Amharic)
+                      </span>
+                      <div className="flex items-baseline gap-2.5 flex-wrap">
+                        <span className="font-ethiopic text-2xl sm:text-[26px] font-bold text-[#0E7490] dark:text-[#43D9E9] leading-snug">
+                          {activeGesture.labelAm}
+                        </span>
+                        <span className="text-xs font-mono text-slate-600 dark:text-[#A0AEC0]">
+                          /{activeGesture.phoneticAm}/
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Voice Synthesis Buttons */}
+                  <div className="pt-1 flex flex-wrap items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleSpeak('en-US')}
+                      leftIcon={<Volume2 className="w-3.5 h-3.5 text-[#0E7490] dark:text-[#43D9E9]" />}
+                      aria-pressed={speakingLang === 'en'}
+                    >
+                      {speakingLang === 'en' ? 'Speaking EN...' : 'Speak EN'}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleSpeak('am-ET')}
+                      leftIcon={<Volume2 className="w-3.5 h-3.5 text-[#4F46E5] dark:text-[#8585FF]" />}
+                      aria-pressed={speakingLang === 'am'}
+                      className="font-ethiopic"
+                    >
+                      {speakingLang === 'am' ? 'በማንበብ ላይ...' : 'በአማርኛ አንብብ'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Clean Footer Strip: Try Camera & View 3D Pose */}
+              <div className="pt-4 border-t border-slate-200 dark:border-[#253448] flex flex-wrap items-center justify-between gap-3 text-xs">
+                {onStartLiveRecognition ? (
+                  <button
+                    type="button"
+                    onClick={onStartLiveRecognition}
+                    className="font-medium text-slate-700 dark:text-[#A0AEC0] hover:text-[#0E7490] dark:hover:text-[#43D9E9] transition-colors flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] rounded-[6px] px-1.5 py-1 font-ethiopic"
+                  >
+                    <Camera className="w-3.5 h-3.5" aria-hidden="true" />
+                    <span>{isAm ? 'በካሜራ ሞክር' : 'Try Camera'}</span>
+                  </button>
+                ) : (
+                  <span />
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => onExplore3D(activeGesture.id)}
+                  className="font-semibold text-[#0E7490] dark:text-[#43D9E9] hover:opacity-80 transition-opacity flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] rounded-[6px] px-1.5 py-1 font-ethiopic"
+                >
+                  <span>{isAm ? 'በ3D እይ' : 'View 3D Pose'}</span>
+                  <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+          </Card>
         </div>
       </div>
     </section>

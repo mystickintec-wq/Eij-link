@@ -1,13 +1,7 @@
 import React from 'react';
-import { 
-  X, 
-  SlidersHorizontal, 
-  Volume2, 
-  Cloud, 
-  RotateCcw,
-  Eye
-} from 'lucide-react';
+import { SlidersHorizontal, Volume2, Cloud, RotateCcw, Eye } from 'lucide-react';
 import { AccessibilitySettings } from '../types';
+import { Button, Modal, useToast } from './ui';
 
 interface AccessibilitySettingsModalProps {
   isOpen: boolean;
@@ -17,6 +11,52 @@ interface AccessibilitySettingsModalProps {
   onOpenCloudVault: () => void;
 }
 
+interface SettingSwitchRowProps {
+  id: string;
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}
+
+const SettingSwitchRow: React.FC<SettingSwitchRowProps> = ({
+  id,
+  label,
+  description,
+  checked,
+  onChange,
+}) => (
+  <div className="p-3.5 rounded-[12px] bg-slate-50 dark:bg-[#172438]/75 border border-slate-200 dark:border-[#253448] flex items-center justify-between gap-3 hover:border-slate-300 dark:hover:border-[#374c68] transition-colors">
+    <label htmlFor={id} className="min-w-0 cursor-pointer">
+      <span className="font-semibold text-xs text-slate-900 dark:text-[#F4F7FB] block font-ethiopic">
+        {label}
+      </span>
+      <span className="text-[11px] text-slate-600 dark:text-[#A0AEC0] block leading-snug font-ethiopic">
+        {description}
+      </span>
+    </label>
+    <button
+      id={id}
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+        checked
+          ? 'bg-[#0E7490] dark:bg-[#43D9E9] border-transparent'
+          : 'bg-slate-200 dark:bg-[#0D1726] border-slate-300 dark:border-[#253448]'
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className={`inline-block h-4 w-4 rounded-full bg-white dark:bg-[#080D18] shadow-xs transition-transform duration-150 motion-reduce:transition-none ${
+          checked ? 'translate-x-[22px]' : 'translate-x-[3px]'
+        } ${!checked ? 'dark:bg-[#A0AEC0]' : ''}`}
+      />
+    </button>
+  </div>
+);
+
 export const AccessibilitySettingsModal: React.FC<AccessibilitySettingsModalProps> = ({
   isOpen,
   onClose,
@@ -24,7 +64,7 @@ export const AccessibilitySettingsModal: React.FC<AccessibilitySettingsModalProp
   onUpdateSettings,
   onOpenCloudVault,
 }) => {
-  if (!isOpen) return null;
+  const { showToast } = useToast();
 
   const handleResetDefaults = () => {
     onUpdateSettings({
@@ -40,57 +80,55 @@ export const AccessibilitySettingsModal: React.FC<AccessibilitySettingsModalProp
       voiceNavEnabled: true,
       voiceFeedback: true,
     });
+    showToast('Accessibility settings restored to defaults', 'info');
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-      <div className="bg-white dark:bg-[#0D1422] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] rounded-[20px] max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 sm:p-7 space-y-6 animate-in fade-in duration-150">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-[rgba(148,163,184,0.12)] pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[10px] bg-[#22D3EE]/10 text-[#22D3EE] flex items-center justify-center shrink-0">
-              <SlidersHorizontal className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-[#F8FAFC]">
-                Accessibility & Preferences
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-[#8493A8]">
-                Personalize font scale, contrast, audio feedback, and 3D animation.
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-[8px] bg-slate-100 hover:bg-slate-200 dark:bg-[#19263A] dark:hover:bg-[#1E2E44] text-slate-500 dark:text-[#B6C2D2] hover:text-slate-900 dark:hover:text-[#F8FAFC] transition-colors cursor-pointer flex items-center justify-center"
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Accessibility & Preferences"
+      description="Personalize font scale, contrast, audio feedback, and 3D performance."
+      icon={<SlidersHorizontal className="w-5 h-5" />}
+      footer={
+        <>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleResetDefaults}
+            leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
           >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
+            Reset Defaults
+          </Button>
+          <Button variant="primary" size="md" onClick={onClose}>
+            Done
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-6">
         {/* 1. Visual Accessibility Options */}
         <div className="space-y-3">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-[#22D3EE] flex items-center gap-2">
-            <Eye className="w-4 h-4" /> Visual Ergonomics & Legibility
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-[#0E7490] dark:text-[#43D9E9] flex items-center gap-2">
+            <Eye className="w-4 h-4" aria-hidden="true" /> Visual Ergonomics &amp; Legibility
           </h4>
 
-          {/* Text Size */}
-          <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2">
-            <label className="text-xs font-semibold text-slate-800 dark:text-[#F8FAFC] flex items-center justify-between">
+          <div className="p-3.5 rounded-[12px] bg-slate-50 dark:bg-[#172438]/75 border border-slate-200 dark:border-[#253448] space-y-2">
+            <div className="text-xs font-semibold text-slate-800 dark:text-[#F4F7FB] flex items-center justify-between">
               <span>Text Scale / Font Size</span>
-              <span className="capitalize font-mono text-[#22D3EE] text-xs">{settings.textSize}</span>
-            </label>
-            <div className="grid grid-cols-3 gap-2 pt-1">
+              <span className="capitalize font-mono text-[#0E7490] dark:text-[#43D9E9]">{settings.textSize}</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 pt-1" role="group" aria-label="Text size scale">
               {(['normal', 'large', 'xlarge'] as const).map((size) => (
                 <button
                   key={size}
+                  type="button"
                   onClick={() => onUpdateSettings({ textSize: size })}
-                  className={`h-9 px-3 rounded-[8px] text-xs font-medium capitalize border transition-colors cursor-pointer ${
+                  aria-pressed={settings.textSize === size}
+                  className={`h-10 px-3 rounded-[8px] text-xs font-semibold capitalize border transition-[colors,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                     settings.textSize === size
-                      ? 'bg-[#22D3EE] text-[#080D18] border-[#22D3EE] font-semibold'
-                      : 'bg-white dark:bg-[#0D1422] border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-slate-700 dark:text-[#B6C2D2]'
+                      ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18] border-transparent'
+                      : 'bg-white dark:bg-[#101C2C] border-slate-200 dark:border-[#253448] text-slate-700 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB]'
                   }`}
                 >
                   {size}
@@ -99,151 +137,110 @@ export const AccessibilitySettingsModal: React.FC<AccessibilitySettingsModalProp
             </div>
           </div>
 
-          {/* High Contrast & Dyslexic Font Toggles */}
           <div className="grid sm:grid-cols-2 gap-3">
-            <label className="p-3.5 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex items-center justify-between gap-3 cursor-pointer hover:border-[#22D3EE]/40 transition-colors">
-              <div>
-                <span className="font-semibold text-xs text-slate-800 dark:text-[#F8FAFC] block">High Contrast Mode</span>
-                <span className="text-[11px] text-slate-500 dark:text-[#8493A8]">High-contrast borders & vivid accents</span>
-              </div>
-              <input
-                type="checkbox"
-                checked={settings.highContrast}
-                onChange={(e) => onUpdateSettings({ highContrast: e.target.checked })}
-                className="w-4 h-4 rounded text-[#22D3EE] accent-[#22D3EE] cursor-pointer"
-              />
-            </label>
-
-            <label className="p-3.5 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex items-center justify-between gap-3 cursor-pointer hover:border-[#22D3EE]/40 transition-colors">
-              <div>
-                <span className="font-semibold text-xs text-slate-800 dark:text-[#F8FAFC] block">Dyslexic Legibility Font</span>
-                <span className="text-[11px] text-slate-500 dark:text-[#8493A8]">Weighted letterforms for easier reading</span>
-              </div>
-              <input
-                type="checkbox"
-                checked={settings.dyslexicFont}
-                onChange={(e) => onUpdateSettings({ dyslexicFont: e.target.checked })}
-                className="w-4 h-4 rounded text-[#22D3EE] accent-[#22D3EE] cursor-pointer"
-              />
-            </label>
+            <SettingSwitchRow
+              id="switch-high-contrast"
+              label="High Contrast Mode"
+              description="Vivid borders & stronger contrast"
+              checked={settings.highContrast}
+              onChange={(checked) => onUpdateSettings({ highContrast: checked })}
+            />
+            <SettingSwitchRow
+              id="switch-dyslexic-font"
+              label="Dyslexic Legibility Font"
+              description="Monospaced letter spacing"
+              checked={settings.dyslexicFont}
+              onChange={(checked) => onUpdateSettings({ dyslexicFont: checked })}
+            />
           </div>
 
-          {/* 3D Visualizer & Voice Options */}
           <div className="grid sm:grid-cols-2 gap-3">
-            <label className="p-3.5 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex items-center justify-between gap-3 cursor-pointer hover:border-[#22D3EE]/40 transition-colors">
-              <div>
-                <span className="font-semibold text-xs text-slate-800 dark:text-[#F8FAFC] block">Disable 3D Orb (Static 2D)</span>
-                <span className="text-[11px] text-slate-500 dark:text-[#8493A8]">Reduce motion and save battery</span>
-              </div>
-              <input
-                type="checkbox"
-                checked={!!settings.disable3D}
-                onChange={(e) => onUpdateSettings({ disable3D: e.target.checked })}
-                className="w-4 h-4 rounded text-[#22D3EE] accent-[#22D3EE] cursor-pointer"
-              />
-            </label>
-
-            <label className="p-3.5 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex items-center justify-between gap-3 cursor-pointer hover:border-[#22D3EE]/40 transition-colors">
-              <div>
-                <span className="font-semibold text-xs text-slate-800 dark:text-[#F8FAFC] block">Voice Spoken Feedback</span>
-                <span className="text-[11px] text-slate-500 dark:text-[#8493A8]">Audibly speak confirmations & updates</span>
-              </div>
-              <input
-                type="checkbox"
-                checked={settings.voiceFeedback !== false}
-                onChange={(e) => onUpdateSettings({ voiceFeedback: e.target.checked })}
-                className="w-4 h-4 rounded text-[#22D3EE] accent-[#22D3EE] cursor-pointer"
-              />
-            </label>
+            <SettingSwitchRow
+              id="switch-disable-3d"
+              label="Disable 3D Motion (Static 2D)"
+              description="Reduce motion & save battery"
+              checked={!!settings.disable3D}
+              onChange={(checked) => onUpdateSettings({ disable3D: checked })}
+            />
+            <SettingSwitchRow
+              id="switch-voice-feedback"
+              label="Voice Spoken Feedback"
+              description="Audibly speak confirmations"
+              checked={settings.voiceFeedback !== false}
+              onChange={(checked) => onUpdateSettings({ voiceFeedback: checked })}
+            />
           </div>
         </div>
 
         {/* 2. Text-to-Speech & Audio Controls */}
-        <div className="space-y-3 pt-2 border-t border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-[#22D3EE] flex items-center gap-2">
-            <Volume2 className="w-4 h-4" /> Text-to-Speech Playback
+        <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-[#253448]">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-[#0E7490] dark:text-[#43D9E9] flex items-center gap-2">
+            <Volume2 className="w-4 h-4" aria-hidden="true" /> Text-to-Speech Playback
           </h4>
 
-          <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2">
+          <div className="p-3.5 rounded-[12px] bg-slate-50 dark:bg-[#172438]/75 border border-slate-200 dark:border-[#253448] space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-slate-800 dark:text-[#F8FAFC]">Speech Rate</span>
-              <span className="font-mono text-[#22D3EE] text-xs">{settings.speechRate.toFixed(2)}x</span>
+              <label htmlFor="speech-rate-slider" className="font-semibold text-slate-900 dark:text-[#F4F7FB]">
+                Speech Rate
+              </label>
+              <span className="font-mono tabular-nums text-[#0E7490] dark:text-[#43D9E9]">
+                {settings.speechRate.toFixed(2)}x
+              </span>
             </div>
             <input
+              id="speech-rate-slider"
               type="range"
               min="0.5"
               max="1.5"
               step="0.05"
               value={settings.speechRate}
               onChange={(e) => onUpdateSettings({ speechRate: parseFloat(e.target.value) })}
-              className="w-full accent-[#22D3EE] cursor-pointer"
+              className="w-full accent-[#0E7490] dark:accent-[#43D9E9] cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-slate-400 dark:text-[#8493A8]">
+            <div className="flex justify-between text-[11px] text-slate-600 dark:text-[#A0AEC0]">
               <span>0.5x (Slow)</span>
               <span>1.0x (Standard)</span>
               <span>1.5x (Fast)</span>
             </div>
           </div>
 
-          <label className="p-3.5 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex items-center justify-between gap-3 cursor-pointer hover:border-[#22D3EE]/40 transition-colors">
-            <div>
-              <span className="font-semibold text-xs text-slate-800 dark:text-[#F8FAFC] block">Auto-Speak Translations</span>
-              <span className="text-[11px] text-slate-500 dark:text-[#8493A8]">Automatically articulate recognized phrases via speech synthesis</span>
-            </div>
-            <input
-              type="checkbox"
-              checked={settings.autoSpeak}
-              onChange={(e) => onUpdateSettings({ autoSpeak: e.target.checked })}
-              className="w-4 h-4 rounded text-[#22D3EE] accent-[#22D3EE] cursor-pointer"
-            />
-          </label>
+          <SettingSwitchRow
+            id="switch-auto-speak"
+            label="Auto-Speak Translations"
+            description="Automatically articulate recognized phrases via speech synthesis"
+            checked={settings.autoSpeak}
+            onChange={(checked) => onUpdateSettings({ autoSpeak: checked })}
+          />
         </div>
 
         {/* 3. Cloud Storage Vault */}
-        <div className="space-y-3 pt-2 border-t border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-[#22D3EE] flex items-center gap-2">
-            <Cloud className="w-4 h-4" /> Cloud Storage
+        <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-[#253448]">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-[#0E7490] dark:text-[#43D9E9] flex items-center gap-2">
+            <Cloud className="w-4 h-4" aria-hidden="true" /> Cloud Storage
           </h4>
 
-          <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex items-center justify-between gap-4">
-            <div>
-              <span className="font-semibold text-xs text-slate-900 dark:text-[#F8FAFC] block">
+          <div className="p-3.5 rounded-[12px] bg-slate-50 dark:bg-[#172438]/75 border border-slate-200 dark:border-[#253448] flex flex-wrap items-center justify-between gap-4">
+            <div className="min-w-0">
+              <span className="font-semibold text-xs text-slate-900 dark:text-[#F4F7FB] block">
                 Cloud Firestore Saved Phrases Vault
               </span>
-              <span className="text-[11px] text-slate-500 dark:text-[#8493A8]">
+              <span className="text-[11px] text-slate-600 dark:text-[#A0AEC0]">
                 Synchronize custom sign sequences and emergency phrases securely.
               </span>
             </div>
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => {
                 onClose();
                 onOpenCloudVault();
               }}
-              className="h-9 px-4 rounded-[8px] bg-slate-100 dark:bg-[#19263A] hover:bg-slate-200 dark:hover:bg-[#1E2E44] text-[#22D3EE] font-semibold text-xs shrink-0 cursor-pointer transition-colors border border-slate-200 dark:border-[rgba(148,163,184,0.15)]"
             >
               Open Vault
-            </button>
+            </Button>
           </div>
         </div>
-
-        {/* Footer Actions */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
-          <button
-            onClick={handleResetDefaults}
-            className="h-9 px-3 rounded-[8px] text-xs font-medium text-slate-500 dark:text-[#8493A8] hover:text-slate-900 dark:hover:text-[#F8FAFC] hover:bg-slate-100 dark:hover:bg-[#19263A] flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset Defaults</span>
-          </button>
-
-          <button
-            onClick={onClose}
-            className="h-10 px-6 rounded-[10px] bg-[#22D3EE] hover:bg-[#2DD4BF] text-[#080D18] font-semibold text-xs sm:text-sm transition-colors cursor-pointer shadow-xs"
-          >
-            Done
-          </button>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 };
