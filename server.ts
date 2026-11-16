@@ -1,5 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { GoogleGenAI, Type } from '@google/genai';
+import crypto from 'crypto';
+import fs from 'fs';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -10,7 +12,116 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(express.json({ limit: '30mb' }));
+// Trust first reverse proxy (Nginx / Cloud Run / preview proxy) so req.ip is accurate
+app.set('trust proxy', 1);
+
+// Scoped JSON payload parsers (prevent oversized payloads on small text endpoints)
+const smallJsonParser = express.json({ limit: '100kb' });
+const audioJsonParser = express.json({ limit: '40mb' });
+const documentJsonParser = express.json({ limit: '25mb' });
+
+// Resolve Firebase Project ID for ID token verification without requiring private service account keys
+let FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || '';
+if (!FIREBASE_PROJECT_ID) {
+  try {
+    const cfgPath = path.resolve(__dirname, 'firebase-applet-config.json');
+    if (fs.existsSync(cfgPath)) {
+      const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+      FIREBASE_PROJECT_ID = cfg.projectId || '';
+    }
+  } catch {
+    // Non-fatal if config file is absent
+  }
+}
+
+interface VerifiedAuthUser {
+  uid: string;
+  email?: string;
+}
+
+interface AuthenticatedRequest extends Request {
+  authUser?: VerifiedAuthUser;
+}
+
+// Cached Google public X.509 certificates for Firebase ID token RS256 verification
+let cachedFirebaseCerts: Record<string, string> = {};
+let firebaseCertsExpiresAt = 0;
+
+async function getFirebasePublicCerts(): Promise<Record<string, string>> {
+  const now = Date.now();
+  if (now < firebaseCertsExpiresAt && Object.keys(cachedFirebaseCerts).length > 0) {
+    return cachedFirebaseCerts;
+  }
+
+  const resp = await fetch(
+    'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com'
+  );
+  if (!resp.ok) {
+    throw new Error(`Failed to fetch Firebase public certificates (${resp.status})`);
+  }
+
+  const cacheControl = resp.headers.get('cache-control') || '';
+  const maxAgeMatch = cacheControl.match(/max-age=(\d+)/i);
+  const maxAgeSeconds = maxAgeMatch ? Number(maxAgeMatch[1]) : 3600;
+  cachedFirebaseCerts = (await resp.json()) as Record<string, string>;
+  firebaseCertsExpiresAt = now + maxAgeSeconds * 1000;
+  return cachedFirebaseCerts;
+}
+
+async function verifyFirebaseIdToken(token: string): Promise<VerifiedAuthUser> {
+  if (!FIREBASE_PROJECT_ID) {
+    throw new Error('Firebase project ID is not configured for token verification.');
+  }
+
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    throw new Error('Malformed JWT.');
+  }
+
+  const [encodedHeader, encodedPayload, encodedSig] = parts;
+  const header = JSON.parse(Buffer.from(encodedHeader, 'base64url').toString('utf-8'));
+  const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf-8'));
+
+  if (header.alg !== 'RS256' || typeof header.kid !== 'string') {
+    throw new Error('Unsupported JWT algorithm or missing key ID.');
+  }
+
+  const certs = await getFirebasePublicCerts();
+  const certPem = certs[header.kid];
+  if (!certPem) {
+    throw new Error('Unknown signing key ID.');
+  }
+
+  const verifier = crypto.createVerify('RSA-SHA256');
+  verifier.update(`${encodedHeader}.${encodedPayload}`);
+  const isSignatureValid = verifier.verify(certPem, Buffer.from(encodedSig, 'base64url'));
+  if (!isSignatureValid) {
+    throw new Error('Invalid JWT signature.');
+  }
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const expectedIssuer = `https://securetoken.google.com/${FIREBASE_PROJECT_ID}`;
+  if (payload.aud !== FIREBASE_PROJECT_ID) {
+    throw new Error('Invalid token audience.');
+  }
+  if (payload.iss !== expectedIssuer) {
+    throw new Error('Invalid token issuer.');
+  }
+  if (typeof payload.exp !== 'number' || payload.exp <= nowSeconds) {
+    throw new Error('Expired token.');
+  }
+  if (typeof payload.iat !== 'number' || payload.iat > nowSeconds + 300) {
+    throw new Error('Invalid issued-at timestamp.');
+  }
+  if (typeof payload.sub !== 'string' || payload.sub.length === 0 || payload.sub.length > 128) {
+    throw new Error('Missing token subject.');
+  }
+
+  return {
+    uid: payload.sub,
+    email: typeof payload.email === 'string' ? payload.email : undefined,
+  };
+}
 
 // Server-side Gemini client with required aistudio-build telemetry header
 const ai = new GoogleGenAI({
@@ -25,7 +136,7 @@ const ai = new GoogleGenAI({
 // -----------------------------------------------------------------------------
 // Security & Rate Limiting Middleware
 // -----------------------------------------------------------------------------
-// In-memory sliding window rate limiter (60 requests per minute per IP)
+// In-memory sliding window rate limiter (60 requests per minute per user or IP)
 interface RateLimitBucket {
   count: number;
   resetAt: number;
@@ -33,6 +144,17 @@ interface RateLimitBucket {
 const rateLimits = new Map<string, RateLimitBucket>();
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX_REQUESTS = 60;
+const MAX_RATE_LIMIT_ENTRIES = 5000;
+
+// Periodically prune expired buckets to prevent unbounded memory growth
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, bucket] of rateLimits.entries()) {
+    if (now > bucket.resetAt) {
+      rateLimits.delete(key);
+    }
+  }
+}, RATE_LIMIT_WINDOW_MS).unref();
 
 // -----------------------------------------------------------------------------
 // Multi-Model Cascade and Fallback Engine for Zero-Downtime Accessibility
@@ -289,14 +411,54 @@ function formatErrorMessage(error: any): string {
   return raw;
 }
 
-function rateLimiter(req: Request, res: Response, next: NextFunction) {
-  const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.socket.remoteAddress || 'unknown';
+async function authenticateApiRequest(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  if (req.path === '/health') {
+    return next();
+  }
+
+  const authHeader = req.headers.authorization;
+  const requireAuth = process.env.REQUIRE_API_AUTH === 'true';
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const idToken = authHeader.slice('Bearer '.length).trim();
+    if (!idToken) {
+      return res.status(401).json({ error: 'Unauthorized: Empty Bearer token.' });
+    }
+    try {
+      req.authUser = await verifyFirebaseIdToken(idToken);
+      return next();
+    } catch (err: any) {
+      console.warn('Rejected invalid Firebase ID token:', err?.message || err);
+      return res.status(401).json({ error: 'Unauthorized: Invalid or expired authentication token.' });
+    }
+  }
+
+  if (requireAuth) {
+    return res.status(401).json({ error: 'Unauthorized: Sign in required to access AI endpoints.' });
+  }
+
+  return next();
+}
+
+function rateLimiter(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  const rawIp = req.ip || (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+  const key = req.authUser?.uid ? `uid:${req.authUser.uid}` : `ip:${rawIp}`;
   const now = Date.now();
 
-  let bucket = rateLimits.get(ip);
+  if (rateLimits.size > MAX_RATE_LIMIT_ENTRIES) {
+    for (const [k, b] of rateLimits.entries()) {
+      if (now > b.resetAt) rateLimits.delete(k);
+    }
+    if (rateLimits.size > MAX_RATE_LIMIT_ENTRIES) {
+      const oldestKey = rateLimits.keys().next().value;
+      if (oldestKey) rateLimits.delete(oldestKey);
+    }
+  }
+
+  let bucket = rateLimits.get(key);
   if (!bucket || now > bucket.resetAt) {
     bucket = { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
-    rateLimits.set(ip, bucket);
+    rateLimits.set(key, bucket);
   }
 
   bucket.count++;
@@ -315,7 +477,7 @@ function rateLimiter(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-app.use('/api', rateLimiter);
+app.use('/api', authenticateApiRequest, rateLimiter);
 
 // -----------------------------------------------------------------------------
 // Health Check Endpoint
@@ -325,6 +487,7 @@ app.get('/api/health', (_req, res) => {
     status: 'ok',
     system: 'EjjiLink AI Part 2 Core Engine',
     timestamp: new Date().toISOString(),
+    authMode: process.env.REQUIRE_API_AUTH === 'true' ? 'required' : 'optional-verified',
     endpoints: [
       'POST /api/assistant',
       'POST /api/translate',
@@ -337,7 +500,7 @@ app.get('/api/health', (_req, res) => {
 // -----------------------------------------------------------------------------
 // 1. POST /api/assistant — Simplify Text & Suggest Replies
 // -----------------------------------------------------------------------------
-app.post('/api/assistant', async (req, res) => {
+app.post('/api/assistant', smallJsonParser, async (req, res) => {
   try {
     const { text, mode = 'simplify', tone = 'simple', targetAudience = 'general', language = 'en' } = req.body;
 
@@ -422,7 +585,7 @@ Requirements:
 // -----------------------------------------------------------------------------
 // 2. POST /api/translate — Multilingual Translation
 // -----------------------------------------------------------------------------
-app.post('/api/translate', async (req, res) => {
+app.post('/api/translate', smallJsonParser, async (req, res) => {
   try {
     const { text, sourceLang = 'auto', targetLang } = req.body;
 
@@ -491,7 +654,7 @@ Text:
 // -----------------------------------------------------------------------------
 // 3. POST /api/transcribe — Audio Speech-to-Text
 // -----------------------------------------------------------------------------
-app.post('/api/transcribe', async (req, res) => {
+app.post('/api/transcribe', audioJsonParser, async (req, res) => {
   try {
     const { audio, mimeType = 'audio/webm' } = req.body;
 
@@ -529,19 +692,22 @@ app.post('/api/transcribe', async (req, res) => {
     let transcript = '';
     let modelUsed = 'gemini-3.5-transcribe';
 
-    // Primary attempt: gemini-3.5-transcribe
+    // Primary attempt: gemini-3.5-transcribe (with 20s worker timeout guard)
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.5-transcribe',
-        contents: {
-          parts: [
-            audioPart,
-            {
-              text: 'Transcribe this spoken speech accurately into verbatim text. Support English, Amharic, or mixed bilingual speech. Output only the verbatim transcribed words without commentary or quotation marks.',
-            },
-          ],
-        },
-      });
+      const response = await withTimeout(
+        ai.models.generateContent({
+          model: 'gemini-3.5-transcribe',
+          contents: {
+            parts: [
+              audioPart,
+              {
+                text: 'Transcribe this spoken speech accurately into verbatim text. Support English, Amharic, or mixed bilingual speech. Output only the verbatim transcribed words without commentary or quotation marks.',
+              },
+            ],
+          },
+        }),
+        20000
+      );
       transcript = response.text?.trim() || '';
     } catch (primaryErr: any) {
       const isQuotaOrRateLimit =
@@ -552,20 +718,23 @@ app.post('/api/transcribe', async (req, res) => {
       if (isQuotaOrRateLimit) {
         console.warn('gemini-3.5-transcribe quota reached (3 RPM limit). Auto-falling back to gemini-3.8-flash.');
       } else {
-        console.warn('gemini-3.5-transcribe error, falling back to gemini-3.8-flash:', primaryErr?.message || primaryErr);
+        console.warn('gemini-3.5-transcribe error/timeout, falling back to gemini-3.8-flash:', primaryErr?.message || primaryErr);
       }
 
-      // Secondary attempt: gemini-3.8-flash (multimodal audio with higher rate limits)
+      // Secondary attempt: gemini-3.8-flash (multimodal audio with 20s timeout guard)
       try {
-        const fallbackResponse = await ai.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: [
-            audioPart,
-            {
-              text: 'Transcribe this audio verbatim in English or Amharic. Return only the exact transcribed speech without quotation marks, markdown, or commentary.',
-            },
-          ],
-        });
+        const fallbackResponse = await withTimeout(
+          ai.models.generateContent({
+            model: 'gemini-3.8-flash',
+            contents: [
+              audioPart,
+              {
+                text: 'Transcribe this audio verbatim in English or Amharic. Return only the exact transcribed speech without quotation marks, markdown, or commentary.',
+              },
+            ],
+          }),
+          20000
+        );
         transcript = fallbackResponse.text?.trim() || '';
         modelUsed = 'gemini-3.8-flash';
       } catch (fallbackErr: any) {
@@ -582,8 +751,9 @@ app.post('/api/transcribe', async (req, res) => {
           });
         }
 
+        const isTimeout = String(fallbackErr?.message || fallbackErr).includes('timed out');
         console.error('All audio transcription models failed:', fallbackErr);
-        return res.status(500).json({ error: formatErrorMessage(fallbackErr) });
+        return res.status(isTimeout ? 504 : 500).json({ error: formatErrorMessage(fallbackErr) });
       }
     }
 
@@ -597,7 +767,7 @@ app.post('/api/transcribe', async (req, res) => {
 // -----------------------------------------------------------------------------
 // 4. POST /api/documents — Document Text Extraction & OCR
 // -----------------------------------------------------------------------------
-app.post('/api/documents', async (req, res) => {
+app.post('/api/documents', documentJsonParser, async (req, res) => {
   try {
     const { fileBase64, mimeType = 'image/png', filename = 'document', simplifyLanguage = true } = req.body;
 
@@ -683,6 +853,17 @@ Extract the verbatim text, summarize it, identify 3-5 main key points, determine
     console.error('Error in /api/documents:', error);
     res.status(500).json({ error: formatErrorMessage(error) });
   }
+});
+
+// Clean JSON error responses for malformed JSON or oversized payloads on /api/*
+app.use('/api', (err: any, _req: Request, res: Response, next: NextFunction) => {
+  if (err?.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Request payload exceeds route size limit.' });
+  }
+  if (err instanceof SyntaxError && 'body' in err) {
+    return res.status(400).json({ error: 'Invalid JSON request payload.' });
+  }
+  next(err);
 });
 
 // -----------------------------------------------------------------------------

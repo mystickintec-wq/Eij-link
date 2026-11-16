@@ -7,7 +7,7 @@ import {
   Languages,
   Bot,
   FileText,
-  Hand,
+  ScanFace,
   BookOpen,
   Settings,
   HelpCircle,
@@ -56,8 +56,8 @@ export const PRIMARY_NAVIGATION_GROUPS: NavGroupConfig[] = [
         hashSlug: 'overview',
         labelEn: 'Overview',
         labelAm: 'አጠቃላይ እይታ',
-        descriptionEn: 'Initiative story, live communication orb & setup guide',
-        descriptionAm: 'የፕሮጀክቱ መግለጫ፣ 3D መገናኛ እና የካሜራ መመሪያ',
+        descriptionEn: 'Initiative story, sign communication studio & setup guide',
+        descriptionAm: 'የፕሮጀክቱ መግለጫ፣ የ2D መከታተያ እና የካሜራ መመሪያ',
         icon: LayoutDashboard,
         shortcutNum: 1,
       },
@@ -88,8 +88,8 @@ export const PRIMARY_NAVIGATION_GROUPS: NavGroupConfig[] = [
         hashSlug: 'two-way',
         labelEn: 'Two-Way Communication',
         labelAm: 'ባለሁለት አቅጣጫ መገናኛ',
-        descriptionEn: 'Hands-to-Voice & Voice-to-3D Sign synthesis',
-        descriptionAm: 'ምልክት ወደ ድምጽ እና ድምጽ ወደ 3D ምልክት',
+        descriptionEn: 'Hands-to-Voice & Voice/Text-to-Sign translation',
+        descriptionAm: 'ምልክት ወደ ድምጽ እና ድምጽ ወደ ምልክት ትርጉም',
         icon: ArrowLeftRight,
         shortcutNum: 3,
       },
@@ -150,15 +150,15 @@ export const PRIMARY_NAVIGATION_GROUPS: NavGroupConfig[] = [
         shortcutNum: 7,
       },
       {
-        id: 'hand-studio',
+        id: 'tracking-studio',
         kind: 'route',
-        moduleId: 'hand-studio',
-        hashSlug: '3d-hand-studio',
-        labelEn: '3D Hand Studio',
-        labelAm: '3D የእጅ ስቱዲዮ',
-        descriptionEn: 'Articulated 3D EthSL hand rig, dual-arm poses & face mesh',
-        descriptionAm: '3D የእጅ እንቅስቃሴ እና የሰውነት አቀማመጥ መለማመጃ',
-        icon: Hand,
+        moduleId: 'tracking-studio',
+        hashSlug: '2d-tracking-studio',
+        labelEn: '2D Tracking Studio',
+        labelAm: '2D የሰውነት እና የእጅ መከታተያ',
+        descriptionEn: 'Real-time 2D face mesh, body skeleton & dual-hand tracking',
+        descriptionAm: 'የቀጥታ 2D የፊት፣ የሰውነት አፅም እና የሁለት እጆች መከታተያ ስቱዲዮ',
+        icon: ScanFace,
         shortcutNum: 8,
       },
     ],
@@ -245,6 +245,7 @@ export function resolveModuleFromHash(hash: string): ActiveModule | null {
 
   if (clean === 'communication-workspace') return 'studio';
   if (clean === 'module-workspace') return 'studio';
+  if (clean === '3d-hand-studio' || clean === 'hand-studio') return 'tracking-studio';
   return null;
 }
 

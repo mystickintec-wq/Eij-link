@@ -11,11 +11,13 @@ import {
   Play, 
   ShieldCheck, 
   Layers,
-  Sparkles
+  Sparkles,
+  Hand
 } from 'lucide-react';
 import { DatasetSample, GestureKey, LandmarkPoint } from '../types';
 import { GESTURE_LIST, GESTURE_DEFINITIONS } from '../data/gestures';
 import { normalizeLandmarks } from '../services/gestureClassifier';
+import { ConfirmDialog } from './ui/Feedback';
 
 interface DatasetCollectorModalProps {
   isOpen: boolean;
@@ -43,6 +45,7 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
   });
 
   const [hasConsent, setHasConsent] = useState(false);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [signerId, setSignerId] = useState('signer-htcs-01');
   const [selectedLabel, setSelectedLabel] = useState<GestureKey>('hello');
   const [selectedSplit, setSelectedSplit] = useState<'train' | 'val' | 'test'>('train');
@@ -196,10 +199,12 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
   };
 
   const handleClearAll = () => {
-    if (confirm('Are you sure you want to clear all collected dataset samples? This action cannot be undone.')) {
-      saveSamples([]);
-      showToast('Dataset cleared.');
-    }
+    setConfirmClearOpen(true);
+  };
+
+  const confirmClearAll = () => {
+    saveSamples([]);
+    showToast('Dataset cleared.');
   };
 
   if (!isOpen) return null;
@@ -278,11 +283,14 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
 
             <div className="grid sm:grid-cols-3 gap-3">
               <div>
-                <label className="block text-slate-600 dark:text-[#B6C2D2] font-medium mb-1">Target Sign Label</label>
+                <label htmlFor="dataset-label-select" className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">
+                  Target Sign Label
+                </label>
                 <select
+                  id="dataset-label-select"
                   value={selectedLabel}
                   onChange={(e) => setSelectedLabel(e.target.value as GestureKey)}
-                  className="w-full bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] font-medium focus:border-[#22D3EE] focus:outline-none"
+                  className="w-full min-h-[40px] bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] font-medium focus:border-[#0E7490] dark:focus:border-[#43D9E9] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/25 dark:focus:ring-[#43D9E9]/25 cursor-pointer"
                 >
                   {GESTURE_LIST.map((g) => (
                     <option key={g.id} value={g.id}>
@@ -293,22 +301,28 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-600 dark:text-[#B6C2D2] font-medium mb-1">Signer ID (Anonymized)</label>
+                <label htmlFor="dataset-signer-id" className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">
+                  Signer ID (Anonymized)
+                </label>
                 <input
+                  id="dataset-signer-id"
                   type="text"
                   value={signerId}
                   onChange={(e) => setSignerId(e.target.value)}
                   placeholder="e.g. signer-htcs-01"
-                  className="w-full bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] focus:border-[#22D3EE] focus:outline-none"
+                  className="w-full min-h-[40px] bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] focus:border-[#0E7490] dark:focus:border-[#43D9E9] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/25 dark:focus:ring-[#43D9E9]/25"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-600 dark:text-[#B6C2D2] font-medium mb-1">Data Split Allocation</label>
+                <label htmlFor="dataset-split-select" className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">
+                  Data Split Allocation
+                </label>
                 <select
+                  id="dataset-split-select"
                   value={selectedSplit}
                   onChange={(e) => setSelectedSplit(e.target.value as any)}
-                  className="w-full bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] font-medium focus:border-[#22D3EE] focus:outline-none"
+                  className="w-full min-h-[40px] bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] font-medium focus:border-[#0E7490] dark:focus:border-[#43D9E9] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/25 dark:focus:ring-[#43D9E9]/25 cursor-pointer"
                 >
                   <option value="train">Training (70%)</option>
                   <option value="val">Validation (15%)</option>
@@ -317,11 +331,14 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-600 dark:text-[#B6C2D2] font-medium mb-1">Lighting Condition</label>
+                <label htmlFor="dataset-lighting-select" className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">
+                  Lighting Condition
+                </label>
                 <select
+                  id="dataset-lighting-select"
                   value={lighting}
                   onChange={(e) => setLighting(e.target.value as any)}
-                  className="w-full bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] font-medium focus:border-[#22D3EE] focus:outline-none"
+                  className="w-full min-h-[40px] bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] font-medium focus:border-[#0E7490] dark:focus:border-[#43D9E9] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/25 dark:focus:ring-[#43D9E9]/25 cursor-pointer"
                 >
                   <option value="normal">Standard Classroom Lighting</option>
                   <option value="bright">Direct Daylight / Bright</option>
@@ -330,11 +347,14 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-600 dark:text-[#B6C2D2] font-medium mb-1">Camera Distance</label>
+                <label htmlFor="dataset-distance-select" className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">
+                  Camera Distance
+                </label>
                 <select
+                  id="dataset-distance-select"
                   value={distance}
                   onChange={(e) => setDistance(e.target.value as any)}
-                  className="w-full bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] font-medium focus:border-[#22D3EE] focus:outline-none"
+                  className="w-full min-h-[40px] bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] font-medium focus:border-[#0E7490] dark:focus:border-[#43D9E9] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/25 dark:focus:ring-[#43D9E9]/25 cursor-pointer"
                 >
                   <option value="medium">Medium Range (0.5m - 1.0m)</option>
                   <option value="close">Close-up Range (&lt; 0.5m)</option>
@@ -343,20 +363,27 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-600 dark:text-[#B6C2D2] font-medium mb-1">Session / Notes</label>
+                <label htmlFor="dataset-session-notes" className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">
+                  Session / Notes
+                </label>
                 <input
+                  id="dataset-session-notes"
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="e.g. HTCS Lab Session 2"
-                  className="w-full bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] focus:border-[#22D3EE] focus:outline-none"
+                  className="w-full min-h-[40px] bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] focus:border-[#0E7490] dark:focus:border-[#43D9E9] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/25 dark:focus:ring-[#43D9E9]/25"
                 />
               </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200 dark:border-[rgba(148,163,184,0.12)]">
-              <div className="flex items-center gap-2 text-slate-600 dark:text-[#A0AEC0]">
-                <span className={`w-2.5 h-2.5 rounded-full ${currentLandmarks.length === 21 ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+              <div className="flex items-center gap-2 text-slate-700 dark:text-[#A0AEC0]">
+                {currentLandmarks.length === 21 ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" aria-hidden="true" />
+                ) : (
+                  <Hand className="w-4 h-4 text-amber-700 dark:text-amber-400 shrink-0" aria-hidden="true" />
+                )}
                 <span>
                   {currentLandmarks.length === 21
                     ? `Live Hand Detected (${currentHandedness} Hand · 21 Landmarks)`
@@ -480,6 +507,17 @@ export const DatasetCollectorModal: React.FC<DatasetCollectorModalProps> = ({
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmClearOpen}
+        onClose={() => setConfirmClearOpen(false)}
+        onConfirm={confirmClearAll}
+        title="Clear Collected Dataset"
+        message="Are you sure you want to clear all collected dataset samples? This action cannot be undone."
+        confirmLabel="Clear All"
+        cancelLabel="Cancel"
+        destructive={true}
+      />
     </div>
   );
 };

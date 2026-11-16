@@ -73,22 +73,6 @@ export interface TranslationHistoryItem {
   syncedToCloud?: boolean;
 }
 
-export interface DigitPose {
-  spread: number;
-  curl1: number;
-  curl2: number;
-  curl3: number;
-}
-
-export interface SignJointPose {
-  thumb: DigitPose;
-  index: DigitPose;
-  middle: DigitPose;
-  ring: DigitPose;
-  pinky: DigitPose;
-  wristTilt: [number, number, number];
-}
-
 export interface SignSequenceStep {
   id: string;
   signKey: GestureKey | 'neutral';
@@ -238,7 +222,7 @@ export type ActiveModule =
   | 'translate'        // Universal Multi-language Translator
   | 'assistant'        // AI Communication Assistant (Simplify, Suggest Replies)
   | 'documents'        // Document OCR Text Extractor
-  | 'hand-studio'      // Dedicated 3D Hand & Dual-Arm Kinematics Studio
+  | 'tracking-studio'  // Real-Time 2D Human Skeleton, Face & Hand Tracking Studio
   | 'vocabulary'       // EthSL Curriculum & Gesture Vocabulary Library
   | 'settings';        // Accessibility & App Settings
 
@@ -322,57 +306,7 @@ export interface AccessibilitySettings {
   speechPitch: number;
   preferredLanguage: string;
   disable3D?: boolean;
+  cursorEffects?: boolean;
   voiceNavEnabled?: boolean;
   voiceFeedback?: boolean;
 }
-
-// -----------------------------------------------------------------------------
-// Part 3: MediaPipe Face Detection & Selfie Segmentation Types
-// -----------------------------------------------------------------------------
-
-export type SegmentationBackgroundMode = 
-  | 'raw'       // Normal unaltered webcam stream
-  | 'mask'      // High-contrast B&W segmentation mask (foreground white, background black)
-  | 'studio'    // Studio Dark (#080D18) backdrop matching app theme
-  | 'blur'      // Portrait Bokeh background blur
-  | 'green'     // Chroma-key green (#00FF00) for broadcast
-  | 'heritage'; // Ethiopian cultural atmospheric gradient backdrop
-
-export interface FaceKeypoint {
-  x: number; // Normalized [0, 1]
-  y: number; // Normalized [0, 1]
-}
-
-export interface DetectedFace {
-  score: number;
-  box: {
-    originX: number;
-    originY: number;
-    width: number;
-    height: number;
-  };
-  keypoints: {
-    rightEye: FaceKeypoint;
-    leftEye: FaceKeypoint;
-    noseTip: FaceKeypoint;
-    mouthCenter: FaceKeypoint;
-    rightEar: FaceKeypoint;
-    leftEar: FaceKeypoint;
-  };
-  orientation: {
-    yaw: number;     // Radians: negative = turn left, positive = turn right
-    pitch: number;   // Radians: negative = nod down, positive = tilt up
-    roll: number;    // Radians: negative = tilt left, positive = tilt right
-    yawDeg: number;
-    pitchDeg: number;
-    rollDeg: number;
-  };
-}
-
-export interface HeadJoints {
-  pitch: number; // Radians
-  yaw: number;   // Radians
-  roll: number;  // Radians
-}
-
-

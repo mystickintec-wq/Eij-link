@@ -8,6 +8,7 @@
         "userId": { "type": "string", "description": "Unique auth UID" },
         "email": { "type": "string", "format": "email", "description": "User email address" },
         "displayName": { "type": "string", "description": "Full name or display pseudonym" },
+        "preferences": { "type": "object", "description": "Saved accessibility and language preferences" },
         "createdAt": { "type": "string", "description": "ISO timestamp of registration" }
       },
       "required": ["userId", "email", "createdAt"]
@@ -24,9 +25,11 @@
         "phraseAm": { "type": "string", "description": "Amharic Fidel translated phrase" },
         "gestureKey": { "type": "string", "description": "Matched gesture identifier" },
         "timestamp": { "type": "string", "description": "Creation timestamp" },
-        "tags": { "type": "array", "description": "Tag labels for categorization" }
+        "notes": { "type": "string", "description": "Optional context notes for the phrase" },
+        "tags": { "type": "array", "description": "Tag labels for categorization" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of latest update" }
       },
-      "required": ["id", "userId", "phraseEn", "phraseAm", "gestureKey"]
+      "required": ["id", "userId", "title", "phraseEn", "phraseAm", "gestureKey"]
     },
     "DatasetContribution": {
       "title": "DatasetContribution",
@@ -34,14 +37,15 @@
       "type": "object",
       "properties": {
         "id": { "type": "string", "description": "Contribution UUID" },
-        "userId": { "type": "string", "description": "Contributor UID or anonymous token" },
+        "userId": { "type": "string", "description": "Authenticated contributor UID" },
         "label": { "type": "string", "description": "Target gesture label" },
         "signLanguage": { "type": "string", "description": "Sign language taxonomy" },
         "handedness": { "type": "string", "description": "Dominant hand observed" },
         "hasConsent": { "type": "boolean", "description": "Explicit user consent indicator" },
-        "timestamp": { "type": "string", "description": "Timestamp recorded" }
+        "timestamp": { "type": "string", "description": "Timestamp recorded" },
+        "notes": { "type": "string", "description": "Optional recording session notes" }
       },
-      "required": ["id", "label", "hasConsent"]
+      "required": ["id", "userId", "label", "hasConsent"]
     }
   },
   "firestore": {
@@ -55,7 +59,7 @@
     },
     "/dataset_contributions/{contributionId}": {
       "schema": { "$ref": "DatasetContribution" },
-      "description": "Consented landmark datasets contributed to the research pool"
+      "description": "Consented landmark datasets contributed by authenticated signers"
     }
   }
 }

@@ -183,12 +183,12 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
                 <div className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2 sm:col-span-2 lg:col-span-2">
                   <div className="flex items-center gap-2 text-[#0E7490] dark:text-[#43D9E9] font-bold">
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>5. Sign-Language & 3D Kinematics Module</span>
+                    <span>5. Sign-Language &amp; 2D Human Tracking Module</span>
                   </div>
                   <p className="text-slate-600 dark:text-[#B6C2D2]">
-                    In-browser 21-landmark MediaPipe tracking · Geometric pose classification · Mathematical forward kinematics · Three.js 3D hand animation across 3 educational demonstration scenarios.
+                    In-browser MediaPipe Face, Pose, and dual 21-point Hand tracking · Geometric sign classification · Real-time 2D face contours, red body skeleton, and colorful finger landmarks on a dark canvas overlay.
                   </p>
-                  <span className="text-[10px] text-slate-600 dark:text-[#A0AEC0] block font-mono">MediaPipe Tasks Vision + Three.js</span>
+                  <span className="text-[10px] text-slate-600 dark:text-[#A0AEC0] block font-mono">MediaPipe Tasks Vision + HTML Canvas 2D</span>
                 </div>
               </div>
             </div>
@@ -354,7 +354,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
                 <pre>{`ejjilink/
 ├── public/
 │   ├── assets/aistudio/          # Official Ethio-Tech initiative assets
-│   └── models/ejjilink-hand.glb  # Three.js 3D hand mesh asset
+│   └── wasm/                     # Local MediaPipe Vision WASM runtime
 ├── src/
 │   ├── app/ (Target Next.js App Router)
 │   │   ├── layout.tsx
@@ -372,7 +372,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
 │   │   ├── DocumentsWorkspace.tsx
 │   │   ├── AccessibilitySettingsModal.tsx
 │   │   ├── TwoWayWorkspace.tsx
-│   │   ├── ThreeDHandViewer.tsx
+│   │   ├── HumanTrackingStudio2D.tsx
 │   │   └── CloudStorageVault.tsx
 │   ├── services/                 # Decoupled service layer
 │   │   ├── assistantService.ts
@@ -380,6 +380,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
 │   │   ├── documentService.ts
 │   │   ├── transcribeService.ts
 │   │   ├── speechService.ts
+│   │   ├── humanTrackingService.ts
 │   │   ├── handLandmarkerService.ts
 │   │   └── firebase.ts
 │   ├── types/                    # Typed contracts
@@ -414,7 +415,7 @@ export const ArchitectureModal: React.FC<ArchitectureModalProps> = ({ isOpen, on
                   { phase: 'Phase 1: Foundation', tasks: ['Shared layout and navigation', 'Accessible dashboard and settings', 'Firebase Auth & Cloud Firestore configured', 'Client-server security boundary established'] },
                   { phase: 'Phase 2: Core AI', tasks: ['Text-to-speech (Web Speech API)', 'Speech-to-text (gemini-3.5-transcribe)', 'Protected AI assistant (POST /api/assistant)', 'Translation endpoint (POST /api/translate)'] },
                   { phase: 'Phase 3: Reliability', tasks: ['Loading and error states on all modules', 'Input validation and rate limits (60 req/min)', 'Screen-reader, contrast and dyslexic font toggles', 'Multilingual browser compatibility tests'] },
-                  { phase: 'Phase 4: Advanced Features', tasks: ['Document text extraction (POST /api/documents)', 'Real-time streaming speech captions', 'MediaPipe 21-landmark gesture tracking', 'Three.js 3D hand kinematic articulation'] },
+                  { phase: 'Phase 4: Advanced Features', tasks: ['Document text extraction (POST /api/documents)', 'Real-time streaming speech captions', 'MediaPipe 21-landmark gesture tracking', 'Real-time 2D face, pose skeleton & dual-hand tracking'] },
                 ].map((ph, idx) => (
                   <div key={idx} className="p-4 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] space-y-2">
                     <h5 className="font-bold text-slate-900 dark:text-[#F8FAFC] text-xs">

@@ -1,12 +1,11 @@
 import { DocumentExtractRequest, DocumentExtractResponse } from '../types';
+import { apiFetch } from './apiClient';
 
 export const documentService = {
   async extractText(request: DocumentExtractRequest): Promise<DocumentExtractResponse> {
-    const response = await fetch('/api/documents', {
+    const response = await apiFetch('/api/documents', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      timeoutMs: 25000,
       body: JSON.stringify(request),
     });
 

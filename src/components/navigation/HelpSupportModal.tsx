@@ -161,13 +161,13 @@ export const HelpSupportModal: React.FC<HelpSupportModalProps> = ({
           {isAm ? (
             <>
               <kbd className="font-mono text-[#0E7490] dark:text-[#43D9E9]">Alt+V</kbd> ይጫኑ ወይም ከታች ቀኝ ያለውን የድምፅ መቆጣጠሪያ በመጠቀም{' '}
-              <span className="font-mono">“open live recognition”</span>፣ <span className="font-mono">“open 3D hand studio”</span>፣{' '}
+              <span className="font-mono">“open live recognition”</span>፣ <span className="font-mono">“open 2D tracking studio”</span>፣{' '}
               <span className="font-mono">“open vocabulary”</span> ወይም <span className="font-mono">“translate”</span> ይበሉ።
             </>
           ) : (
             <>
               Press <kbd className="font-mono text-[#0E7490] dark:text-[#43D9E9]">Alt+V</kbd> or use the bottom-right dock to say{' '}
-              <span className="font-mono">“open live recognition”</span>, <span className="font-mono">“open 3D hand studio”</span>,{' '}
+              <span className="font-mono">“open live recognition”</span>, <span className="font-mono">“open 2D tracking studio”</span>,{' '}
               <span className="font-mono">“open vocabulary”</span>, or <span className="font-mono">“translate”</span>.
             </>
           )}

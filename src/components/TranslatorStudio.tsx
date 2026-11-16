@@ -951,20 +951,28 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
                     type="button"
                     onClick={() => handleSimulateGesture(g.id)}
                     aria-pressed={isSelected}
-                    className={`min-h-[36px] px-3 py-1.5 rounded-[10px] text-xs font-medium border transition-colors cursor-pointer flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                    className={`group relative overflow-hidden min-h-[44px] sm:min-h-[40px] px-3.5 py-2 rounded-[11px] text-xs font-medium border transition-[transform,border-color,background-color,box-shadow,color] duration-200 ease-out hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 cursor-pointer flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                       isSelected
-                        ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18] border-transparent font-semibold'
-                        : 'bg-slate-50 hover:bg-slate-100 dark:bg-[#172438] dark:hover:bg-[#1e2f4a] text-slate-700 dark:text-[#F4F7FB] border-slate-200 dark:border-[#253448]'
+                        ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18] border-transparent font-semibold shadow-md shadow-[#0E7490]/20 dark:shadow-[#43D9E9]/25'
+                        : 'bg-slate-50/90 hover:bg-cyan-50/60 dark:bg-[#172438]/85 dark:hover:bg-[#1e2f4a] text-slate-700 dark:text-[#F4F7FB] border-slate-200 dark:border-[#253448] hover:border-[#0E7490]/45 dark:hover:border-[#43D9E9]/45 hover:shadow-sm'
                     }`}
                   >
-                    <span aria-hidden="true">{g.emoji}</span>
-                    <span>{g.labelEn}</span>
-                    <span
-                      className={`text-[11px] font-ethiopic ${
-                        isSelected ? 'text-white dark:text-[#080D18]' : 'text-slate-600 dark:text-[#A0AEC0]'
-                      }`}
-                    >
-                      ({g.labelAm})
+                    {!isSelected && (
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.4s_ease-in-out] bg-gradient-to-r from-transparent via-white/25 dark:via-white/10 to-transparent"
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-1.5">
+                      <span aria-hidden="true">{g.emoji}</span>
+                      <span>{g.labelEn}</span>
+                      <span
+                        className={`text-[11px] font-ethiopic ${
+                          isSelected ? 'text-white/95 dark:text-[#080D18]' : 'text-slate-600 dark:text-[#A0AEC0]'
+                        }`}
+                      >
+                        ({g.labelAm})
+                      </span>
                     </span>
                   </button>
                 );
@@ -974,7 +982,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
         </div>
 
         {/* Right Column: Recognition Results, Speech Output & Transcript (5 cols) */}
-        <div className="lg:col-span-5 space-y-4">
+        <div className="lg:col-span-5 lg:sticky lg:top-20 space-y-4 w-full">
           {/* Recognition Output Card */}
           <Card padding="sm" className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-[#253448] pb-2.5">
@@ -1009,7 +1017,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
             </div>
 
             {classificationResult && !classificationResult.isUnknown && lockedDef ? (
-              <div className="p-3.5 rounded-[12px] bg-cyan-50/70 dark:bg-[#43D9E9]/10 border border-cyan-200 dark:border-[#43D9E9]/30 space-y-2.5">
+              <div className="animate-slide-up p-3.5 rounded-[12px] bg-cyan-50/75 dark:bg-[#43D9E9]/10 border border-cyan-200 dark:border-[#43D9E9]/30 space-y-2.5">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="text-4xl shrink-0" aria-hidden="true">{lockedDef.emoji}</span>
@@ -1068,7 +1076,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
                 {classificationResult.reason}. Hand landmarks are detected, but fingers do not match a calibrated static sign yet.
               </Alert>
             ) : lockedDef ? (
-              <div className="p-3.5 rounded-[12px] bg-slate-50 dark:bg-[#172438] border border-slate-200 dark:border-[#253448] flex items-center justify-between gap-3">
+              <div className="p-3.5 rounded-[12px] bg-slate-50 dark:bg-[#172438] border border-slate-200 dark:border-[#253448] flex flex-wrap sm:flex-nowrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="text-3xl shrink-0" aria-hidden="true">{lockedDef.emoji}</span>
                   <div className="min-w-0">
@@ -1087,6 +1095,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
                   onClick={() => triggerSpeech(lockedDef.id)}
                   leftIcon={<Volume2 className="w-3.5 h-3.5" />}
                   disabled={isSpeaking}
+                  className="shrink-0"
                 >
                   {isSpeaking ? 'Speaking...' : 'Speak'}
                 </Button>
@@ -1250,7 +1259,7 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
             </div>
 
             {editingItemId && (
-              <div className="p-3 rounded-[12px] bg-cyan-50/70 dark:bg-[#43D9E9]/10 border border-cyan-200 dark:border-[#43D9E9]/30 space-y-2.5 text-xs">
+              <div className="animate-slide-up p-3 rounded-[12px] bg-cyan-50/70 dark:bg-[#43D9E9]/10 border border-cyan-200 dark:border-[#43D9E9]/30 space-y-2.5 text-xs">
                 <div className="flex items-center justify-between font-semibold text-[#0E7490] dark:text-[#43D9E9]">
                   <span>Edit Transcript Item</span>
                   <IconButton
@@ -1291,43 +1300,49 @@ export const TranslatorStudio: React.FC<TranslatorStudioProps> = ({
               </div>
             )}
 
-            <div className="min-h-16 p-3 rounded-[12px] bg-slate-50 dark:bg-[#080D18] border border-slate-200 dark:border-[#253448] flex flex-wrap gap-2 items-center">
-              {transcript.map((item) => (
-                <div
-                  key={item.id}
-                  className="px-3 py-1.5 rounded-[10px] bg-white dark:bg-[#172438] border border-slate-200 dark:border-[#253448] text-xs font-medium text-slate-800 dark:text-[#F4F7FB] flex items-center gap-2"
-                >
-                  <span aria-hidden="true">{item.emoji}</span>
-                  <span className="font-semibold">{item.textEn}</span>
-                  <span className="text-[11px] font-ethiopic text-[#0E7490] dark:text-[#43D9E9]">
-                    ({item.textAm})
-                  </span>
-
-                  <div className="flex items-center gap-0.5 pl-1.5 border-l border-slate-200 dark:border-[#253448]">
-                    <button
-                      type="button"
-                      onClick={() => handleStartEdit(item)}
-                      className="p-1 rounded text-slate-600 dark:text-[#A0AEC0] hover:text-[#0E7490] dark:hover:text-[#43D9E9] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
-                      aria-label={`Edit ${item.textEn}`}
-                    >
-                      <Edit2 className="w-3 h-3" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteTranscriptItem(item.id)}
-                      className="p-1 rounded text-slate-600 dark:text-[#A0AEC0] hover:text-rose-700 dark:hover:text-rose-400 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
-                      aria-label={`Delete ${item.textEn}`}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
+            <div className="min-h-[112px] max-h-[320px] overflow-y-auto p-3.5 rounded-[12px] bg-slate-50/90 dark:bg-[#080D18]/85 border border-slate-200 dark:border-[#253448] backdrop-blur-sm">
+              {transcript.length === 0 ? (
+                <div className="min-h-[84px] flex flex-col items-center justify-center text-center py-4 text-xs text-slate-600 dark:text-[#A0AEC0] gap-1.5">
+                  <HelpCircle className="w-5 h-5 text-slate-500 dark:text-[#A0AEC0] opacity-75" aria-hidden="true" />
+                  <span className="font-medium">Recognized Ethiopian Sign Language signs will appear here in real time.</span>
                 </div>
-              ))}
+              ) : (
+                <div className="flex flex-wrap gap-2 content-start">
+                  {transcript.map((item) => (
+                    <div
+                      key={item.id}
+                      className="group animate-fade-in px-3 py-2 rounded-[11px] bg-white dark:bg-[#172438]/90 border border-slate-200 dark:border-[#253448] shadow-xs text-xs font-medium text-slate-800 dark:text-[#F4F7FB] flex items-center gap-2.5 transition-[background-color,border-color,box-shadow] duration-200 hover:bg-cyan-50/60 dark:hover:bg-[#1c2d46] hover:border-[#0E7490]/45 dark:hover:border-[#43D9E9]/45 hover:shadow-sm"
+                    >
+                      <span className="text-base shrink-0" aria-hidden="true">{item.emoji}</span>
+                      <div className="flex flex-col leading-tight min-w-0">
+                        <span className="font-semibold text-slate-900 dark:text-[#F4F7FB]">{item.textEn}</span>
+                        <span className="text-[11px] font-ethiopic text-[#0E7490] dark:text-[#43D9E9]">
+                          {item.textAm}
+                        </span>
+                      </div>
 
-              {transcript.length === 0 && (
-                <div className="w-full py-1.5 text-center text-xs text-slate-600 dark:text-[#A0AEC0] flex items-center justify-center gap-2">
-                  <HelpCircle className="w-4 h-4 text-slate-500 dark:text-[#A0AEC0]" aria-hidden="true" />
-                  <span>Recognized Ethiopian Sign Language signs will appear here in real time.</span>
+                      <div className="flex items-center gap-1 pl-2 ml-0.5 border-l border-slate-200 dark:border-[#253448] opacity-100 md:opacity-0 md:translate-x-1 md:group-hover:opacity-100 md:group-hover:translate-x-0 md:group-focus-within:opacity-100 md:group-focus-within:translate-x-0 transition-[opacity,transform] duration-200 ease-out">
+                        <button
+                          type="button"
+                          onClick={() => handleStartEdit(item)}
+                          className="min-w-[36px] min-h-[36px] md:min-w-0 md:min-h-0 p-1.5 rounded-[7px] text-slate-600 dark:text-[#A0AEC0] hover:text-[#0E7490] dark:hover:text-[#43D9E9] hover:bg-cyan-100/70 dark:hover:bg-[#0E7490]/25 flex items-center justify-center transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
+                          aria-label={`Edit ${item.textEn}`}
+                          title="Edit"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTranscriptItem(item.id)}
+                          className="min-w-[36px] min-h-[36px] md:min-w-0 md:min-h-0 p-1.5 rounded-[7px] text-slate-600 dark:text-[#A0AEC0] hover:text-rose-700 dark:hover:text-rose-400 hover:bg-rose-100/70 dark:hover:bg-rose-900/30 flex items-center justify-center transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
+                          aria-label={`Delete ${item.textEn}`}
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

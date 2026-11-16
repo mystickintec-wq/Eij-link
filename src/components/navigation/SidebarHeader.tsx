@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Hand } from 'lucide-react';
 import { AppLanguage } from '../../config/navigation';
 
 interface SidebarHeaderProps {
@@ -30,12 +30,13 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({
           {!logoError ? (
             <img
               src="/assets/aistudio/Club_Logo_4c19d54c.jpg"
-              alt="EJJIlink AI"
+              alt="EjjiLink AI"
+              referrerPolicy="no-referrer"
               className="w-full h-full object-cover"
               onError={() => setLogoError(true)}
             />
           ) : (
-            <Sparkles className="w-4 h-4 text-[#0E7490] dark:text-[#43D9E9]" aria-hidden="true" />
+            <Hand className="w-4 h-4 text-[#0E7490] dark:text-[#43D9E9]" aria-hidden="true" />
           )}
         </div>
 

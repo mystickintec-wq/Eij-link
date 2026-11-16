@@ -1,4 +1,5 @@
 import { TranslateRequest, TranslateResponse } from '../types';
+import { apiFetch } from './apiClient';
 
 const COMMON_DICTIONARY: Record<string, { am: string; amPhonetic: string; en: string }> = {
   hello: { am: 'ሰላም', amPhonetic: 'Selam', en: 'Hello' },
@@ -66,11 +67,9 @@ export function getLocalTranslationFallback(request: TranslateRequest, reason?: 
 export const translationService = {
   async translate(request: TranslateRequest): Promise<TranslateResponse> {
     try {
-      const response = await fetch('/api/translate', {
+      const response = await apiFetch('/api/translate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        timeoutMs: 15000,
         body: JSON.stringify(request),
       });
 

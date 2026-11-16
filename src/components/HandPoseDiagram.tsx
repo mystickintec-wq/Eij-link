@@ -366,12 +366,12 @@ export const HandPoseDiagram: React.FC<HandPoseDiagramProps> = ({
 
   return (
     <div
-      className={`relative w-full aspect-[4/3] max-h-[196px] pt-2 pb-7 px-3 rounded-[12px] overflow-hidden border border-slate-200 dark:border-[#253448] bg-slate-50 dark:bg-[#080D18] flex items-center justify-center ${className}`}
+      className={`relative w-full aspect-[4/3] max-h-[196px] pt-2 pb-7 px-3 rounded-[12px] overflow-hidden border border-cyan-200/80 dark:border-[#253448] bg-gradient-to-br from-sky-50/90 via-white to-indigo-50/70 dark:bg-none dark:bg-[#080D18] flex items-center justify-center ${className}`}
     >
       {/* Subtle architectural coordinate backdrop */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(8,145,178,0.12),transparent_68%)] dark:bg-[radial-gradient(circle_at_50%_42%,rgba(67,217,233,0.14),transparent_68%)]"
+        className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(6,182,212,0.16),transparent_68%)] dark:bg-[radial-gradient(circle_at_50%_42%,rgba(67,217,233,0.14),transparent_68%)]"
       />
       <div
         aria-hidden="true"

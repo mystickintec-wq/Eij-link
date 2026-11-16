@@ -13,7 +13,7 @@ export interface VoiceCommandResult {
     | 'navigate_translate'
     | 'navigate_captions'
     | 'navigate_documents'
-    | 'navigate_hand_studio'
+    | 'navigate_tracking_studio'
     | 'navigate_vocabulary'
     | 'open_settings'
     | 'open_vault'
@@ -266,12 +266,19 @@ class VoiceNavigationService {
         confidence: 0.95,
         feedbackText: 'Opening Live Recognition Studio',
       };
-    } else if (text.includes('3d') || text.includes('hand studio')) {
+    } else if (
+      text.includes('2d') ||
+      text.includes('tracking studio') ||
+      text.includes('skeleton') ||
+      text.includes('body tracking') ||
+      text.includes('face tracking') ||
+      text.includes('hand studio')
+    ) {
       result = {
-        action: 'navigate_hand_studio',
+        action: 'navigate_tracking_studio',
         rawTranscript: rawText,
         confidence: 0.95,
-        feedbackText: 'Opening 3D Hand Studio',
+        feedbackText: 'Opening 2D Tracking Studio',
       };
     } else if (text.includes('vocabulary') || text.includes('dictionary') || text.includes('learn')) {
       result = {

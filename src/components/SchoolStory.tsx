@@ -94,11 +94,11 @@ export const SchoolStory: React.FC<SchoolStoryProps> = ({ language = 'en' }) => 
           </div>
 
           {/* 4-Cell Tabular Metrics Panel (Zero Nested Cards) */}
-          <div className="lg:col-span-5 grid grid-cols-2 bg-slate-50/60 dark:bg-[#172438]/40">
+          <div className="lg:col-span-5 grid grid-cols-2 bg-gradient-to-br from-sky-50/75 via-white to-indigo-50/60 dark:bg-none dark:bg-[#172438]/40">
             {metrics.map((m, idx) => (
               <div
                 key={m.label}
-                className={`p-5 sm:p-6 flex flex-col justify-between gap-3 border-slate-200 dark:border-[#253448] ${
+                className={`p-5 sm:p-6 flex flex-col justify-between gap-3 border-slate-200 dark:border-[#253448] hover:bg-white/80 dark:hover:bg-[#172438]/70 transition-colors duration-200 ${
                   idx % 2 === 1 ? 'border-l' : ''
                 } ${idx >= 2 ? 'border-t' : ''}`}
               >
@@ -106,7 +106,9 @@ export const SchoolStory: React.FC<SchoolStoryProps> = ({ language = 'en' }) => 
                   <span className="text-xs font-medium text-slate-600 dark:text-[#A0AEC0] font-ethiopic">
                     {m.label}
                   </span>
-                  <span className="text-slate-600 dark:text-[#A0AEC0]">{m.icon}</span>
+                  <span className={`w-7 h-7 rounded-[8px] bg-white dark:bg-[#101C2C] border border-slate-200/80 dark:border-[#253448] flex items-center justify-center shrink-0 ${m.accent}`}>
+                    {m.icon}
+                  </span>
                 </div>
                 <div>
                   <div className={`text-2xl sm:text-3xl font-bold font-mono tabular-nums ${m.accent}`}>

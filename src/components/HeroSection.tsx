@@ -11,7 +11,7 @@ interface HeroSectionProps {
   language?: AppLanguage;
   onStartDemo: () => void;
   onStartLiveRecognition?: () => void;
-  onExplore3D: (gestureKey?: GestureKey) => void;
+  onExplore2DStudio: (gestureKey?: GestureKey) => void;
 }
 
 const DEMO_SIGN_KEYS: GestureKey[] = ['hello', 'thank_you', 'water', 'help', 'please', 'yes'];
@@ -20,7 +20,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   language = 'en',
   onStartDemo,
   onStartLiveRecognition,
-  onExplore3D,
+  onExplore2DStudio,
 }) => {
   const { showToast } = useToast();
   const [selectedKey, setSelectedKey] = useState<GestureKey>('hello');
@@ -74,7 +74,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               id="hero-headline"
               className="font-heading text-[clamp(2.35rem,4.4vw,3.65rem)] font-bold tracking-tight leading-[1.08] text-slate-900 dark:text-[#F4F7FB] [text-wrap:balance]"
             >
-              {isAm ? 'እጆች ድምፅ የሚሆኑበት።' : 'Where Hands Become Voices.'}
+              {isAm ? (
+                'እጆች ድምፅ የሚሆኑበት።'
+              ) : (
+                <>
+                  Where Hands{' '}
+                  <span className="bg-gradient-to-r from-[#0E7490] via-[#0891B2] to-[#4F46E5] dark:from-[#43D9E9] dark:via-[#22D3EE] dark:to-[#8585FF] bg-clip-text text-transparent">
+                    Become Voices.
+                  </span>
+                </>
+              )}
             </h1>
 
             <p className="text-base sm:text-lg text-slate-600 dark:text-[#A0AEC0] leading-relaxed max-w-xl font-normal font-ethiopic">
@@ -108,8 +117,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
           {/* Quiet Unboxed Product Metadata */}
           <div className="pt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-600 dark:text-[#A0AEC0]">
-            <span className="font-medium text-slate-900 dark:text-[#F4F7FB]">
-              English &amp; <span className="font-ethiopic font-medium">አማርኛ</span>
+            <span className="font-semibold text-[#0E7490] dark:text-[#F4F7FB]">
+              English &amp; <span className="font-ethiopic font-semibold">አማርኛ</span>
             </span>
             <span aria-hidden="true">·</span>
             <span className="font-mono tabular-nums">
@@ -130,12 +139,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           {/* Restrained localized radial lighting anchored strictly behind visual stage */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -inset-6 rounded-[28px] bg-[radial-gradient(ellipse_at_top_right,rgba(8,145,178,0.10),transparent_65%)] dark:bg-[radial-gradient(ellipse_at_top_right,rgba(67,217,233,0.13),rgba(133,133,255,0.06)_45%,transparent_72%)]"
+            className="pointer-events-none absolute -inset-6 rounded-[28px] bg-[radial-gradient(ellipse_at_top_right,rgba(6,182,212,0.22),rgba(79,70,229,0.12)_48%,transparent_75%)] dark:bg-[radial-gradient(ellipse_at_top_right,rgba(67,217,233,0.13),rgba(133,133,255,0.06)_45%,transparent_72%)]"
           />
 
-          <Card padding="none" className="relative overflow-hidden shadow-sm dark:shadow-[0_18px_45px_rgba(2,6,23,0.45)]">
+          <Card padding="none" className="relative overflow-hidden shadow-[0_14px_40px_-14px_rgba(14,116,144,0.20)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_20px_50px_rgba(2,6,23,0.5)]">
+            <div
+              aria-hidden="true"
+              className="h-[2.5px] w-full bg-gradient-to-r from-[#0891B2] via-[#4F46E5] to-emerald-500 dark:from-[#43D9E9] dark:via-[#8585FF] dark:to-emerald-400"
+            />
             {/* Top Bar: Interactive EthSL Sign Header */}
-            <div className="px-5 py-3.5 border-b border-slate-200 dark:border-[#253448] flex items-center justify-between gap-3 bg-slate-50/80 dark:bg-[#172438]/65">
+            <div className="px-5 py-3.5 border-b border-slate-200 dark:border-[#253448] flex items-center justify-between gap-3 bg-gradient-to-r from-sky-50/90 via-white to-indigo-50/75 dark:bg-none dark:bg-[#172438]/70">
               <div className="flex items-center gap-2 min-w-0">
                 <Hand className="w-4 h-4 text-[#0E7490] dark:text-[#43D9E9] shrink-0" aria-hidden="true" />
                 <span className="text-xs font-semibold text-slate-900 dark:text-[#F4F7FB] truncate font-ethiopic">
@@ -148,7 +161,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   )}
                 </span>
               </div>
-              <span className="text-[11px] font-mono tabular-nums text-slate-600 dark:text-[#A0AEC0] shrink-0">
+              <span className="text-[11px] font-mono tabular-nums text-[#0E7490] dark:text-[#A0AEC0] font-semibold shrink-0">
                 {activeGesture.signLanguage || 'EthSL'} · &ge;{Math.round(activeGesture.threshold * 100)}% lock
               </span>
             </div>
@@ -159,7 +172,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               role="group"
               aria-label={isAm ? 'የምልክት ናሙና ይምረጡ' : 'Choose a sign gesture to preview'}
             >
-              {demoGestures.map((gesture) => {
+              {demoGestures.map((gesture, idx) => {
                 const isSelected = gesture.id === activeGesture.id;
                 return (
                   <button
@@ -167,23 +180,25 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                     type="button"
                     onClick={() => setSelectedKey(gesture.id)}
                     aria-pressed={isSelected}
-                    className={`min-h-[36px] px-3 py-1.5 rounded-[8px] text-xs font-medium border transition-[colors,transform] duration-150 active:scale-[0.98] motion-reduce:active:scale-100 cursor-pointer flex items-center justify-between gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                    className={`min-h-[44px] sm:min-h-[38px] px-3 py-1.5 rounded-[9px] text-xs font-medium border transition-[colors,transform,box-shadow] duration-150 active:scale-[0.98] motion-reduce:active:scale-100 cursor-pointer flex items-center justify-between gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                       isSelected
-                        ? 'bg-[#0E7490]/10 dark:bg-[#43D9E9]/14 border-[#0E7490] dark:border-[#43D9E9] text-[#0E7490] dark:text-[#43D9E9] font-semibold'
-                        : 'bg-slate-50 dark:bg-[#172438]/75 border-slate-200 dark:border-[#253448] text-slate-700 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB] hover:border-slate-300 dark:hover:border-[#374c68]'
+                        ? 'bg-gradient-to-r from-cyan-500/15 to-indigo-500/12 dark:bg-none dark:bg-[#43D9E9]/14 border-[#0891B2] dark:border-[#43D9E9] text-[#0E7490] dark:text-[#43D9E9] font-semibold shadow-xs'
+                        : 'bg-sky-50/55 dark:bg-[#172438]/75 border-slate-200 dark:border-[#253448] text-slate-700 dark:text-[#A0AEC0] hover:bg-sky-50 hover:text-slate-900 dark:hover:text-[#F4F7FB] hover:border-cyan-400/60 dark:hover:border-[#374c68]'
                     }`}
                   >
                     <span className="truncate font-ethiopic">
                       {isAm ? gesture.labelAm : gesture.labelEn}
                     </span>
-                    <span
-                      aria-hidden="true"
-                      className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${
-                        isSelected
-                          ? 'bg-[#0E7490] dark:bg-[#43D9E9]'
-                          : 'bg-slate-300 dark:bg-[#33465f]'
-                      }`}
-                    />
+                    {isSelected ? (
+                      <Check className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                    ) : (
+                      <span
+                        aria-hidden="true"
+                        className="text-[10px] font-mono tabular-nums text-slate-400 dark:text-[#64748B] shrink-0"
+                      >
+                        0{idx + 1}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -261,13 +276,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 </div>
               </div>
 
-              {/* Clean Footer Strip: Try Camera & View 3D Pose */}
+              {/* Clean Footer Strip: Try Camera & Open 2D Tracking Studio */}
               <div className="pt-4 border-t border-slate-200 dark:border-[#253448] flex flex-wrap items-center justify-between gap-3 text-xs">
                 {onStartLiveRecognition ? (
                   <button
                     type="button"
                     onClick={onStartLiveRecognition}
-                    className="font-medium text-slate-700 dark:text-[#A0AEC0] hover:text-[#0E7490] dark:hover:text-[#43D9E9] transition-colors flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] rounded-[6px] px-1.5 py-1 font-ethiopic"
+                    className="min-h-[44px] sm:min-h-0 font-medium text-slate-700 dark:text-[#A0AEC0] hover:text-[#0E7490] dark:hover:text-[#43D9E9] transition-colors flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] rounded-[8px] px-2 py-1 font-ethiopic"
                   >
                     <Camera className="w-3.5 h-3.5" aria-hidden="true" />
                     <span>{isAm ? 'በካሜራ ሞክር' : 'Try Camera'}</span>
@@ -278,10 +293,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => onExplore3D(activeGesture.id)}
-                  className="font-semibold text-[#0E7490] dark:text-[#43D9E9] hover:opacity-80 transition-opacity flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] rounded-[6px] px-1.5 py-1 font-ethiopic"
+                  onClick={() => onExplore2DStudio(activeGesture.id)}
+                  className="min-h-[44px] sm:min-h-0 font-semibold text-[#0E7490] dark:text-[#43D9E9] hover:opacity-80 transition-opacity flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] rounded-[8px] px-2 py-1 font-ethiopic"
                 >
-                  <span>{isAm ? 'በ3D እይ' : 'View 3D Pose'}</span>
+                  <span>{isAm ? '2D መከታተያ ስቱዲዮ' : '2D Tracking Studio'}</span>
                   <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
                 </button>
               </div>

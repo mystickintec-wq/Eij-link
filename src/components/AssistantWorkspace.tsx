@@ -21,12 +21,12 @@ import {
   EmptyState,
   ErrorState,
   IconButton,
-  LoadingState,
   OfflineNotice,
   SelectField,
   StatusBadge,
   TextArea,
   WorkspaceHeader,
+  WorkspaceResultSkeleton,
   useToast,
 } from './ui';
 
@@ -219,11 +219,11 @@ export const AssistantWorkspace: React.FC = () => {
                   key={idx}
                   type="button"
                   onClick={() => handleUsePreset(sample.text)}
-                  className="p-3 rounded-[10px] bg-slate-50 dark:bg-[#172438] hover:border-[#0E7490]/50 dark:hover:border-[#43D9E9]/50 border border-slate-200 dark:border-[#253448] text-left transition-colors cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
+                  className="min-h-[44px] p-3.5 rounded-[11px] bg-slate-50/90 dark:bg-[#172438]/90 hover:bg-cyan-50/50 dark:hover:bg-[#1e2f4a] hover:border-[#0E7490]/50 dark:hover:border-[#43D9E9]/50 hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 hover:shadow-sm border border-slate-200 dark:border-[#253448] text-left transition-[transform,border-color,background-color,box-shadow] duration-200 cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
                 >
                   <div className="flex items-center justify-between text-[11px] font-semibold text-[#0E7490] dark:text-[#43D9E9] uppercase tracking-wider mb-1">
                     <span>{sample.category}</span>
-                    <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
+                    <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity" aria-hidden="true" />
                   </div>
                   <div className="font-medium text-xs text-slate-900 dark:text-[#F4F7FB] line-clamp-1">
                     {sample.title}
@@ -237,9 +237,9 @@ export const AssistantWorkspace: React.FC = () => {
         {/* Right Column: Output / Results Display */}
         <div className="lg:col-span-6 space-y-4">
           {isLoading ? (
-            <LoadingState
-              title="Analyzing and simplifying text..."
-              description="Generating plain-language wording, key takeaways, and quick reply options."
+            <WorkspaceResultSkeleton
+              variant="assistant"
+              statusLabel="Analyzing and simplifying text..."
               className="min-h-[360px]"
             />
           ) : result ? (

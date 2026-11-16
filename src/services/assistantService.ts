@@ -1,4 +1,5 @@
 import { AssistantRequest, AssistantResponse } from '../types';
+import { apiFetch } from './apiClient';
 
 const SIMPLIFY_MAP: Array<[RegExp, string]> = [
   [/\bostensibly\b/gi, 'supposedly'],
@@ -113,11 +114,9 @@ export function generateLocalFallback(
 export const assistantService = {
   async processText(request: AssistantRequest): Promise<AssistantResponse> {
     try {
-      const response = await fetch('/api/assistant', {
+      const response = await apiFetch('/api/assistant', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        timeoutMs: 15000,
         body: JSON.stringify(request),
       });
 

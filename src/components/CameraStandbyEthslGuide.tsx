@@ -400,7 +400,7 @@ export const CameraStandbyEthslGuide: React.FC<CameraStandbyEthslGuideProps> = (
                         }}
                         rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
                       >
-                        Inspect in 3D
+                        Practice in 2D Studio
                       </Button>
                     )}
                   </div>

@@ -26,49 +26,91 @@ service cloud.firestore {
     }
 
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Entity Validation Blueprints
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['userId', 'email', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'email', 'displayName', 'preferences', 'createdAt'])
+        && data.userId is string && data.userId == userId
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 200
+        && data.createdAt is string && data.createdAt.size() <= 64
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 120))
+        && (!('preferences' in data) || (data.preferences is map && data.preferences.keys().size() <= 25));
+    }
+
+    function isValidCloudVaultItem(data, vaultId) {
+      return data.keys().hasAll(['id', 'userId', 'title', 'phraseEn', 'phraseAm', 'gestureKey'])
+        && data.keys().hasOnly(['id', 'userId', 'title', 'phraseEn', 'phraseAm', 'gestureKey', 'timestamp', 'notes', 'tags', 'updatedAt'])
+        && data.id is string && data.id == vaultId
+        && data.userId is string && data.userId == request.auth.uid
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 200
+        && data.phraseEn is string && data.phraseEn.size() >= 1 && data.phraseEn.size() <= 500
+        && data.phraseAm is string && data.phraseAm.size() <= 500
+        && data.gestureKey is string && data.gestureKey.size() >= 1 && data.gestureKey.size() <= 50
+        && (!('timestamp' in data) || (data.timestamp is string && data.timestamp.size() <= 64))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 500))
+        && (!('tags' in data) || (data.tags is list && data.tags.size() <= 20 && (data.tags.size() == 0 || (data.tags[0] is string && data.tags[0].size() <= 40))))
+        && (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
+    }
+
+    function isValidDatasetContribution(data, contributionId) {
+      return data.keys().hasAll(['id', 'userId', 'label', 'hasConsent'])
+        && data.keys().hasOnly(['id', 'userId', 'label', 'signLanguage', 'handedness', 'hasConsent', 'timestamp', 'notes'])
+        && data.id is string && data.id == contributionId
+        && data.userId is string && data.userId == request.auth.uid
+        && data.hasConsent == true
+        && data.label is string && data.label.size() >= 1 && data.label.size() <= 100
+        && (!('signLanguage' in data) || (data.signLanguage is string && data.signLanguage.size() <= 50))
+        && (!('handedness' in data) || (data.handedness is string && data.handedness.size() <= 20))
+        && (!('timestamp' in data) || (data.timestamp is string && data.timestamp.size() <= 64))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 500));
     }
 
     // 1. User Profiles Collection
     match /users/{userId} {
-      allow get: if isOwner(userId);
+      allow get: if isValidId(userId) && isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) 
-        && incoming().userId == userId 
-        && incoming().email is string 
-        && incoming().email.size() <= 200;
-      allow update: if isOwner(userId) 
+      allow create: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId);
+      allow update: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
         && incoming().userId == existing().userId
+        && incoming().email == existing().email
+        && incoming().createdAt == existing().createdAt
         && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'preferences']);
-      allow delete: if isOwner(userId);
+      allow delete: if isValidId(userId) && isOwner(userId);
     }
 
     // 2. Cloud Vault (Saved Translations & Gestures)
     match /cloud_vault/{vaultId} {
-      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(vaultId) && existing().userId == request.auth.uid;
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() 
+      allow create: if isSignedIn()
         && isValidId(vaultId)
-        && incoming().userId == request.auth.uid
-        && incoming().phraseEn is string && incoming().phraseEn.size() <= 500
-        && incoming().phraseAm is string && incoming().phraseAm.size() <= 500
-        && incoming().gestureKey is string && incoming().gestureKey.size() <= 50;
-      allow update: if isSignedIn() 
+        && isValidCloudVaultItem(incoming(), vaultId);
+      allow update: if isSignedIn()
+        && isValidId(vaultId)
         && existing().userId == request.auth.uid
+        && isValidCloudVaultItem(incoming(), vaultId)
+        && incoming().id == existing().id
         && incoming().userId == existing().userId
-        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'phraseEn', 'phraseAm', 'tags']);
-      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'phraseEn', 'phraseAm', 'gestureKey', 'notes', 'tags', 'updatedAt']);
+      allow delete: if isSignedIn() && isValidId(vaultId) && existing().userId == request.auth.uid;
     }
 
     // 3. Consented Dataset Contributions
     match /dataset_contributions/{contributionId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isValidId(contributionId)
-        && incoming().hasConsent == true
-        && incoming().label is string && incoming().label.size() <= 100;
+      allow get: if isSignedIn() && isValidId(contributionId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn()
+        && isValidId(contributionId)
+        && isValidDatasetContribution(incoming(), contributionId);
       allow update: if false;
-      allow delete: if false;
+      allow delete: if isSignedIn() && isValidId(contributionId) && existing().userId == request.auth.uid;
     }
   }
 }

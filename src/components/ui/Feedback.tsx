@@ -95,7 +95,7 @@ export const Alert: React.FC<AlertProps> = ({
   return (
     <div
       role={role}
-      className={`ejji-animate-fade-up p-3.5 rounded-[12px] border text-xs flex items-start justify-between gap-3 font-ethiopic ${style.box} ${className}`}
+      className={`animate-slide-up p-3.5 rounded-[12px] border text-xs flex items-start justify-between gap-3 font-ethiopic ${style.box} ${className}`}
     >
       <div className="flex items-start gap-2.5 min-w-0">
         <span className="shrink-0 mt-0.5" aria-hidden="true">

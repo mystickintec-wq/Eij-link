@@ -17,11 +17,11 @@ import {
   EmptyState,
   ErrorState,
   IconButton,
-  LoadingState,
   SelectField,
   StatusBadge,
   TextArea,
   WorkspaceHeader,
+  WorkspaceResultSkeleton,
   useToast,
 } from './ui';
 
@@ -247,7 +247,7 @@ export const TranslationWorkspace: React.FC = () => {
                     setInputText(phrase.text);
                     setResult(null);
                   }}
-                  className="min-h-[36px] px-3 py-1.5 rounded-[8px] bg-slate-50 dark:bg-[#172438] hover:border-[#0E7490]/50 dark:hover:border-[#43D9E9]/50 border border-slate-200 dark:border-[#253448] text-xs text-slate-700 dark:text-[#F4F7FB] font-ethiopic transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
+                  className="min-h-[44px] sm:min-h-[36px] px-3 py-1.5 rounded-[9px] bg-slate-50/90 dark:bg-[#172438]/90 hover:bg-cyan-50/50 dark:hover:bg-[#1e2f4a] hover:border-[#0E7490]/50 dark:hover:border-[#43D9E9]/50 hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 hover:shadow-xs border border-slate-200 dark:border-[#253448] text-xs text-slate-700 dark:text-[#F4F7FB] font-ethiopic transition-[transform,border-color,background-color,box-shadow] duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
                 >
                   {phrase.text}
                 </button>
@@ -259,9 +259,9 @@ export const TranslationWorkspace: React.FC = () => {
         {/* Translation Output Column */}
         <div className="lg:col-span-6 space-y-4">
           {isLoading ? (
-            <LoadingState
-              title="Translating text..."
-              description="Resolving meaning, Ge'ez script, and phonetic pronunciation."
+            <WorkspaceResultSkeleton
+              variant="translation"
+              statusLabel="Translating text..."
               className="min-h-[360px]"
             />
           ) : (

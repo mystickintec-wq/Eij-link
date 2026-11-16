@@ -118,9 +118,9 @@ export const VoiceAccessibilityBar: React.FC<VoiceAccessibilityBarProps> = ({
           setActiveModule('studio');
           successMsg = isAm ? 'ባለሁለት አቅጣጫ መገናኛ ተከፍቷል' : 'Opened Two-Way Studio';
           break;
-        case 'navigate_hand_studio':
-          setActiveModule('hand-studio');
-          successMsg = isAm ? '3D የእጅ ስቱዲዮ ተከፍቷል' : 'Opened 3D Hand Studio';
+        case 'navigate_tracking_studio':
+          setActiveModule('tracking-studio');
+          successMsg = isAm ? '2D መከታተያ ስቱዲዮ ተከፍቷል' : 'Opened 2D Tracking Studio';
           break;
         case 'navigate_vocabulary':
           setActiveModule('vocabulary');
@@ -671,8 +671,8 @@ export const VoiceAccessibilityBar: React.FC<VoiceAccessibilityBarProps> = ({
               desc: isAm ? 'ወደ ቀጥታ የካሜራ ምልክት ማንበቢያ ይሄዳል' : 'Navigates to Camera Sign Recognition',
             },
             {
-              cmd: '“Open 3D Hand Studio”',
-              desc: isAm ? 'ወደ 3D የእጅ ስቱዲዮ ይሄዳል' : 'Navigates to 3D Kinematics Workspace',
+              cmd: '“Open 2D Tracking Studio”',
+              desc: isAm ? 'ወደ 2D የመከታተያ ስቱዲዮ ይሄዳል' : 'Navigates to 2D Tracking Studio',
             },
             {
               cmd: '“Open Vocabulary”',

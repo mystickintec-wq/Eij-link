@@ -72,6 +72,33 @@ export const ScrollAtmosphere3D: React.FC<ScrollAtmosphere3DProps> = ({ disabled
 
     const primaryCyan = new THREE.Color('#43D9E9');
     const secondaryIndigo = new THREE.Color('#8585FF');
+    const lightCyan = new THREE.Color('#0891B2');
+    const lightIndigo = new THREE.Color('#4F46E5');
+    const lightEmerald = new THREE.Color('#059669');
+
+    const applyThemePalette = (darkActive: boolean) => {
+      const colorAttr = geometry.getAttribute('color') as THREE.BufferAttribute | undefined;
+      for (let i = 0; i < particleCount; i++) {
+        const chosen = darkActive
+          ? i % 3 === 0
+            ? secondaryIndigo
+            : primaryCyan
+          : i % 3 === 0
+          ? lightIndigo
+          : i % 3 === 1
+          ? lightCyan
+          : lightEmerald;
+        colors[i * 3] = chosen.r;
+        colors[i * 3 + 1] = chosen.g;
+        colors[i * 3 + 2] = chosen.b;
+      }
+      if (colorAttr) {
+        colorAttr.needsUpdate = true;
+      }
+    };
+
+    let isDarkTheme = document.documentElement.classList.contains('dark');
+    applyThemePalette(isDarkTheme);
 
     for (let i = 0; i < particleCount; i++) {
       const u = Math.random();
@@ -92,11 +119,6 @@ export const ScrollAtmosphere3D: React.FC<ScrollAtmosphere3DProps> = ({ disabled
       positions[i * 3] = x;
       positions[i * 3 + 1] = y;
       positions[i * 3 + 2] = z;
-
-      const chosen = i % 3 === 0 ? secondaryIndigo : primaryCyan;
-      colors[i * 3] = chosen.r;
-      colors[i * 3 + 1] = chosen.g;
-      colors[i * 3 + 2] = chosen.b;
     }
 
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -104,13 +126,32 @@ export const ScrollAtmosphere3D: React.FC<ScrollAtmosphere3DProps> = ({ disabled
 
     const spriteTexture = createSoftRadialTexture();
     const particleMaterial = new THREE.PointsMaterial({
-      size: 2.9,
+      size: isDarkTheme ? 2.9 : 3.2,
       map: spriteTexture || undefined,
       vertexColors: true,
       transparent: true,
-      opacity: 0.3,
+      opacity: isDarkTheme ? 0.3 : 0.36,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: isDarkTheme ? THREE.AdditiveBlending : THREE.NormalBlending,
+    });
+
+    const themeObserver = new MutationObserver(() => {
+      const nextDark = document.documentElement.classList.contains('dark');
+      if (nextDark !== isDarkTheme) {
+        isDarkTheme = nextDark;
+        applyThemePalette(nextDark);
+        particleMaterial.size = nextDark ? 2.9 : 3.2;
+        particleMaterial.opacity = nextDark ? 0.3 : 0.36;
+        particleMaterial.blending = nextDark ? THREE.AdditiveBlending : THREE.NormalBlending;
+        particleMaterial.needsUpdate = true;
+        if (isReducedMotion) {
+          renderer?.render(scene, camera);
+        }
+      }
+    });
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
     });
 
     const pointCloud = new THREE.Points(geometry, particleMaterial);
@@ -188,6 +229,7 @@ export const ScrollAtmosphere3D: React.FC<ScrollAtmosphere3DProps> = ({ disabled
 
     return () => {
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      themeObserver.disconnect();
       motionQuery?.removeEventListener('change', handleMotionChange);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('scroll', onScroll);
@@ -208,7 +250,7 @@ export const ScrollAtmosphere3D: React.FC<ScrollAtmosphere3DProps> = ({ disabled
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 pointer-events-none z-0 opacity-22 dark:opacity-45 transition-opacity duration-500"
+      className="fixed inset-0 pointer-events-none z-0 opacity-38 dark:opacity-45 transition-opacity duration-500"
       aria-hidden="true"
     />
   );

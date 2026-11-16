@@ -6,7 +6,7 @@ import { AssistantWorkspace } from './components/AssistantWorkspace';
 import { TranslationWorkspace } from './components/TranslationWorkspace';
 import { CaptionsWorkspace } from './components/CaptionsWorkspace';
 import { DocumentsWorkspace } from './components/DocumentsWorkspace';
-import { ThreeDHandViewer } from './components/ThreeDHandViewer';
+import { HumanTrackingStudio2D } from './components/HumanTrackingStudio2D';
 import { CameraStandbyEthslGuide } from './components/CameraStandbyEthslGuide';
 import { AccessibilitySettingsModal } from './components/AccessibilitySettingsModal';
 import { OverviewCapabilities } from './components/OverviewCapabilities';
@@ -18,6 +18,7 @@ import { EvaluationLabModal } from './components/EvaluationLabModal';
 import { ScrollAtmosphere3D } from './components/ScrollAtmosphere3D';
 import { Footer } from './components/Footer';
 import { VoiceAccessibilityBar } from './components/VoiceAccessibilityBar';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { CommunicationProvider } from './context/CommunicationContext';
 import {
   AppSidebar,
@@ -33,11 +34,8 @@ import {
   getRouteMetadata,
   resolveModuleFromHash,
 } from './config/navigation';
-import { Volume2, Hand, BookOpen } from 'lucide-react';
-import { GESTURE_DEFINITIONS, GESTURE_LIST } from './data/gestures';
-import { speechService } from './services/speechService';
 import { GestureKey, ActiveModule, AccessibilitySettings } from './types';
-import { Button, Card, StatusBadge, ToastProvider, WorkspaceHeader } from './components/ui';
+import { CursorRingField, ToastProvider } from './components/ui';
 
 const ACCESSIBILITY_STORAGE_KEY = 'ejjilink_accessibility_settings_v1';
 const SIDEBAR_COLLAPSED_KEY = 'ejjilink_sidebar_collapsed_v1';
@@ -88,6 +86,7 @@ export default function App() {
       speechRate: 1.0,
       speechPitch: 1.0,
       preferredLanguage: 'en-US',
+      cursorEffects: true,
     };
   });
 
@@ -264,10 +263,6 @@ export default function App() {
     return 'text-sm';
   };
 
-  const selectedStudioGesture =
-    GESTURE_DEFINITIONS[activeGestureKey === 'neutral' ? 'hello' : activeGestureKey] ||
-    GESTURE_DEFINITIONS.hello;
-
   return (
     <ToastProvider>
       <CommunicationProvider
@@ -276,7 +271,7 @@ export default function App() {
         disable3D={accessibilitySettings.disable3D}
       >
       <div
-        className={`min-h-screen bg-slate-50 text-slate-900 dark:bg-[#080D18] dark:text-[#F4F7FB] flex selection:bg-[#43D9E9]/30 selection:text-[#0E7490] dark:selection:text-[#43D9E9] transition-colors duration-200 relative overflow-x-hidden ${
+        className={`min-h-screen bg-ambient-glow text-slate-900 dark:text-[#F4F7FB] flex selection:bg-[#43D9E9]/30 selection:text-[#0E7490] dark:selection:text-[#43D9E9] transition-colors duration-300 relative overflow-x-clip ${
           accessibilitySettings.highContrast ? 'contrast-125' : ''
         } ${accessibilitySettings.dyslexicFont ? 'font-mono' : ''} ${getTextSizeClass()}`}
       >
@@ -289,7 +284,14 @@ export default function App() {
         </a>
 
         {/* Ambient 3D Neural Constellation & Axum Particle Atmosphere */}
-        <ScrollAtmosphere3D disabled={accessibilitySettings.disable3D} />
+        <ErrorBoundary fallback={null}>
+          <ScrollAtmosphere3D disabled={accessibilitySettings.disable3D} />
+        </ErrorBoundary>
+
+        {/* Interactive Cursor Ring Lattice Field (Desktop Pointer + Reduced-Motion Safe) */}
+        <CursorRingField
+          disabled={!!accessibilitySettings.disable3D || accessibilitySettings.cursorEffects === false}
+        />
 
         {/* Persistent Collapsible Desktop Sidebar */}
         <AppSidebar
@@ -357,19 +359,19 @@ export default function App() {
                   language={appLanguage}
                   onStartDemo={() => navigateToModule('studio')}
                   onStartLiveRecognition={() => navigateToModule('live-recognition')}
-                  onExplore3D={(gestureKey) => {
+                  onExplore2DStudio={(gestureKey) => {
                     if (gestureKey) {
                       setActiveGestureKey(gestureKey);
                     }
-                    navigateToModule('hand-studio');
+                    navigateToModule('tracking-studio');
                   }}
                 />
                 <OverviewCapabilities
                   language={appLanguage}
                   onNavigateModule={navigateToModule}
-                  onSelectGestureFor3D={(gestureKey) => {
+                  onSelectGestureForStudio={(gestureKey) => {
                     setActiveGestureKey(gestureKey);
-                    navigateToModule('hand-studio');
+                    navigateToModule('tracking-studio');
                   }}
                 />
                 <SchoolStory language={appLanguage} />
@@ -383,19 +385,30 @@ export default function App() {
 
             {activeModule === 'live-recognition' && (
               <section aria-label="Live Recognition Studio" className="mb-10">
-                <TranslatorStudio
-                  activeGestureKey={activeGestureKey === 'neutral' ? 'hello' : activeGestureKey}
-                  onGestureRecognized={handleGestureChange}
-                />
+                <ErrorBoundary
+                  title="Live Recognition Camera & Vision Error"
+                  description="The MediaPipe hand recognition workspace encountered an unexpected error. Reload to reinitialize camera and landmark detection."
+                >
+                  <TranslatorStudio
+                    activeGestureKey={activeGestureKey === 'neutral' ? 'hello' : activeGestureKey}
+                    onGestureRecognized={handleGestureChange}
+                  />
+                </ErrorBoundary>
               </section>
             )}
 
             {activeModule === 'studio' && (
               <section id="communication-workspace" aria-label="Two-Way Communication" className="mb-10">
-                <TwoWayWorkspace
-                  activeGestureKey={activeGestureKey}
-                  onGestureChange={handleGestureChange}
-                />
+                <ErrorBoundary
+                  title="Two-Way Studio Error"
+                  description="The communication workspace encountered a rendering issue. Reload to restore live recognition and sign translation."
+                >
+                  <TwoWayWorkspace
+                    activeGestureKey={activeGestureKey}
+                    onGestureChange={handleGestureChange}
+                    onOpenTrackingStudio={() => navigateToModule('tracking-studio')}
+                  />
+                </ErrorBoundary>
               </section>
             )}
 
@@ -423,147 +436,19 @@ export default function App() {
               </section>
             )}
 
-            {activeModule === 'hand-studio' && (
-              <section aria-label="3D Hand Studio" className="mb-10 space-y-5">
-                <WorkspaceHeader
-                  title={appLanguage === 'am' ? '3D የእጅ እና የሰውነት እንቅስቃሴ ስቱዲዮ' : '3D Hand & Dual-Arm Kinematics Studio'}
-                  description={
-                    appLanguage === 'am'
-                      ? 'የምልክት ቋንቋ እንቅስቃሴዎችን፣ የፊት መከታተያን እና የሰውነት አቀማመጥን በ3D ይመልከቱ።'
-                      : 'Inspect articulated EthSL sign poses, face tracking orientation, and adjustable dual-arm kinematics alongside anatomical instructions.'
-                  }
-                  icon={<Hand className="w-5 h-5" />}
-                  accent="cyan"
-                  meta={
-                    <>
-                      <StatusBadge tone="info" className="font-mono">
-                        {GESTURE_LIST.length} Signs Ready
-                      </StatusBadge>
-                      <span aria-hidden="true">·</span>
-                      <span>Interactive Orbit &amp; Dual-Arm Kinematics</span>
-                    </>
-                  }
-                  actions={
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => navigateToModule('vocabulary')}
-                      leftIcon={<BookOpen className="w-3.5 h-3.5" />}
-                    >
-                      EthSL Dictionary
-                    </Button>
-                  }
-                />
-
-                <div className="grid lg:grid-cols-12 gap-5 items-start">
-                  {/* Primary 3D Viewport */}
-                  <div className="lg:col-span-8 min-w-0">
-                    <ThreeDHandViewer
-                      activeGestureKey={activeGestureKey}
-                      onSelectGesture={handleGestureChange}
-                      initialMode="preset"
-                      showModeTabs={true}
-                    />
-                  </div>
-
-                  {/* Sign & Kinematics Inspector */}
-                  <div className="lg:col-span-4 space-y-3">
-                    <Card padding="sm" className="space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className="text-3xl shrink-0" aria-hidden="true">
-                            {selectedStudioGesture.emoji}
-                          </span>
-                          <div className="min-w-0">
-                            <h3 className="font-heading text-lg font-bold text-slate-900 dark:text-[#F4F7FB] truncate">
-                              {selectedStudioGesture.labelEn}
-                            </h3>
-                            <p className="text-sm font-ethiopic font-semibold text-[#0E7490] dark:text-[#43D9E9] truncate">
-                              {selectedStudioGesture.labelAm}
-                            </p>
-                            <p className="text-[11px] font-mono text-slate-600 dark:text-[#A0AEC0]">
-                              /{selectedStudioGesture.phoneticAm}/
-                            </p>
-                          </div>
-                        </div>
-                        <StatusBadge tone="info" className="shrink-0">
-                          {selectedStudioGesture.signLanguage || 'EthSL'}
-                        </StatusBadge>
-                      </div>
-
-                      <div className="p-3 rounded-[12px] bg-slate-50 dark:bg-[#172438] border border-slate-200 dark:border-[#253448] space-y-1.5">
-                        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:text-[#A0AEC0] block">
-                          Pose &amp; Handshape Guidance
-                        </span>
-                        <p className="text-xs text-slate-700 dark:text-[#F4F7FB] leading-relaxed">
-                          {selectedStudioGesture.poseInstructions}
-                        </p>
-                        <p className="text-[11px] text-slate-600 dark:text-[#A0AEC0] leading-relaxed">
-                          {selectedStudioGesture.description}
-                        </p>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => speechService.speak(selectedStudioGesture, 'en-US')}
-                          leftIcon={<Volume2 className="w-3.5 h-3.5" />}
-                        >
-                          Speak EN
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => speechService.speak(selectedStudioGesture, 'am-ET')}
-                          leftIcon={<Volume2 className="w-3.5 h-3.5 text-[#0E7490] dark:text-[#43D9E9]" />}
-                        >
-                          Speak AM
-                        </Button>
-                      </div>
-                    </Card>
-
-                    <Card padding="sm" className="space-y-2.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-900 dark:text-[#F4F7FB]">
-                          Sign Vocabulary Presets
-                        </span>
-                        <span className="text-[11px] font-mono text-slate-600 dark:text-[#A0AEC0]">
-                          {GESTURE_LIST.length} Poses
-                        </span>
-                      </div>
-                      <div
-                        className="grid grid-cols-2 sm:grid-cols-3 gap-1.5"
-                        role="group"
-                        aria-label="Select 3D Sign Gesture"
-                      >
-                        {GESTURE_LIST.map((g) => {
-                          const isSelected =
-                            (activeGestureKey === 'neutral' ? 'hello' : activeGestureKey) === g.id;
-                          return (
-                            <button
-                              key={g.id}
-                              type="button"
-                              onClick={() => handleGestureChange(g.id)}
-                              className={`min-h-[34px] px-2 py-1 rounded-[8px] text-[11px] font-medium border transition-colors cursor-pointer flex items-center gap-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
-                                isSelected
-                                  ? 'bg-[#0E7490]/10 dark:bg-[#43D9E9]/15 border-[#0E7490] dark:border-[#43D9E9] text-[#0E7490] dark:text-[#43D9E9] font-semibold'
-                                  : 'bg-slate-50 dark:bg-[#172438] border-slate-200 dark:border-[#253448] text-slate-700 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB]'
-                              }`}
-                            >
-                              <span aria-hidden="true" className="shrink-0">
-                                {g.emoji}
-                              </span>
-                              <span className="truncate font-ethiopic">
-                                {appLanguage === 'am' ? g.labelAm : g.labelEn}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </Card>
-                  </div>
-                </div>
+            {activeModule === 'tracking-studio' && (
+              <section aria-label="2D Human Skeleton and Hand Tracking Studio" className="mb-10">
+                <ErrorBoundary
+                  title="2D Tracking Studio Error"
+                  description="The MediaPipe 2D tracking workspace encountered an unexpected error. Reload to reinitialize camera and landmark overlays."
+                >
+                  <HumanTrackingStudio2D
+                    activeGestureKey={activeGestureKey}
+                    onSelectGesture={handleGestureChange}
+                    language={appLanguage}
+                    onOpenVocabulary={() => navigateToModule('vocabulary')}
+                  />
+                </ErrorBoundary>
               </section>
             )}
 
@@ -571,10 +456,10 @@ export default function App() {
               <section aria-label="Ethiopian Sign Language Vocabulary" className="mb-10">
                 <CameraStandbyEthslGuide
                   variant="standalone"
-                  onStartCamera={() => navigateToModule('live-recognition')}
+                  onStartCamera={() => navigateToModule('tracking-studio')}
                   onSelectGesture={(gestureKey) => {
                     setActiveGestureKey(gestureKey);
-                    navigateToModule('hand-studio');
+                    navigateToModule('tracking-studio');
                   }}
                 />
               </section>

@@ -25,7 +25,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   return (
     <aside
       aria-label={language === 'am' ? 'የመተግበሪያ የጎን አሰሳ' : 'Application Sidebar'}
-      className={`hidden md:flex flex-col fixed inset-y-0 left-0 z-40 bg-white dark:bg-[#101C2C] border-r border-slate-200 dark:border-[#253448] transition-[width] duration-200 ease-out ${
+      className={`hidden md:flex flex-col fixed inset-y-0 left-0 z-40 bg-white/88 dark:bg-[#101C2C] backdrop-blur-xl border-r border-cyan-900/10 dark:border-[#253448] shadow-[4px_0_24px_-14px_rgba(14,116,144,0.12)] dark:shadow-none transition-[width] duration-200 ease-out ${
         isCollapsed ? 'w-[72px]' : 'w-[252px]'
       }`}
     >

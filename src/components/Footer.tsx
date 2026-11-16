@@ -3,7 +3,7 @@ import { Github, Send, Heart } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="bg-slate-100 dark:bg-[#080D18] border-t border-slate-200 dark:border-[#253448] py-8 text-xs text-slate-600 dark:text-[#A0AEC0] transition-colors">
+    <footer className="bg-gradient-to-b from-white/85 to-sky-50/85 dark:bg-none dark:bg-[#080D18] backdrop-blur-md border-t border-cyan-900/10 dark:border-[#253448] py-8 text-xs text-slate-600 dark:text-[#A0AEC0] transition-colors">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-slate-200 dark:border-[#253448]">
           {/* School & Club Identity */}
@@ -12,6 +12,7 @@ export const Footer: React.FC = () => {
               <img
                 src="/assets/aistudio/Club_Logo_4c19d54c.jpg"
                 alt="The Ethio-Tech Initiative"
+                referrerPolicy="no-referrer"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -29,9 +30,9 @@ export const Footer: React.FC = () => {
           <div className="flex flex-wrap items-center justify-center gap-2 text-xs font-mono text-slate-600 dark:text-[#A0AEC0]">
             <span>React</span>
             <span aria-hidden="true">·</span>
-            <span>Three.js PBR</span>
+            <span>2D Skeleton Overlay</span>
             <span aria-hidden="true">·</span>
-            <span>MediaPipe Hands</span>
+            <span>MediaPipe Vision</span>
             <span aria-hidden="true">·</span>
             <span>Web Speech API</span>
           </div>

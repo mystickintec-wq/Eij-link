@@ -34,6 +34,82 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
   );
 };
 
+export interface SkeletonProps {
+  className?: string;
+}
+
+export const Skeleton: React.FC<SkeletonProps> = ({ className = '' }) => (
+  <div aria-hidden="true" className={`ejji-skeleton rounded-[8px] ${className}`} />
+);
+
+export interface WorkspaceResultSkeletonProps {
+  variant?: 'assistant' | 'translation' | 'document';
+  statusLabel?: string;
+  className?: string;
+}
+
+export const WorkspaceResultSkeleton: React.FC<WorkspaceResultSkeletonProps> = ({
+  variant = 'assistant',
+  statusLabel = 'Loading workspace output...',
+  className = '',
+}) => {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-label={statusLabel}
+      className={`p-5 rounded-[16px] bg-white/95 dark:bg-[#101C2C]/92 border border-slate-200/85 dark:border-[#253448]/90 shadow-[0_2px_10px_-2px_rgba(15,23,42,0.05)] dark:shadow-[0_6px_24px_-4px_rgba(2,6,23,0.45)] space-y-5 ${className}`}
+    >
+      <span className="sr-only">{statusLabel}</span>
+
+      {/* Top status bar placeholder */}
+      <div className="flex items-center justify-between gap-3 pb-3.5 border-b border-slate-200 dark:border-[#253448]">
+        <Skeleton className="h-6 w-44 rounded-full" />
+        <Skeleton className="h-4 w-28" />
+      </div>
+
+      {/* Primary output card placeholder */}
+      <div className="p-4 sm:p-5 rounded-[12px] bg-slate-50 dark:bg-[#172438]/75 border border-slate-200/80 dark:border-[#253448] space-y-3">
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-11/12" />
+        <Skeleton className="h-4 w-3/4" />
+        {variant === 'translation' && (
+          <div className="pt-2">
+            <div className="p-3 rounded-[10px] bg-white dark:bg-[#101C2C] border border-slate-200/80 dark:border-[#253448] space-y-2">
+              <Skeleton className="h-3 w-32" />
+              <Skeleton className="h-3.5 w-2/3" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Secondary structured sections matching assistant/document outputs */}
+      {variant !== 'translation' && (
+        <div className="space-y-2.5">
+          <Skeleton className="h-3.5 w-36" />
+          <div className="space-y-2">
+            <Skeleton className="h-11 w-full rounded-[10px]" />
+            <Skeleton className="h-11 w-full rounded-[10px]" />
+          </div>
+        </div>
+      )}
+
+      {variant === 'document' && (
+        <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-[#253448]">
+          <Skeleton className="h-3.5 w-40" />
+          <Skeleton className="h-24 w-full rounded-[12px]" />
+        </div>
+      )}
+
+      {/* Action footer placeholder */}
+      <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-200 dark:border-[#253448]">
+        <Skeleton className="h-9 w-32 rounded-[10px]" />
+        <Skeleton className="h-9 w-32 rounded-[10px]" />
+      </div>
+    </div>
+  );
+};
+
 export interface EmptyStateProps {
   icon: React.ReactNode;
   title: string;

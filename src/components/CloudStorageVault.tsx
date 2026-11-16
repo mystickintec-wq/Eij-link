@@ -19,7 +19,9 @@ import {
   LogIn,
   LogOut,
   Wifi,
-  WifiOff
+  WifiOff,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { CloudVaultItem, GestureKey } from '../types';
 import { GESTURE_DEFINITIONS } from '../data/gestures';
@@ -45,6 +47,7 @@ import {
   query, 
   where 
 } from 'firebase/firestore';
+import { ConfirmDialog } from './ui/Feedback';
 
 interface CloudStorageVaultProps {
   isOpen: boolean;
@@ -169,7 +172,9 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
   const [newGesture, setNewGesture] = useState<GestureKey>('hello');
   const [newNotes, setNewNotes] = useState('');
   const [newTags, setNewTags] = useState('Custom, Classroom');
+  const [formError, setFormError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [pendingDeleteItem, setPendingDeleteItem] = useState<{ id: string; title: string } | null>(null);
 
   // Track Firebase auth state
   useEffect(() => {
@@ -359,9 +364,10 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
   const handleCreateItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() || !newPhraseEn.trim()) {
-      showToast('Please provide a title and English phrase.');
+      setFormError('Please provide both a phrase title and an English phrase.');
       return;
     }
+    setFormError(null);
 
     const rawId = `vault-${Date.now()}`;
     const safeId = rawId.replace(/[^a-zA-Z0-9_\-]/g, '_');
@@ -402,20 +408,25 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
     }
   };
 
-  const handleDeleteItem = async (id: string, title: string) => {
-    if (confirm(`Are you sure you want to delete "${title}" from your Cloud Vault?`)) {
-      setItems(items.filter((i) => i.id !== id));
-      showToast(`Removed "${title}" from vault.`);
+  const handleDeleteItem = (id: string, title: string) => {
+    setPendingDeleteItem({ id, title });
+  };
 
-      if (currentUser) {
-        try {
-          const safeId = id.replace(/[^a-zA-Z0-9_\-]/g, '_');
-          await deleteDoc(doc(db, 'cloud_vault', safeId));
-        } catch (err) {
-          console.warn('Could not delete from Firestore:', err);
-        }
+  const confirmDeleteItem = async () => {
+    if (!pendingDeleteItem) return;
+    const { id, title } = pendingDeleteItem;
+    setItems((prev) => prev.filter((i) => i.id !== id));
+    showToast(`Removed "${title}" from vault.`);
+
+    if (currentUser) {
+      try {
+        const safeId = id.replace(/[^a-zA-Z0-9_\-]/g, '_');
+        await deleteDoc(doc(db, 'cloud_vault', safeId));
+      } catch (err) {
+        console.warn('Could not delete from Firestore:', err);
       }
     }
+    setPendingDeleteItem(null);
   };
 
   // Calculate approximate storage usage
@@ -474,7 +485,7 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
           <div className="flex items-center gap-2">
             {currentUser ? (
               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-slate-100 dark:bg-[#19263A] text-xs border border-slate-200 dark:border-[rgba(148,163,184,0.15)]">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400 shrink-0" aria-hidden="true" />
                 <span className="font-medium text-slate-700 dark:text-[#B6C2D2] truncate max-w-[120px]">
                   {currentUser.isAnonymous ? 'Guest User' : currentUser.email || 'Cloud User'}
                 </span>
@@ -621,31 +632,41 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
 
           {/* Add New Phrase Form */}
           {isAddingNew && (
-            <form onSubmit={handleCreateItem} className="p-5 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-cyan-500/30 space-y-4">
+            <form onSubmit={handleCreateItem} noValidate className="p-5 rounded-[14px] bg-slate-50 dark:bg-[#121C2D] border border-cyan-500/30 space-y-4">
               <h4 className="text-sm font-bold text-slate-900 dark:text-[#F8FAFC] flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#0E7490] dark:text-[#43D9E9]" />
+                <Sparkles className="w-4 h-4 text-[#0E7490] dark:text-[#43D9E9]" aria-hidden="true" />
                 Add New Phrase to Cloud Storage
               </h4>
 
               <div className="grid sm:grid-cols-2 gap-4 text-xs">
                 <div>
-                  <label className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">Phrase Title / Context</label>
+                  <label htmlFor="vault-new-title" className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">
+                    Phrase Title / Context
+                  </label>
                   <input
+                    id="vault-new-title"
                     type="text"
                     value={newTitle}
-                    onChange={(e) => setNewTitle(e.target.value)}
+                    onChange={(e) => {
+                      setNewTitle(e.target.value);
+                      if (formError) setFormError(null);
+                    }}
                     placeholder="e.g. Asking for Directions"
                     required
-                    className="w-full bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] focus:border-[#0E7490] dark:focus:border-[#43D9E9] focus:outline-none"
+                    aria-invalid={Boolean(formError && !newTitle.trim()) || undefined}
+                    className="w-full min-h-[40px] bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] focus:border-[#0E7490] dark:focus:border-[#43D9E9] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/25 dark:focus:ring-[#43D9E9]/25"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">Associated 3D Gesture</label>
+                  <label htmlFor="vault-new-gesture" className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">
+                    Associated 3D Gesture
+                  </label>
                   <select
+                    id="vault-new-gesture"
                     value={newGesture}
                     onChange={(e) => setNewGesture(e.target.value as GestureKey)}
-                    className="w-full bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] focus:border-[#0E7490] dark:focus:border-[#43D9E9] focus:outline-none font-medium"
+                    className="w-full min-h-[40px] bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] focus:border-[#0E7490] dark:focus:border-[#43D9E9] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/25 dark:focus:ring-[#43D9E9]/25 font-medium cursor-pointer"
                   >
                     {Object.values(GESTURE_DEFINITIONS).map((g) => (
                       <option key={g.id} value={g.id}>
@@ -656,53 +677,76 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">English Phrase</label>
+                  <label htmlFor="vault-new-phrase-en" className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">
+                    English Phrase
+                  </label>
                   <input
+                    id="vault-new-phrase-en"
                     type="text"
                     value={newPhraseEn}
-                    onChange={(e) => setNewPhraseEn(e.target.value)}
+                    onChange={(e) => {
+                      setNewPhraseEn(e.target.value);
+                      if (formError) setFormError(null);
+                    }}
                     placeholder="e.g. Which way to the library?"
                     required
-                    className="w-full bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] focus:border-[#0E7490] dark:focus:border-[#43D9E9] focus:outline-none"
+                    aria-invalid={Boolean(formError && !newPhraseEn.trim()) || undefined}
+                    className="w-full min-h-[40px] bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] focus:border-[#0E7490] dark:focus:border-[#43D9E9] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/25 dark:focus:ring-[#43D9E9]/25"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">Amharic Translation (Optional)</label>
+                  <label htmlFor="vault-new-phrase-am" className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">
+                    Amharic Translation (Optional)
+                  </label>
                   <input
+                    id="vault-new-phrase-am"
                     type="text"
                     value={newPhraseAm}
                     onChange={(e) => setNewPhraseAm(e.target.value)}
                     placeholder="e.g. ቤተ-መጽሐፍቱ የት በኩል ነው?"
-                    className="w-full bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] focus:border-[#0E7490] dark:focus:border-[#43D9E9] focus:outline-none font-ethiopic"
+                    className="w-full min-h-[40px] bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] focus:border-[#0E7490] dark:focus:border-[#43D9E9] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/25 dark:focus:ring-[#43D9E9]/25 font-ethiopic"
                   />
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">Tags (Comma-separated)</label>
+                  <label htmlFor="vault-new-tags" className="block text-slate-700 dark:text-[#B6C2D2] font-medium mb-1">
+                    Tags (Comma-separated)
+                  </label>
                   <input
+                    id="vault-new-tags"
                     type="text"
                     value={newTags}
                     onChange={(e) => setNewTags(e.target.value)}
                     placeholder="Classroom, Travel, Medical, Custom"
-                    className="w-full bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] focus:border-[#0E7490] dark:focus:border-[#43D9E9] focus:outline-none"
+                    className="w-full min-h-[40px] bg-white dark:bg-[#0D1422] border border-slate-300 dark:border-[rgba(148,163,184,0.2)] rounded-[10px] px-3 py-2 text-slate-900 dark:text-[#F8FAFC] focus:border-[#0E7490] dark:focus:border-[#43D9E9] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/25 dark:focus:ring-[#43D9E9]/25"
                   />
                 </div>
               </div>
 
+              {formError && (
+                <p role="alert" className="text-xs font-medium text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
+                  <span>{formError}</span>
+                </p>
+              )}
+
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setIsAddingNew(false)}
-                  className="px-4 py-2 rounded-[10px] bg-slate-100 dark:bg-[#19263A] text-slate-700 dark:text-[#B6C2D2] font-semibold text-xs cursor-pointer hover:bg-slate-200 dark:hover:bg-[#1f2f47] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
+                  onClick={() => {
+                    setIsAddingNew(false);
+                    setFormError(null);
+                  }}
+                  className="min-h-[40px] px-4 py-2 rounded-[10px] bg-slate-100 dark:bg-[#19263A] text-slate-700 dark:text-[#B6C2D2] font-semibold text-xs cursor-pointer hover:bg-slate-200 dark:hover:bg-[#1f2f47] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-[10px] bg-[#0E7490] hover:bg-[#155E75] text-white dark:bg-[#43D9E9] dark:hover:bg-[#67E8F9] dark:text-[#080D18] font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
+                  className="min-h-[40px] px-5 py-2 rounded-[10px] bg-[#0E7490] hover:bg-[#155E75] text-white dark:bg-[#43D9E9] dark:hover:bg-[#67E8F9] dark:text-[#080D18] font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Save to Vault
+                  <Plus className="w-3.5 h-3.5" aria-hidden="true" /> Save to Vault
                 </button>
               </div>
             </form>
@@ -811,7 +855,7 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
         {/* Footer */}
         <div className="p-4 sm:p-5 border-t border-slate-200 dark:border-[rgba(148,163,184,0.12)] flex flex-wrap items-center justify-between gap-3 bg-slate-50 dark:bg-[#080D18] text-xs text-slate-600 dark:text-[#A0AEC0]">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <ShieldCheck className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0" aria-hidden="true" />
             <span>EjjiLink Cloud Sync Active · The Ethio-Tech Initiative</span>
           </div>
 
@@ -824,6 +868,21 @@ export const CloudStorageVault: React.FC<CloudStorageVaultProps> = ({
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={Boolean(pendingDeleteItem)}
+        onClose={() => setPendingDeleteItem(null)}
+        onConfirm={confirmDeleteItem}
+        title="Delete Saved Phrase"
+        message={
+          pendingDeleteItem
+            ? `Are you sure you want to delete "${pendingDeleteItem.title}" from your Cloud Vault?`
+            : ''
+        }
+        confirmLabel="Delete Phrase"
+        cancelLabel="Cancel"
+        destructive={true}
+      />
     </div>
   );
 };

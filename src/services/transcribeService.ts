@@ -2,6 +2,7 @@
  * Audio transcription service with dual-tier AI backend (Gemini 3.5 Transcribe + Gemini 3.8 Flash)
  * and seamless zero-quota Browser Web Speech API streaming engine for continuous live captions.
  */
+import { apiFetch } from './apiClient';
 
 export interface TranscriptionResult {
   text: string;
@@ -29,11 +30,9 @@ export async function transcribeAudioBlob(blob: Blob): Promise<{ text: string; m
   }
   const base64 = btoa(binary);
 
-  const response = await fetch('/api/transcribe', {
+  const response = await apiFetch('/api/transcribe', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    timeoutMs: 25000,
     body: JSON.stringify({
       audio: base64,
       mimeType: blob.type || 'audio/webm',

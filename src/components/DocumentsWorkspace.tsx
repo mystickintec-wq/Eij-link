@@ -19,9 +19,9 @@ import {
   Card,
   EmptyState,
   ErrorState,
-  LoadingState,
   StatusBadge,
   WorkspaceHeader,
+  WorkspaceResultSkeleton,
   useToast,
 } from './ui';
 
@@ -174,7 +174,10 @@ export const DocumentsWorkspace: React.FC = () => {
               Upload Document or Image
             </span>
 
-            <label className="border-2 border-dashed border-slate-300 dark:border-[#253448] hover:border-[#0E7490] dark:hover:border-[#43D9E9] rounded-[14px] p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-slate-50 dark:bg-[#080D18] min-h-[190px] focus-within:ring-2 focus-within:ring-[#0E7490] dark:focus-within:ring-[#43D9E9]">
+            <label
+              htmlFor="document-ocr-upload"
+              className="border-2 border-dashed border-slate-300 dark:border-[#253448] hover:border-[#0E7490] dark:hover:border-[#43D9E9] hover:bg-cyan-50/40 dark:hover:bg-[#101C2C] rounded-[14px] p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-slate-50 dark:bg-[#080D18] min-h-[190px] focus-within:ring-2 focus-within:ring-[#0E7490] dark:focus-within:ring-[#43D9E9]"
+            >
               <Upload className="w-8 h-8 text-[#0E7490] dark:text-[#43D9E9] mb-2" aria-hidden="true" />
               <span className="text-xs font-semibold text-slate-900 dark:text-[#F4F7FB]">
                 Click to browse or drop an image or PDF
@@ -183,6 +186,7 @@ export const DocumentsWorkspace: React.FC = () => {
                 Supports PNG, JPEG, WEBP, PDF (Max 15MB)
               </span>
               <input
+                id="document-ocr-upload"
                 type="file"
                 accept="image/*,application/pdf"
                 onChange={handleFileUpload}
@@ -230,7 +234,7 @@ export const DocumentsWorkspace: React.FC = () => {
                   key={idx}
                   type="button"
                   onClick={() => handleUseDemo(demo)}
-                  className="w-full p-3.5 rounded-[10px] bg-slate-50 dark:bg-[#172438] hover:border-[#0E7490]/50 dark:hover:border-[#43D9E9]/50 border border-slate-200 dark:border-[#253448] text-left transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
+                  className="w-full min-h-[44px] p-3.5 rounded-[11px] bg-slate-50/90 dark:bg-[#172438]/90 hover:bg-cyan-50/50 dark:hover:bg-[#1e2f4a] hover:border-[#0E7490]/50 dark:hover:border-[#43D9E9]/50 hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 hover:shadow-sm border border-slate-200 dark:border-[#253448] text-left transition-[transform,border-color,background-color,box-shadow] duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
                 >
                   <div className="text-[11px] font-semibold text-[#0E7490] dark:text-[#43D9E9] uppercase tracking-wider mb-0.5">
                     {demo.type}
@@ -250,9 +254,9 @@ export const DocumentsWorkspace: React.FC = () => {
         {/* Results Column */}
         <div className="lg:col-span-7 space-y-4">
           {isLoading ? (
-            <LoadingState
-              title="Extracting document text..."
-              description="Running visual OCR and generating plain-language takeaways."
+            <WorkspaceResultSkeleton
+              variant="document"
+              statusLabel="Extracting document text..."
               className="min-h-[420px]"
             />
           ) : (

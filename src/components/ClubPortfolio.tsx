@@ -25,6 +25,7 @@ export const ClubPortfolio: React.FC<ClubPortfolioProps> = ({
             <img
               src="/assets/aistudio/Club_Logo_4c19d54c.jpg"
               alt="The Ethio-Tech Initiative emblem"
+              referrerPolicy="no-referrer"
               className="w-11 h-11 rounded-full object-cover border border-slate-300 dark:border-[#253448] shrink-0"
             />
             <div className="min-w-0">
@@ -85,7 +86,7 @@ export const ClubPortfolio: React.FC<ClubPortfolioProps> = ({
               <p className="text-xs text-slate-600 dark:text-[#A0AEC0] leading-relaxed">
                 {isAm
                   ? 'የምልክት ቋንቋን ወደ እንግሊዝኛ እና አማርኛ ድምፅ የሚተረጉም በመሳሪያ ላይ የሚሰራ መድረክ።'
-                  : 'Real-time EthSL recognition, bilingual English/Amharic speech synthesis, and 3D hand kinematics.'}
+                  : 'Real-time EthSL recognition, bilingual English/Amharic speech synthesis, and 2D face, body & dual-hand tracking.'}
               </p>
             </div>
 

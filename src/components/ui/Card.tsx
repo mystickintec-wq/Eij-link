@@ -9,13 +9,13 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 const CARD_VARIANTS: Record<CardVariant, string> = {
   default:
-    'bg-white dark:bg-[#101C2C] border border-slate-200 dark:border-[#253448] transition-colors duration-150',
+    'bg-white/92 dark:bg-[#101C2C]/88 backdrop-blur-xl border border-slate-200/90 dark:border-[#253448] shadow-[0_2px_6px_rgba(14,116,144,0.04),0_12px_28px_-10px_rgba(15,23,42,0.08)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_8px_28px_-6px_rgba(0,0,0,0.42)] transition-[border-color,box-shadow,background-color] duration-200',
   elevated:
-    'bg-slate-50 dark:bg-[#172438] border border-slate-200 dark:border-[#253448] transition-colors duration-150',
+    'bg-gradient-to-br from-white via-sky-50/45 to-indigo-50/35 dark:bg-none dark:bg-[#152236]/92 backdrop-blur-xl border border-sky-200/80 dark:border-[#293B52] shadow-[0_2px_8px_rgba(14,116,144,0.05),0_12px_30px_-10px_rgba(79,70,229,0.08)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05),0_10px_30px_-6px_rgba(0,0,0,0.45)] transition-[border-color,box-shadow,background-color] duration-200',
   interactive:
-    'bg-white dark:bg-[#101C2C] border border-slate-200 dark:border-[#253448] hover:border-[#0E7490]/55 dark:hover:border-[#43D9E9]/55 hover:-translate-y-[1px] hover:shadow-sm motion-reduce:hover:translate-y-0 transition-[border-color,transform,box-shadow,background-color] duration-150 ease-out',
+    'group bg-white/92 dark:bg-[#101C2C]/88 backdrop-blur-xl border border-slate-200/90 dark:border-[#253448] shadow-[0_2px_6px_rgba(14,116,144,0.04),0_12px_28px_-10px_rgba(15,23,42,0.08)] dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_8px_28px_-6px_rgba(0,0,0,0.42)] hover:border-cyan-500/60 dark:hover:border-[#43D9E9]/55 hover:-translate-y-0.5 hover:shadow-[0_14px_32px_-8px_rgba(8,145,178,0.20)] dark:hover:shadow-[inset_0_1px_0_0_rgba(67,217,233,0.12),0_12px_32px_-6px_rgba(67,217,233,0.16)] motion-reduce:hover:translate-y-0 transition-[border-color,transform,box-shadow,background-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]',
   dashed:
-    'bg-white/60 dark:bg-[#101C2C]/60 border border-dashed border-slate-300 dark:border-[#253448] transition-colors duration-150',
+    'bg-sky-50/45 dark:bg-[#101C2C]/65 backdrop-blur-md border border-dashed border-cyan-300/80 dark:border-[#253448] transition-colors duration-200',
 };
 
 const CARD_PADDING: Record<NonNullable<CardProps['padding']>, string> = {
@@ -105,10 +105,10 @@ export interface WorkspaceHeaderProps {
 }
 
 const HEADER_ICON_TONE: Record<NonNullable<WorkspaceHeaderProps['accent']>, string> = {
-  cyan: 'bg-[#0E7490]/10 dark:bg-[#43D9E9]/15 text-[#0E7490] dark:text-[#43D9E9]',
-  violet: 'bg-[#4F46E5]/10 dark:bg-[#8585FF]/15 text-[#4F46E5] dark:text-[#8585FF]',
-  emerald: 'bg-emerald-500/10 dark:bg-emerald-400/15 text-emerald-700 dark:text-emerald-400',
-  amber: 'bg-amber-500/10 dark:bg-amber-400/15 text-amber-700 dark:text-amber-400',
+  cyan: 'bg-gradient-to-br from-cyan-500/18 to-sky-500/15 dark:from-[#43D9E9]/15 dark:to-[#43D9E9]/10 border border-cyan-500/25 dark:border-[#43D9E9]/25 text-[#0E7490] dark:text-[#43D9E9]',
+  violet: 'bg-gradient-to-br from-indigo-500/18 to-violet-500/15 dark:from-[#8585FF]/15 dark:to-[#8585FF]/10 border border-indigo-500/25 dark:border-[#8585FF]/25 text-[#4F46E5] dark:text-[#8585FF]',
+  emerald: 'bg-gradient-to-br from-emerald-500/18 to-teal-500/15 dark:from-emerald-400/15 dark:to-emerald-400/10 border border-emerald-500/25 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-400',
+  amber: 'bg-gradient-to-br from-amber-500/18 to-orange-500/15 dark:from-amber-400/15 dark:to-amber-400/10 border border-amber-500/25 dark:border-amber-400/25 text-amber-700 dark:text-amber-400',
 };
 
 export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
@@ -120,7 +120,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   accent = 'cyan',
 }) => {
   return (
-    <div className="p-5 sm:p-6 rounded-[16px] bg-white dark:bg-[#101C2C] border border-slate-200 dark:border-[#253448] flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+    <div className="p-5 sm:p-6 rounded-[16px] bg-gradient-to-r from-white via-sky-50/40 to-indigo-50/35 dark:bg-none dark:bg-[#101C2C] border border-slate-200/90 dark:border-[#253448] shadow-[0_2px_8px_rgba(14,116,144,0.04)] dark:shadow-none flex flex-col lg:flex-row lg:items-center justify-between gap-4">
       <div className="flex items-start sm:items-center gap-3.5 min-w-0">
         <div
           className={`w-11 h-11 rounded-[12px] flex items-center justify-center shrink-0 ${HEADER_ICON_TONE[accent]}`}

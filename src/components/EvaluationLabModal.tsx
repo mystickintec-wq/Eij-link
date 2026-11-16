@@ -537,7 +537,7 @@ export const EvaluationLabModal: React.FC<EvaluationLabModalProps> = ({
                                       ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'
                                       : val > 0
                                       ? 'bg-red-500/20 text-rose-700 dark:text-rose-400'
-                                      : 'text-slate-500 dark:text-slate-500'
+                                      : 'text-slate-600 dark:text-slate-400'
                                   }`}
                                 >
                                   {val}

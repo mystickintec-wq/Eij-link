@@ -17,12 +17,14 @@ import {
   HeartHandshake,
   Languages,
   Clock,
+  ScanFace,
 } from 'lucide-react';
-import { GestureKey, SignSequence, LandmarkPoint } from '../types';
+import { GestureKey, SignSequence } from '../types';
 import { GESTURE_DEFINITIONS } from '../data/gestures';
 import { SIGN_SEQUENCES, findSequencesByScenario } from '../data/signSequences';
 import { TranslatorStudio } from './TranslatorStudio';
-import { ThreeDHandViewer } from './ThreeDHandViewer';
+import { HandPoseDiagram } from './HandPoseDiagram';
+import { ErrorBoundary } from './ErrorBoundary';
 import { speechService } from '../services/speechService';
 import { geminiVoiceRecorder, TranscriptionResult } from '../services/transcribeService';
 import {
@@ -37,6 +39,7 @@ import {
 interface TwoWayWorkspaceProps {
   activeGestureKey: GestureKey | 'neutral';
   onGestureChange: (gesture: GestureKey | 'neutral') => void;
+  onOpenTrackingStudio?: () => void;
 }
 
 export interface BilingualMatchStatus {
@@ -65,20 +68,18 @@ const CATEGORY_TRANSLATIONS: Record<string, { en: string; am: string }> = {
 export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
   activeGestureKey,
   onGestureChange,
+  onOpenTrackingStudio,
 }) => {
   const [activeTab, setActiveTab] = useState<'hands-to-voice' | 'voice-to-hands'>('hands-to-voice');
 
-  // Shared live landmarks between Mode A and 3D Hand
-  const [liveLandmarks, setLiveLandmarks] = useState<LandmarkPoint[]>([]);
-  const [liveHandedness, setLiveHandedness] = useState<string>('Right');
-
-  // Mode B state (Speech/Text to 3D Hands)
+  // Mode B state (Speech/Text to 2D Sign Sequence)
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [continuousListening, setContinuousListening] = useState(false);
   const [audioVolume, setAudioVolume] = useState<number>(0);
   const [transcriptionNotice, setTranscriptionNotice] = useState<string>('');
   const [selectedSequence, setSelectedSequence] = useState<SignSequence | null>(null);
+  const [activeSequenceStepIndex, setActiveSequenceStepIndex] = useState<number>(0);
 
   // Top-level bilingual status tracking
   const [bilingualStatus, setBilingualStatus] = useState<{
@@ -97,8 +98,8 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
       source: 'preset',
       messageEn: `Gesture Confirmed: "${def.labelEn}" (${CATEGORY_TRANSLATIONS[def.category]?.en || def.category})`,
       messageAm: `የተረጋገጠ ምልክት፦ "${def.labelAm}" (${def.phoneticAm})`,
-      subMessageEn: 'Kinematics initialized. Dual-direction translation active.',
-      subMessageAm: 'የእጅ እንቅስቃሴ ዝግጁ ነው። የሁለትዮሽ ትርጉም ንቁ ነው።',
+      subMessageEn: '2D sign pipeline initialized. Dual-direction translation active.',
+      subMessageAm: 'የእጅ ምልክት ትርጉም ዝግጁ ነው። የሁለትዮሽ ግንኙነት ንቁ ነው።',
       timestamp: 'Ready · ዝግጁ',
     };
   });
@@ -107,8 +108,8 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
   const [matchStatus, setMatchStatus] = useState<BilingualMatchStatus>({
     matchedKey: 'hello',
     isError: false,
-    messageEn: 'Displaying "Hello" on the 3D hand in React.js.',
-    messageAm: 'የ"ሰላም" (Selam) ምልክት በ3D እጅ እንቅስቃሴ ላይ እየታየ ነው።',
+    messageEn: 'Displaying "Hello" 21-point EthSL handshape guide.',
+    messageAm: 'የ"ሰላም" (Selam) የእጅ ምልክት መመሪያ እየታየ ነው።',
     subMessageEn: 'Pose confirmed and ready for two-way translation.',
     subMessageAm: 'ምልክቱ ተረጋግጦ ለሁለትዮሽ ግንኙነት ዝግጁ ነው።',
     source: 'preset',
@@ -164,16 +165,16 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
       source,
       messageEn: `${sourceLabelEn} Confirmed: "${def.labelEn}" (${CATEGORY_TRANSLATIONS[def.category]?.en || def.category})`,
       messageAm: `${sourceLabelAm} ተረጋግጧል፦ "${def.labelAm}" (${def.phoneticAm})`,
-      subMessageEn: `Temporal lock established (>80% accuracy). Articulated on 3D hand.`,
-      subMessageAm: `በመሳሪያው ላይ በ${Math.round(def.threshold * 100)}% እርግጠኝነት ተረጋግጧል። በ3D እጅ ላይ ተንቀሳቅሷል።`,
+      subMessageEn: `Temporal lock established (>80% accuracy). Updated 2D sign guide.`,
+      subMessageAm: `በመሳሪያው ላይ በ${Math.round(def.threshold * 100)}% እርግጠኝነት ተረጋግጧል።`,
       timestamp: timeStr,
     });
 
     setMatchStatus({
       matchedKey: key,
       isError: false,
-      messageEn: `Recognized "${def.labelEn}" via ${sourceLabelEn}. 3D anatomical hand articulated!`,
-      messageAm: `በ${sourceLabelAm} አማካኝነት "${def.labelAm}" (${def.phoneticAm}) ተረጋግጧል! 3D የአካል እጅ ሞዴል ተንቀሳቅሷል!`,
+      messageEn: `Recognized "${def.labelEn}" via ${sourceLabelEn}.`,
+      messageAm: `በ${sourceLabelAm} አማካኝነት "${def.labelAm}" (${def.phoneticAm}) ተረጋግጧል!`,
       subMessageEn: def.poseInstructions,
       subMessageAm: `የእጅ አቀማመጥ መመሪያ፦ ${def.poseInstructions}`,
       source,
@@ -190,8 +191,8 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
       setMatchStatus({
         matchedKey: null,
         isError: false,
-        messageEn: 'Type or speak a phrase above to see its 3D hand gesture.',
-        messageAm: 'የ3D እጅ እንቅስቃሴውን ለማየት ከላይ አንድ ቃል ይተይቡ ወይም ይናገሩ።',
+        messageEn: 'Type or speak a phrase above to display its 2D EthSL handshape.',
+        messageAm: 'የእጅ ምልክቱን ለማየት ከላይ አንድ ቃል ይተይቡ ወይም ይናገሩ።',
         subMessageEn: 'Supports English and Amharic voice or text queries.',
         subMessageAm: 'የእንግሊዝኛ እና የአማርኛ የድምጽ ወይም የጽሁፍ ጥያቄዎችን ይደግፋል።',
         source: 'text',
@@ -214,6 +215,7 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
 
     if (matchedSeq) {
       setSelectedSequence(matchedSeq);
+      setActiveSequenceStepIndex(0);
       const firstSign = matchedSeq.steps[0]?.signKey;
       const initialKey = firstSign && firstSign !== 'neutral' ? (firstSign as GestureKey) : 'hello';
       onGestureChange(initialKey);
@@ -226,16 +228,16 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
         source: 'text',
         messageEn: `Scenario Sequence Confirmed: "${matchedSeq.titleEn}"`,
         messageAm: `ተከታታይ ሁኔታ ተረጋግጧል፦ "${matchedSeq.titleAm}"`,
-        subMessageEn: `Articulating ${matchedSeq.steps.length} sequential sign stages: ${stepsEn}`,
-        subMessageAm: `${matchedSeq.steps.length} ተከታታይ የምልክት ደረጃዎች በ3D እጅ ላይ ይታያሉ፦ ${stepsAm}`,
+        subMessageEn: `Demonstrating ${matchedSeq.steps.length} sequential sign stages: ${stepsEn}`,
+        subMessageAm: `${matchedSeq.steps.length} ተከታታይ የምልክት ደረጃዎች ይታያሉ፦ ${stepsAm}`,
         timestamp: timeStr,
       });
 
       setMatchStatus({
         matchedKey: initialKey,
         isError: false,
-        messageEn: `Recognized Sequence: "${matchedSeq.titleEn}". Articulating ${matchedSeq.steps.length} sequential stages on the 3D hand!`,
-        messageAm: `ተከታታይ ምልክት ተለይቷል፦ "${matchedSeq.titleAm}". ${matchedSeq.steps.length} የምልክት ደረጃዎች በ3D እጅ ላይ ይተገበራሉ!`,
+        messageEn: `Recognized Sequence: "${matchedSeq.titleEn}" (${matchedSeq.steps.length} sequential stages).`,
+        messageAm: `ተከታታይ ምልክት ተለይቷል፦ "${matchedSeq.titleAm}". ${matchedSeq.steps.length} የምልክት ደረጃዎች ይታያሉ።`,
         subMessageEn: `Sequence Steps: ${stepsEn}`,
         subMessageAm: `ተከታታይ ደረጃዎች፦ ${stepsAm}`,
         source: 'text',
@@ -265,16 +267,16 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
         source: 'text',
         messageEn: `Gesture Confirmed: "${def.labelEn}" (${CATEGORY_TRANSLATIONS[def.category]?.en || def.category})`,
         messageAm: `የተረጋገጠ ምልክት፦ "${def.labelAm}" (${def.phoneticAm})`,
-        subMessageEn: `Matched phrase "${query}". 3D anatomical hand articulated.`,
-        subMessageAm: `ከ"${query}" ጋር ተመሳስሏል። የ3D የአካል እጅ እንቅስቃሴ ተከናውኗል።`,
+        subMessageEn: `Matched phrase "${query}". 21-point EthSL handshape displayed.`,
+        subMessageAm: `ከ"${query}" ጋር ተመሳስሏል። የ21-ነጥብ የእጅ ምልክት ታይቷል።`,
         timestamp: timeStr,
       });
 
       setMatchStatus({
         matchedKey: match,
         isError: false,
-        messageEn: `Recognized "${def.labelEn}" (${def.category}). 3D anatomical hand articulated!`,
-        messageAm: `"${def.labelAm}" (${def.phoneticAm}) ተረጋግጧል! 3D የአካል እጅ ሞዴል ተንቀሳቅሷል!`,
+        messageEn: `Recognized "${def.labelEn}" (${def.category}). EthSL 2D handshape guide updated.`,
+        messageAm: `"${def.labelAm}" (${def.phoneticAm}) ተረጋግጧል! የ2D የእጅ ምልክት መመሪያ ታይቷል።`,
         subMessageEn: `Pose: ${def.labelEn} · Category: ${def.category}`,
         subMessageAm: `ምልክት፦ ${def.labelAm} · አነባበብ፦ ${def.phoneticAm}`,
         source: 'text',
@@ -374,6 +376,7 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
 
   const handleSelectScenarioSequence = (seq: SignSequence) => {
     setSelectedSequence(seq);
+    setActiveSequenceStepIndex(0);
     setInputText(seq.titleEn);
     const firstSign = seq.steps[0]?.signKey;
     const initialKey = (firstSign && firstSign !== 'neutral' ? firstSign : 'hello') as GestureKey;
@@ -389,15 +392,15 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
       messageEn: `Scenario Selected: "${seq.titleEn}" (${seq.scenario})`,
       messageAm: `የተመረጠ ሁኔታ፦ "${seq.titleAm}"`,
       subMessageEn: `Demonstrating ${seq.steps.length} sequential sign stages: ${stepsEn}`,
-      subMessageAm: `${seq.steps.length} ተከታታይ የምልክት ደረጃዎች በ3D እጅ ላይ ይታያሉ፦ ${stepsAm}`,
+      subMessageAm: `${seq.steps.length} ተከታታይ የምልክት ደረጃዎች ይታያሉ፦ ${stepsAm}`,
       timestamp: timeStr,
     });
 
     setMatchStatus({
       matchedKey: initialKey,
       isError: false,
-      messageEn: `Scenario Sequence: "${seq.titleEn}". Articulating ${seq.steps.length} sequential stages on the 3D hand!`,
-      messageAm: `ተከታታይ ምልክት ተለይቷል፦ "${seq.titleAm}". ${seq.steps.length} ተከታታይ የምልክት ደረጃዎች በ3D እጅ ላይ ይተገበራሉ!`,
+      messageEn: `Scenario Sequence: "${seq.titleEn}" (${seq.steps.length} sequential stages).`,
+      messageAm: `ተከታታይ ምልክት ተለይቷል፦ "${seq.titleAm}". ${seq.steps.length} ተከታታይ የምልክት ደረጃዎች ይታያሉ።`,
       subMessageEn: `Steps: ${stepsEn}`,
       subMessageAm: `ደረጃዎች፦ ${stepsAm}`,
       source: 'preset',
@@ -405,22 +408,46 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
     });
   };
 
+  // Auto-step through multi-sign sequence stages in Mode B
+  useEffect(() => {
+    if (!selectedSequence || selectedSequence.steps.length <= 1 || activeTab !== 'voice-to-hands') {
+      return;
+    }
+    const timer = window.setInterval(() => {
+      setActiveSequenceStepIndex((prev) => {
+        const next = (prev + 1) % selectedSequence.steps.length;
+        const stepKey = selectedSequence.steps[next]?.signKey;
+        if (stepKey && stepKey !== 'neutral') {
+          onGestureChange(stepKey);
+        }
+        return next;
+      });
+    }, 2400);
+    return () => window.clearInterval(timer);
+  }, [selectedSequence, activeTab, onGestureChange]);
+
   const currentDef = GESTURE_DEFINITIONS[bilingualStatus.gestureKey] || GESTURE_DEFINITIONS.hello;
   const matchedDef = matchStatus.matchedKey ? GESTURE_DEFINITIONS[matchStatus.matchedKey] : null;
+  const displayedSignKey: GestureKey =
+    (selectedSequence?.steps[activeSequenceStepIndex]?.signKey &&
+    selectedSequence.steps[activeSequenceStepIndex].signKey !== 'neutral'
+      ? (selectedSequence.steps[activeSequenceStepIndex].signKey as GestureKey)
+      : matchedDef?.id) || 'hello';
+  const displayedDef = GESTURE_DEFINITIONS[displayedSignKey] || GESTURE_DEFINITIONS.hello;
 
   return (
     <div id="communication-workspace" className="space-y-6 scroll-mt-20">
       {/* Unified Workspace Header with Accessible Segmented Mode Tabs */}
       <WorkspaceHeader
         title="Two-Way Communication"
-        description="Switch smoothly between live sign-to-voice camera recognition and spoken or typed phrase translation onto the 3D hand rig."
+        description="Switch smoothly between live sign-to-voice camera recognition and spoken or typed phrase translation into 2D EthSL sign guides."
         icon={<Languages className="w-5 h-5" />}
         accent="cyan"
         actions={
           <div
             role="tablist"
             aria-label="Communication Direction"
-            className="flex items-center gap-1 p-1 rounded-[12px] bg-slate-100 dark:bg-[#172438] border border-slate-200 dark:border-[#253448]"
+            className="flex flex-wrap items-center gap-1 p-1 rounded-[12px] bg-slate-100 dark:bg-[#172438] border border-slate-200 dark:border-[#253448]"
           >
             <button
               type="button"
@@ -449,7 +476,7 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
               }`}
             >
               <Mic className="w-4 h-4" aria-hidden="true" />
-              <span>Voice / Text to 3D</span>
+              <span>Voice / Text to Sign</span>
             </button>
           </div>
         }
@@ -584,32 +611,33 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
       {/* Tab A Content: Hands to Voice */}
       {activeTab === 'hands-to-voice' && (
         <div role="tabpanel" aria-label="Hands to Voice">
-          <TranslatorStudio
-            embedded={true}
-            activeGestureKey={activeGestureKey === 'neutral' ? 'hello' : activeGestureKey}
-            onGestureRecognized={(key) => handleGestureRecognized(key, 'camera')}
-            onLiveLandmarksUpdate={(lms, hand) => {
-              setLiveLandmarks(lms);
-              setLiveHandedness(hand);
-            }}
-          />
+          <ErrorBoundary
+            title="Camera Recognition Error"
+            description="MediaPipe vision encountered an unexpected error. Reload to reinitialize live hand tracking."
+          >
+            <TranslatorStudio
+              embedded={true}
+              activeGestureKey={activeGestureKey === 'neutral' ? 'hello' : activeGestureKey}
+              onGestureRecognized={(key) => handleGestureRecognized(key, 'camera')}
+            />
+          </ErrorBoundary>
         </div>
       )}
 
-      {/* Tab B Content: Voice / Text to 3D Hands */}
+      {/* Tab B Content: Voice / Text to Sign */}
       {activeTab === 'voice-to-hands' && (
-        <div role="tabpanel" aria-label="Voice and Text to 3D Hands" className="space-y-6">
+        <div role="tabpanel" aria-label="Voice and Text to Sign" className="space-y-6">
           <Card padding="lg" className="space-y-5">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="max-w-2xl space-y-1">
                 <span className="text-xs font-semibold text-[#0E7490] dark:text-[#43D9E9] uppercase tracking-wider">
-                  Speech & Text to 3D Sign
+                  Speech & Text to EthSL Sign Guide
                 </span>
                 <h3 className="font-heading text-xl font-bold text-slate-900 dark:text-[#F4F7FB]">
-                  Translate English or Amharic Speech into 3D Hand Gestures
+                  Translate English or Amharic Speech into 2D Sign Poses
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-[#A0AEC0]">
-                  Speak into your microphone or enter a phrase below to articulate the matching EthSL sign or scenario sequence on the 3D hand rig.
+                  Speak into your microphone or enter a phrase below to inspect the matching EthSL 21-point handshape or scenario sequence.
                 </p>
               </div>
 
@@ -631,7 +659,7 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
 
             <form onSubmit={handleFormSubmit} className="flex flex-col sm:flex-row gap-2.5">
               <SearchInput
-                aria-label="Enter phrase or Amharic word to animate in 3D"
+                aria-label="Enter phrase or Amharic word to translate into a sign pose"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onClear={() => setInputText('')}
@@ -728,7 +756,7 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
                             type="button"
                             onClick={() => handleSelectScenarioSequence(s)}
                             aria-pressed={isSelected}
-                            className={`w-full text-left p-2.5 rounded-[10px] text-xs transition-colors flex items-center justify-between gap-2 border cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                            className={`w-full min-h-[44px] text-left p-3 rounded-[10px] text-xs transition-[transform,border-color,background-color,box-shadow] duration-200 hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 hover:shadow-xs flex items-center justify-between gap-2 border cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                               isSelected
                                 ? group.activeClass
                                 : 'bg-white dark:bg-[#101C2C] text-slate-700 dark:text-[#F4F7FB] border-slate-200 dark:border-[#253448] hover:border-[#0E7490]/50 dark:hover:border-[#43D9E9]/50'
@@ -789,77 +817,137 @@ export const TwoWayWorkspace: React.FC<TwoWayWorkspaceProps> = ({
             </Alert>
           </Card>
 
-          {/* 3D Hand Model Execution in Mode B */}
+          {/* 2D Sign Guide Execution in Mode B */}
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h4 className="font-heading text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-[#A0AEC0] flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-[#0E7490] dark:text-[#43D9E9]" aria-hidden="true" />
-                Interactive 3D Hand Execution
+                2D Anatomical Sign &amp; Sequence Visualizer
               </h4>
-              {matchedDef && (
-                <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {matchedDef && (
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => speechService.speak(displayedDef, 'en-US')}
+                      leftIcon={<Volume2 className="w-3.5 h-3.5 text-[#0E7490] dark:text-[#43D9E9]" />}
+                    >
+                      Speak (EN)
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => speechService.speak(displayedDef, 'am-ET')}
+                      leftIcon={<Volume2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />}
+                      className="font-ethiopic"
+                    >
+                      አማርኛ አሰማ (AM)
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setActiveSequenceStepIndex(0);
+                        onGestureChange(displayedDef.id);
+                      }}
+                      leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+                    >
+                      Replay Pose
+                    </Button>
+                  </>
+                )}
+                {onOpenTrackingStudio && (
                   <Button
-                    variant="secondary"
+                    variant="primary"
                     size="sm"
-                    onClick={() => speechService.speak(matchedDef, 'en-US')}
-                    leftIcon={<Volume2 className="w-3.5 h-3.5 text-[#0E7490] dark:text-[#43D9E9]" />}
+                    onClick={onOpenTrackingStudio}
+                    leftIcon={<ScanFace className="w-3.5 h-3.5" />}
                   >
-                    Speak (EN)
+                    Open 2D Tracking Studio
                   </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => speechService.speak(matchedDef, 'am-ET')}
-                    leftIcon={<Volume2 className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />}
-                    className="font-ethiopic"
-                  >
-                    አማርኛ አሰማ (AM)
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => onGestureChange(matchedDef.id)}
-                    leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
-                  >
-                    Replay Pose
-                  </Button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
-            <ThreeDHandViewer
-              activeGestureKey={activeGestureKey}
-              onSelectGesture={(key) => onGestureChange(key)}
-              sequence={selectedSequence}
-              liveLandmarks={liveLandmarks}
-              handedness={liveHandedness}
-              isSimulated={true}
-            />
+            <Card padding="md" className="grid md:grid-cols-12 gap-5 items-center">
+              <div className="md:col-span-5">
+                <HandPoseDiagram gestureKey={displayedSignKey} variant="stage" className="max-h-[250px]" />
+              </div>
 
-            {matchedDef && (
-              <Card padding="sm" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-2xl shrink-0" aria-hidden="true">{matchedDef.emoji}</span>
-                  <div className="min-w-0">
-                    <div className="font-semibold text-slate-900 dark:text-[#F4F7FB] text-sm flex flex-wrap items-center gap-2">
-                      <span>{matchedDef.labelEn}</span>
-                      <span className="text-[#0E7490] dark:text-[#43D9E9] font-ethiopic font-bold">
-                        · {matchedDef.labelAm}
+              <div className="md:col-span-7 space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-3xl shrink-0" aria-hidden="true">
+                      {displayedDef.emoji}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="font-heading text-xl font-bold text-slate-900 dark:text-[#F4F7FB] truncate">
+                        {displayedDef.labelEn}
+                      </div>
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-lg font-bold font-ethiopic text-[#0E7490] dark:text-[#43D9E9]">
+                          {displayedDef.labelAm}
+                        </span>
+                        <span className="text-xs font-mono text-slate-600 dark:text-[#A0AEC0]">
+                          /{displayedDef.phoneticAm}/
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <StatusBadge tone="info" className="font-mono shrink-0">
+                    21-PT POSE: {displayedDef.id.toUpperCase()}
+                  </StatusBadge>
+                </div>
+
+                <div className="p-3.5 rounded-[12px] bg-slate-50 dark:bg-[#172438] border border-slate-200 dark:border-[#253448] space-y-1">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:text-[#A0AEC0] block">
+                    Handshape &amp; Movement Instruction
+                  </span>
+                  <p className="text-xs sm:text-sm text-slate-800 dark:text-[#F4F7FB] leading-relaxed">
+                    {displayedDef.poseInstructions}
+                  </p>
+                </div>
+
+                {selectedSequence && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-[#A0AEC0]">
+                      <span className="font-semibold text-slate-800 dark:text-[#F4F7FB]">
+                        Sequence: {selectedSequence.titleEn}
                       </span>
-                      <span className="text-slate-600 dark:text-[#A0AEC0] text-xs">
-                        ("{matchedDef.phoneticAm}")
+                      <span className="font-mono tabular-nums">
+                        Step {activeSequenceStepIndex + 1}/{selectedSequence.steps.length}
                       </span>
                     </div>
-                    <p className="text-slate-600 dark:text-[#A0AEC0] mt-0.5 leading-relaxed">
-                      {matchedDef.poseInstructions}
-                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedSequence.steps.map((step, idx) => {
+                        const isStepActive = idx === activeSequenceStepIndex;
+                        return (
+                          <button
+                            key={step.id}
+                            type="button"
+                            onClick={() => {
+                              setActiveSequenceStepIndex(idx);
+                              if (step.signKey !== 'neutral') {
+                                onGestureChange(step.signKey);
+                              }
+                            }}
+                            className={`px-2.5 py-1.5 rounded-[8px] text-xs font-medium border transition-colors cursor-pointer flex items-center gap-1.5 ${
+                              isStepActive
+                                ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18] border-transparent font-semibold'
+                                : 'bg-slate-50 dark:bg-[#172438] text-slate-700 dark:text-[#A0AEC0] border-slate-200 dark:border-[#253448]'
+                            }`}
+                          >
+                            <span aria-hidden="true">{step.emoji}</span>
+                            <span>{step.glossEn}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-                <StatusBadge tone="info">
-                  <span className="font-mono">POSE: {matchedDef.id.toUpperCase()}</span>
-                </StatusBadge>
-              </Card>
-            )}
+                )}
+              </div>
+            </Card>
           </div>
         </div>
       )}

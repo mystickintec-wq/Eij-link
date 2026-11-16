@@ -239,7 +239,7 @@ export const CaptionsWorkspace: React.FC = () => {
                 type="button"
                 onClick={() => handleLanguageChange('en-US')}
                 aria-pressed={selectedLanguage === 'en-US'}
-                className={`px-3 py-1.5 rounded-[7px] text-xs font-medium cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                className={`min-h-[40px] sm:min-h-0 px-3 py-1.5 rounded-[7px] text-xs font-medium cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                   selectedLanguage === 'en-US'
                     ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18] font-semibold'
                     : 'text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB]'
@@ -251,7 +251,7 @@ export const CaptionsWorkspace: React.FC = () => {
                 type="button"
                 onClick={() => handleLanguageChange('am-ET')}
                 aria-pressed={selectedLanguage === 'am-ET'}
-                className={`px-3 py-1.5 rounded-[7px] text-xs font-medium cursor-pointer transition-colors font-ethiopic focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                className={`min-h-[40px] sm:min-h-0 px-3 py-1.5 rounded-[7px] text-xs font-medium cursor-pointer transition-colors font-ethiopic focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                   selectedLanguage === 'am-ET'
                     ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18] font-semibold'
                     : 'text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB]'
@@ -267,7 +267,7 @@ export const CaptionsWorkspace: React.FC = () => {
           <div className="flex items-center gap-2 font-semibold text-slate-700 dark:text-[#F4F7FB]">
             <Radio className="w-4 h-4 text-[#4F46E5] dark:text-[#8585FF]" aria-hidden="true" />
             <span>Engine:</span>
-            <div className="flex bg-slate-100 dark:bg-[#172438] rounded-[10px] p-1 border border-slate-200 dark:border-[#253448]">
+            <div className="flex flex-wrap bg-slate-100 dark:bg-[#172438] rounded-[10px] p-1 border border-slate-200 dark:border-[#253448]">
               {[
                 { id: 'auto' as const, label: 'Auto (Hybrid)' },
                 { id: 'web-speech' as const, label: 'Web Speech' },
@@ -278,7 +278,7 @@ export const CaptionsWorkspace: React.FC = () => {
                   type="button"
                   onClick={() => handleEngineChange(eng.id)}
                   aria-pressed={enginePreference === eng.id}
-                  className={`px-2.5 py-1.5 rounded-[7px] text-xs cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                  className={`min-h-[40px] sm:min-h-0 px-2.5 py-1.5 rounded-[7px] text-xs cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                     enginePreference === eng.id
                       ? 'bg-white dark:bg-[#101C2C] text-[#0E7490] dark:text-[#43D9E9] border border-slate-300/80 dark:border-[#43D9E9]/35 font-semibold shadow-xs'
                       : 'border border-transparent font-medium text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB]'
@@ -313,7 +313,7 @@ export const CaptionsWorkspace: React.FC = () => {
         } ${dyslexicFont ? 'tracking-wide font-mono' : ''}`}
       >
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-[#253448] pb-4">
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
             <span className="font-semibold text-slate-600 dark:text-[#A0AEC0]">Display Size:</span>
             {(['normal', 'large', 'xlarge'] as const).map((size) => (
               <button
@@ -321,7 +321,7 @@ export const CaptionsWorkspace: React.FC = () => {
                 type="button"
                 onClick={() => setTextSize(size)}
                 aria-pressed={textSize === size}
-                className={`min-h-[34px] px-3 py-1 rounded-[8px] text-xs font-semibold capitalize cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
+                className={`min-h-[42px] sm:min-h-[34px] px-3 py-1 rounded-[8px] text-xs font-semibold capitalize cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                   textSize === size
                     ? 'bg-[#0E7490] dark:bg-[#43D9E9] text-white dark:text-[#080D18]'
                     : 'bg-slate-100 dark:bg-[#172438] text-slate-700 dark:text-[#A0AEC0]'
@@ -332,7 +332,7 @@ export const CaptionsWorkspace: React.FC = () => {
             ))}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="secondary"
               size="sm"
@@ -346,7 +346,7 @@ export const CaptionsWorkspace: React.FC = () => {
               type="button"
               onClick={() => setHighContrast(!highContrast)}
               aria-pressed={highContrast}
-              className={`h-9 px-3.5 rounded-[8px] text-xs font-semibold border flex items-center gap-1.5 transition-colors cursor-pointer ${
+              className={`min-h-[42px] sm:min-h-0 sm:h-9 px-3.5 rounded-[8px] text-xs font-semibold border flex items-center gap-1.5 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
                 highContrast
                   ? 'bg-yellow-400 text-black border-yellow-300 font-bold'
                   : 'bg-slate-100 dark:bg-[#172438] border-slate-200 dark:border-[#253448] text-slate-700 dark:text-[#F4F7FB]'

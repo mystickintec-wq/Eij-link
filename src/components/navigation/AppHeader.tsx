@@ -40,7 +40,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   voiceControl,
 }) => {
   return (
-    <header className="sticky top-0 z-30 h-16 bg-white/95 dark:bg-[#101C2C]/95 backdrop-blur-md border-b border-slate-200 dark:border-[#253448] px-2.5 sm:px-5 flex items-center justify-between gap-2 sm:gap-3">
+    <header className="sticky top-0 z-30 h-16 bg-white/82 dark:bg-[#0B1424]/88 backdrop-blur-xl border-b border-cyan-900/10 dark:border-[#253448] shadow-[0_4px_20px_-12px_rgba(14,116,144,0.14)] dark:shadow-none px-2.5 sm:px-5 flex items-center justify-between gap-2 sm:gap-3">
       {/* Left: Drawer / Sidebar Toggles, Mobile Brand & Breadcrumbs */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         {/* Mobile Hamburger Toggle */}
@@ -50,7 +50,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           aria-expanded={isMobileDrawerOpen}
           aria-controls="mobile-navigation-drawer"
           aria-label={language === 'am' ? 'የአሰሳ ምናሌን ክፈት' : 'Open navigation menu'}
-          className="md:hidden w-10 h-10 rounded-[10px] bg-slate-100 dark:bg-[#172438] hover:bg-slate-200 dark:hover:bg-[#1E2E46] border border-slate-200 dark:border-[#253448] text-slate-700 dark:text-[#F4F7FB] flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] cursor-pointer shrink-0"
+          className="md:hidden w-10 h-10 rounded-[10px] bg-sky-50/90 dark:bg-[#172438] hover:bg-cyan-100/80 dark:hover:bg-[#1E2E46] border border-cyan-200/80 dark:border-[#253448] text-slate-700 dark:text-[#F4F7FB] flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] cursor-pointer shrink-0"
         >
           <Menu className="w-5 h-5" aria-hidden="true" />
         </button>
@@ -70,7 +70,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               : 'Collapse sidebar'
           }
           title={isSidebarCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
-          className="hidden md:inline-flex w-9 h-9 rounded-[10px] bg-slate-100 dark:bg-[#172438] hover:bg-slate-200 dark:hover:bg-[#1E2E46] border border-slate-200 dark:border-[#253448] text-slate-700 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F4F7FB] items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] cursor-pointer shrink-0"
+          className="hidden md:inline-flex w-9 h-9 rounded-[10px] bg-sky-50/90 dark:bg-[#172438] hover:bg-cyan-100/75 dark:hover:bg-[#1E2E46] border border-slate-200/90 dark:border-[#253448] text-slate-700 dark:text-[#A0AEC0] hover:text-[#0E7490] dark:hover:text-[#F4F7FB] items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] cursor-pointer shrink-0"
         >
           <PanelLeft className="w-4 h-4" aria-hidden="true" />
         </button>
@@ -116,7 +116,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           onClick={onOpenHelp}
           aria-label={language === 'am' ? 'እርዳታ እና ድጋፍ' : 'Help & Support'}
           title={language === 'am' ? 'እርዳታ እና ድጋፍ' : 'Help & Support'}
-          className="hidden sm:flex w-9 h-9 rounded-[10px] bg-slate-100 dark:bg-[#172438] hover:bg-slate-200 dark:hover:bg-[#1E2E46] border border-slate-200 dark:border-[#253448] text-slate-700 dark:text-[#A0AEC0] hover:text-[#0E7490] dark:hover:text-[#43D9E9] items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] cursor-pointer"
+          className="hidden sm:flex w-9 h-9 rounded-[10px] bg-sky-50/90 dark:bg-[#172438] hover:bg-cyan-100/75 dark:hover:bg-[#1E2E46] border border-slate-200/90 dark:border-[#253448] text-slate-700 dark:text-[#A0AEC0] hover:text-[#0E7490] dark:hover:text-[#43D9E9] items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] cursor-pointer"
         >
           <HelpCircle className="w-4 h-4" aria-hidden="true" />
         </button>
@@ -134,7 +134,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               : 'Switch to dark mode'
           }
           title={currentTheme === 'dark' ? 'Light mode (Ctrl+M)' : 'Dark mode (Ctrl+M)'}
-          className="w-9 h-9 rounded-[10px] bg-slate-100 dark:bg-[#172438] hover:bg-slate-200 dark:hover:bg-[#1E2E46] border border-slate-200 dark:border-[#253448] text-slate-700 dark:text-[#A0AEC0] hover:text-amber-700 dark:hover:text-[#43D9E9] flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] cursor-pointer"
+          className="w-9 h-9 rounded-[10px] bg-sky-50/90 dark:bg-[#172438] hover:bg-indigo-100/80 dark:hover:bg-[#1E2E46] border border-slate-200/90 dark:border-[#253448] text-[#4F46E5] dark:text-[#A0AEC0] hover:text-indigo-700 dark:hover:text-[#43D9E9] flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] cursor-pointer"
         >
           {currentTheme === 'dark' ? (
             <Sun className="w-4 h-4" aria-hidden="true" />

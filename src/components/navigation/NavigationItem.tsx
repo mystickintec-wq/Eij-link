@@ -35,15 +35,15 @@ export const NavigationItem: React.FC<NavigationItemProps> = ({
           isMobile ? 'min-h-[44px] px-3.5 py-2.5 gap-3' : isCollapsed ? 'min-h-[40px] px-2 py-2 justify-center' : 'min-h-[40px] px-3 py-2 gap-3'
         } ${
           isActive
-            ? 'bg-cyan-50/90 dark:bg-[#172438] text-[#0E7490] dark:text-[#43D9E9] font-semibold'
-            : 'text-slate-700 dark:text-[#A0AEC0] hover:bg-slate-100 dark:hover:bg-[#172438]/70 hover:text-slate-900 dark:hover:text-[#F4F7FB] font-medium'
+            ? 'bg-gradient-to-r from-cyan-500/14 via-sky-500/10 to-indigo-500/8 dark:bg-none dark:bg-[#172438] text-[#0E7490] dark:text-[#43D9E9] font-semibold border border-cyan-500/20 dark:border-transparent'
+            : 'text-slate-700 dark:text-[#A0AEC0] hover:bg-sky-50/90 dark:hover:bg-[#172438]/70 hover:text-[#0E7490] dark:hover:text-[#F4F7FB] font-medium border border-transparent'
         }`}
       >
         {/* Subtle Linear/Carbon active rail indicator */}
         {isActive && (
           <span
             aria-hidden="true"
-            className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-[#0E7490] dark:bg-[#43D9E9]"
+            className="absolute left-0 top-2 bottom-2 w-[3.5px] rounded-r-full bg-gradient-to-b from-[#0891B2] to-[#4F46E5] dark:bg-none dark:bg-[#43D9E9]"
           />
         )}
 

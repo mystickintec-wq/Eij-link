@@ -33,7 +33,7 @@ const MODULE_ACCENT_MAP: Record<ActiveModule, ThemeAccent> = {
   translate: 'violet',
   assistant: 'amber',
   documents: 'rose',
-  'hand-studio': 'cyan',
+  'tracking-studio': 'cyan',
   vocabulary: 'violet',
   settings: 'cyan',
 };

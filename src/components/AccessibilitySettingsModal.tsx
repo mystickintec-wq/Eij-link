@@ -77,6 +77,7 @@ export const AccessibilitySettingsModal: React.FC<AccessibilitySettingsModalProp
       speechPitch: 1.0,
       preferredLanguage: 'en-US',
       disable3D: false,
+      cursorEffects: true,
       voiceNavEnabled: true,
       voiceFeedback: true,
     });
@@ -88,7 +89,7 @@ export const AccessibilitySettingsModal: React.FC<AccessibilitySettingsModalProp
       isOpen={isOpen}
       onClose={onClose}
       title="Accessibility & Preferences"
-      description="Personalize font scale, contrast, audio feedback, and 3D performance."
+      description="Personalize font scale, contrast, audio feedback, and ambient motion performance."
       icon={<SlidersHorizontal className="w-5 h-5" />}
       footer={
         <>
@@ -157,19 +158,27 @@ export const AccessibilitySettingsModal: React.FC<AccessibilitySettingsModalProp
           <div className="grid sm:grid-cols-2 gap-3">
             <SettingSwitchRow
               id="switch-disable-3d"
-              label="Disable 3D Motion (Static 2D)"
-              description="Reduce motion & save battery"
+              label="Disable Ambient 3D Particles"
+              description="Reduce background motion & save battery"
               checked={!!settings.disable3D}
               onChange={(checked) => onUpdateSettings({ disable3D: checked })}
             />
             <SettingSwitchRow
-              id="switch-voice-feedback"
-              label="Voice Spoken Feedback"
-              description="Audibly speak confirmations"
-              checked={settings.voiceFeedback !== false}
-              onChange={(checked) => onUpdateSettings({ voiceFeedback: checked })}
+              id="switch-cursor-effects"
+              label="Interactive Cursor Field"
+              description="Responsive ring wave on pointer move"
+              checked={settings.cursorEffects !== false && !settings.disable3D}
+              onChange={(checked) => onUpdateSettings({ cursorEffects: checked })}
             />
           </div>
+
+          <SettingSwitchRow
+            id="switch-voice-feedback"
+            label="Voice Spoken Feedback"
+            description="Audibly speak voice navigation confirmations"
+            checked={settings.voiceFeedback !== false}
+            onChange={(checked) => onUpdateSettings({ voiceFeedback: checked })}
+          />
         </div>
 
         {/* 2. Text-to-Speech & Audio Controls */}

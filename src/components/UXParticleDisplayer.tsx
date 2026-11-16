@@ -690,9 +690,14 @@ export const UXParticleDisplayer: React.FC<UXParticleDisplayerProps> = ({
           )}
 
           {/* Level Badge */}
-          <div className="flex items-center gap-1 px-2 py-1 rounded-[8px] bg-slate-100 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-[11px] font-mono text-slate-700 dark:text-[#22D3EE]">
-            <span className={`w-1.5 h-1.5 rounded-full ${currentAudioLevel > 0 ? 'bg-[#22D3EE] animate-pulse' : 'bg-slate-400'}`} />
-            <span>{currentAudioLevel}%</span>
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-[8px] bg-slate-100 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-[11px] font-mono text-slate-700 dark:text-[#22D3EE]">
+            <Radio
+              className={`w-3 h-3 shrink-0 ${
+                currentAudioLevel > 0 ? 'text-[#0E7490] dark:text-[#22D3EE]' : 'text-slate-500 dark:text-slate-400'
+              }`}
+              aria-hidden="true"
+            />
+            <span className="tabular-nums">{currentAudioLevel}%</span>
           </div>
 
           {/* Fullscreen Expand Trigger */}
@@ -700,10 +705,10 @@ export const UXParticleDisplayer: React.FC<UXParticleDisplayerProps> = ({
             type="button"
             onClick={() => setIsFullscreen(!isFullscreen)}
             aria-label="Expand 3D Particle Viewport"
-            className="w-8 h-8 rounded-[8px] bg-slate-100 dark:bg-[#121C2D] text-slate-600 dark:text-[#B6C2D2] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] hover:text-slate-900 dark:hover:text-[#F8FAFC] flex items-center justify-center transition-colors cursor-pointer"
+            className="w-9 h-9 rounded-[8px] bg-slate-100 dark:bg-[#121C2D] text-slate-700 dark:text-[#B6C2D2] border border-slate-200 dark:border-[rgba(148,163,184,0.15)] hover:text-slate-900 dark:hover:text-[#F8FAFC] flex items-center justify-center transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9]"
             title="Expand Particle Displayer"
           >
-            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" aria-hidden="true" /> : <Maximize2 className="w-3.5 h-3.5" aria-hidden="true" />}
           </button>
         </div>
       </div>
@@ -713,37 +718,40 @@ export const UXParticleDisplayer: React.FC<UXParticleDisplayerProps> = ({
         <button
           type="button"
           onClick={() => setDisplayMode('spherical-eq')}
-          className={`px-2.5 py-1 rounded-[6px] text-[10px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer border whitespace-nowrap ${
+          aria-pressed={displayMode === 'spherical-eq'}
+          className={`px-2.5 py-1.5 rounded-[7px] text-[10px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer border whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
             displayMode === 'spherical-eq'
-              ? 'bg-[#22D3EE]/15 text-[#22D3EE] border-[#22D3EE]/40 font-semibold'
-              : 'bg-transparent text-slate-500 dark:text-[#8493A8] border-transparent hover:text-slate-800 dark:hover:text-[#F8FAFC]'
+              ? 'bg-[#0E7490]/12 dark:bg-[#22D3EE]/15 text-[#0E7490] dark:text-[#22D3EE] border-[#0E7490]/40 dark:border-[#22D3EE]/40 font-semibold'
+              : 'bg-transparent text-slate-600 dark:text-[#A0AEC0] border-transparent hover:text-slate-900 dark:hover:text-[#F8FAFC]'
           }`}
         >
-          <CircleDot className="w-3 h-3" /> Spherical Equalizer
+          <CircleDot className="w-3 h-3" aria-hidden="true" /> Spherical Equalizer
         </button>
 
         <button
           type="button"
           onClick={() => setDisplayMode('neural-network')}
-          className={`px-2.5 py-1 rounded-[6px] text-[10px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer border whitespace-nowrap ${
+          aria-pressed={displayMode === 'neural-network'}
+          className={`px-2.5 py-1.5 rounded-[7px] text-[10px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer border whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
             displayMode === 'neural-network'
-              ? 'bg-[#22D3EE]/15 text-[#22D3EE] border-[#22D3EE]/40 font-semibold'
-              : 'bg-transparent text-slate-500 dark:text-[#8493A8] border-transparent hover:text-slate-800 dark:hover:text-[#F8FAFC]'
+              ? 'bg-[#0E7490]/12 dark:bg-[#22D3EE]/15 text-[#0E7490] dark:text-[#22D3EE] border-[#0E7490]/40 dark:border-[#22D3EE]/40 font-semibold'
+              : 'bg-transparent text-slate-600 dark:text-[#A0AEC0] border-transparent hover:text-slate-900 dark:hover:text-[#F8FAFC]'
           }`}
         >
-          <Zap className="w-3 h-3" /> Neural Network
+          <Zap className="w-3 h-3" aria-hidden="true" /> Neural Network
         </button>
 
         <button
           type="button"
           onClick={() => setDisplayMode('acoustic-waves')}
-          className={`px-2.5 py-1 rounded-[6px] text-[10px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer border whitespace-nowrap ${
+          aria-pressed={displayMode === 'acoustic-waves'}
+          className={`px-2.5 py-1.5 rounded-[7px] text-[10px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer border whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] ${
             displayMode === 'acoustic-waves'
-              ? 'bg-[#22D3EE]/15 text-[#22D3EE] border-[#22D3EE]/40 font-semibold'
-              : 'bg-transparent text-slate-500 dark:text-[#8493A8] border-transparent hover:text-slate-800 dark:hover:text-[#F8FAFC]'
+              ? 'bg-[#0E7490]/12 dark:bg-[#22D3EE]/15 text-[#0E7490] dark:text-[#22D3EE] border-[#0E7490]/40 dark:border-[#22D3EE]/40 font-semibold'
+              : 'bg-transparent text-slate-600 dark:text-[#A0AEC0] border-transparent hover:text-slate-900 dark:hover:text-[#F8FAFC]'
           }`}
         >
-          <Waves className="w-3 h-3" /> Acoustic Waves
+          <Waves className="w-3 h-3" aria-hidden="true" /> Acoustic Waves
         </button>
       </div>
 
@@ -778,7 +786,7 @@ export const UXParticleDisplayer: React.FC<UXParticleDisplayerProps> = ({
             </div>
             <div>
               <p className="text-xs font-semibold text-slate-800 dark:text-[#F8FAFC]">Accessible 2D Equalizer Active</p>
-              <p className="text-[11px] text-slate-500 dark:text-[#8493A8]">3D WebGL motion paused per reduced-motion preference.</p>
+              <p className="text-[11px] text-slate-600 dark:text-[#A0AEC0]">3D WebGL motion paused per reduced-motion preference.</p>
             </div>
           </div>
         )}
@@ -786,11 +794,11 @@ export const UXParticleDisplayer: React.FC<UXParticleDisplayerProps> = ({
         {/* Live Mic Frequency Snapshot Bar (Overlay) */}
         {isLiveMicActive && (
           <div className="absolute top-2 left-3 flex items-end gap-1 px-2.5 py-1.5 rounded-[8px] bg-white/80 dark:bg-[#080D18]/85 backdrop-blur-md border border-slate-200 dark:border-[rgba(148,163,184,0.15)] shadow-xs pointer-events-none z-10">
-            <span className="text-[9px] font-mono text-[#22D3EE] uppercase mr-1">EQ</span>
+            <span className="text-[9px] font-mono text-[#0E7490] dark:text-[#22D3EE] uppercase mr-1">EQ</span>
             {micFrequencyBins.map((binVal, idx) => (
               <div
                 key={idx}
-                className="w-1.5 bg-[#22D3EE] rounded-t-xs transition-all duration-75"
+                className="w-1.5 bg-[#0E7490] dark:bg-[#22D3EE] rounded-t-xs transition-all duration-75"
                 style={{ height: `${Math.max(4, (binVal / 100) * 16)}px` }}
               />
             ))}
@@ -799,7 +807,7 @@ export const UXParticleDisplayer: React.FC<UXParticleDisplayerProps> = ({
 
         {/* Center Hover Hint */}
         {isHovered && !disable3D && (
-          <div className="absolute bottom-2 px-2.5 py-1 rounded-[8px] bg-slate-900/90 text-slate-300 border border-slate-800 text-[10px] pointer-events-none transition-opacity">
+          <div className="absolute bottom-2 px-2.5 py-1 rounded-[8px] bg-slate-900/90 text-slate-200 border border-slate-800 text-[10px] pointer-events-none transition-opacity">
             Drag to rotate in 3D • Move cursor to swirl particles
           </div>
         )}
@@ -808,19 +816,19 @@ export const UXParticleDisplayer: React.FC<UXParticleDisplayerProps> = ({
       {/* Status Banner */}
       <div className="p-3 rounded-[10px] bg-slate-50 dark:bg-[#121C2D] border border-slate-200 dark:border-[rgba(148,163,184,0.12)] text-xs text-slate-700 dark:text-[#B6C2D2] flex items-center gap-2.5 z-10 mb-3">
         {internalState === 'listening' ? (
-          <Mic className="w-4 h-4 text-[#22D3EE] shrink-0 animate-pulse" />
+          <Mic className="w-4 h-4 text-[#0E7490] dark:text-[#22D3EE] shrink-0" aria-hidden="true" />
         ) : internalState === 'processing' ? (
-          <Bot className="w-4 h-4 text-[#FBBF24] shrink-0 animate-spin" />
+          <Bot className="w-4 h-4 text-amber-700 dark:text-[#FBBF24] shrink-0 animate-spin motion-reduce:animate-none" aria-hidden="true" />
         ) : internalState === 'speaking' ? (
-          <Volume2 className="w-4 h-4 text-[#38bdf8] shrink-0" />
+          <Volume2 className="w-4 h-4 text-sky-700 dark:text-[#38bdf8] shrink-0" aria-hidden="true" />
         ) : internalState === 'translating' ? (
-          <Languages className="w-4 h-4 text-[#a855f7] shrink-0" />
+          <Languages className="w-4 h-4 text-purple-700 dark:text-[#a855f7] shrink-0" aria-hidden="true" />
         ) : internalState === 'success' ? (
-          <CheckCircle2 className="w-4 h-4 text-[#10b981] shrink-0" />
+          <CheckCircle2 className="w-4 h-4 text-emerald-700 dark:text-[#10b981] shrink-0" aria-hidden="true" />
         ) : internalState === 'error' ? (
-          <AlertCircle className="w-4 h-4 text-[#f43f5e] shrink-0" />
+          <AlertCircle className="w-4 h-4 text-rose-700 dark:text-[#f43f5e] shrink-0" aria-hidden="true" />
         ) : (
-          <Sparkles className="w-4 h-4 text-[#22D3EE] shrink-0" />
+          <Sparkles className="w-4 h-4 text-[#0E7490] dark:text-[#22D3EE] shrink-0" aria-hidden="true" />
         )}
         <span className="text-[11px] font-medium leading-tight truncate">
           {getStatusLabel()}
@@ -830,13 +838,13 @@ export const UXParticleDisplayer: React.FC<UXParticleDisplayerProps> = ({
       {/* Interactive State Preview Controls */}
       {showStateControls && (
         <div className="space-y-1.5 pt-2 border-t border-slate-200 dark:border-[rgba(148,163,184,0.12)] z-10">
-          <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-[#8493A8] font-semibold uppercase tracking-wider font-heading">
+          <div className="flex items-center justify-between text-[10px] text-slate-600 dark:text-[#A0AEC0] font-semibold uppercase tracking-wider font-heading">
             <span>Visualizer State Reactions</span>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setParticleDensity((prev) => prev === 'normal' ? 'dense' : prev === 'dense' ? 'ultra' : 'normal')}
-                className="text-[10px] text-slate-500 hover:text-slate-800 dark:hover:text-[#F8FAFC] flex items-center gap-1 cursor-pointer"
+                className="text-[10px] text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F8FAFC] flex items-center gap-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] rounded px-1"
                 title="Toggle Particle Density"
               >
                 <span>Density: {particleDensity}</span>
@@ -844,10 +852,10 @@ export const UXParticleDisplayer: React.FC<UXParticleDisplayerProps> = ({
               <button
                 type="button"
                 onClick={() => handleSelectState('idle')}
-                className="text-slate-500 hover:text-slate-800 dark:hover:text-[#F8FAFC] flex items-center gap-1 cursor-pointer"
+                className="text-slate-600 dark:text-[#A0AEC0] hover:text-slate-900 dark:hover:text-[#F8FAFC] flex items-center gap-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E7490] dark:focus-visible:ring-[#43D9E9] rounded px-1"
                 title="Reset to Idle"
               >
-                <RotateCcw className="w-3 h-3" /> Reset
+                <RotateCcw className="w-3 h-3" aria-hidden="true" /> Reset
               </button>
             </div>
           </div>
